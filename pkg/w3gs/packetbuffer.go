@@ -2,7 +2,6 @@ package w3gs
 
 import (
 	"bytes"
-	"encoding/binary"
 	"errors"
 	"net"
 )
@@ -51,7 +50,7 @@ func (b *packetBuffer) writeBool(v bool) {
 
 func (b *packetBuffer) writeIP(v net.IP) error {
 	if ip4 := v.To4(); ip4 != nil {
-		b.writeUInt32(binary.BigEndian.Uint32(ip4))
+		b.writeBlob(ip4)
 		return nil
 	}
 
@@ -90,7 +89,7 @@ func (b *packetBuffer) writeBoolAt(p int, v bool) {
 
 func (b *packetBuffer) writeIPAt(p int, v net.IP) error {
 	if ip4 := v.To4(); ip4 != nil {
-		b.writeUInt32At(p, binary.BigEndian.Uint32(ip4))
+		b.writeBlobAt(p, ip4)
 		return nil
 	}
 
@@ -142,13 +141,10 @@ func (b *packetBuffer) readBool() bool {
 }
 
 func (b *packetBuffer) readIP() net.IP {
-	var ip = b.readUInt32()
-	if ip == 0 {
+	var res = net.IP(b.readBlob(net.IPv4len))
+	if res.Equal(net.IPv4zero) {
 		return nil
 	}
-
-	var res = make(net.IP, net.IPv4len)
-	binary.BigEndian.PutUint32(res, ip)
 	return res
 }
 

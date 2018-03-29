@@ -18,19 +18,21 @@ func TestMarshalPacket(t *testing.T) {
 		},
 		&SlotInfoJoin{},
 		&SlotInfoJoin{
-			Slots: []SlotData{SlotData{
-				1, 2, 3, true, 5, 6, 7, 8, 9,
-			}},
-			RandomSeed:   10,
-			SlotLayout:   LayoutMelee,
-			NumPlayers:   12,
+			SlotInfo: SlotInfo{
+				Slots: []SlotData{SlotData{
+					1, 2, 3, true, 5, 6, 7, 8, 9,
+				}},
+				RandomSeed: 10,
+				SlotLayout: LayoutMelee,
+				NumPlayers: 12,
+			},
 			PlayerID:     13,
 			ExternalPort: 14,
 			ExternalIP:   net.IP{15, 16, 17, 18},
 		},
 		&RejectJoin{},
 		&RejectJoin{
-			Reason: LeaveWon,
+			Reason: RejectJoinWrongPass,
 		},
 		&PlayerInfo{},
 		&PlayerInfo{
@@ -140,14 +142,19 @@ func TestMarshalPacket(t *testing.T) {
 		&DropReq{},
 		&SearchGame{},
 		&SearchGame{
-			TFT:     true,
-			Version: 666,
+			GameVersion: GameVersion{
+				TFT:     true,
+				Version: 666,
+			},
 		},
 		&GameInfo{},
 		&GameInfo{
-			TFT:               true,
-			HostCounter:       1,
-			PlayersInGame:     2,
+			GameVersion: GameVersion{
+				TFT:     true,
+				Version: 1,
+			},
+			HostCounter:       2,
+			EntryKey:          112233,
 			GameName:          "game1",
 			StatString:        "xxxxx",
 			SlotsTotal:        24,
@@ -158,9 +165,11 @@ func TestMarshalPacket(t *testing.T) {
 		},
 		&CreateGame{},
 		&CreateGame{
-			TFT:           true,
-			HostCounter:   2,
-			PlayersInGame: 3,
+			GameVersion: GameVersion{
+				TFT:     true,
+				Version: 2,
+			},
+			HostCounter: 3,
 		},
 		&RefreshGame{},
 		&RefreshGame{
@@ -191,7 +200,6 @@ func TestMarshalPacket(t *testing.T) {
 			FileSize:          2,
 			MapInfo:           3,
 			FileCrcEncryption: 4,
-			FileSha1Hash:      5,
 		},
 		&StartDownload{},
 		&StartDownload{
@@ -277,19 +285,21 @@ func TestUnmarshalPacket(t *testing.T) {
 func BenchmarkMarshalBinary(b *testing.B) {
 	for n := 0; n < b.N; n++ {
 		var pkt = SlotInfoJoin{
-			Slots: []SlotData{
-				SlotData{0, 0, 0, false, 0, 0, 0, 0, 0},
-				SlotData{1, 0, 0, true, 1, 1, 0, 0, 0},
-				SlotData{2, 0, 0, false, 2, 2, 0, 0, 0},
-				SlotData{3, 0, 0, true, 3, 3, 0, 0, 0},
-				SlotData{4, 0, 0, false, 4, 4, 0, 0, 0},
-				SlotData{5, 0, 0, true, 5, 5, 0, 0, 0},
-				SlotData{6, 0, 0, false, 6, 6, 0, 0, 0},
-				SlotData{7, 0, 0, true, 7, 7, 0, 0, 0},
+			SlotInfo: SlotInfo{
+				Slots: []SlotData{
+					SlotData{0, 0, 0, false, 0, 0, 0, 0, 0},
+					SlotData{1, 0, 0, true, 1, 1, 0, 0, 0},
+					SlotData{2, 0, 0, false, 2, 2, 0, 0, 0},
+					SlotData{3, 0, 0, true, 3, 3, 0, 0, 0},
+					SlotData{4, 0, 0, false, 4, 4, 0, 0, 0},
+					SlotData{5, 0, 0, true, 5, 5, 0, 0, 0},
+					SlotData{6, 0, 0, false, 6, 6, 0, 0, 0},
+					SlotData{7, 0, 0, true, 7, 7, 0, 0, 0},
+				},
+				RandomSeed: rand.Uint32(),
+				SlotLayout: LayoutMelee,
+				NumPlayers: uint8(rand.Intn(24)),
 			},
-			RandomSeed:   rand.Uint32(),
-			SlotLayout:   LayoutMelee,
-			NumPlayers:   uint8(rand.Intn(24)),
 			PlayerID:     uint8(rand.Intn(2552)),
 			ExternalPort: uint16(rand.Intn(65534)),
 			ExternalIP:   net.IPv4bcast,
@@ -300,19 +310,21 @@ func BenchmarkMarshalBinary(b *testing.B) {
 
 func BenchmarkUnmarshalBinary(b *testing.B) {
 	var pkt = SlotInfoJoin{
-		Slots: []SlotData{
-			SlotData{0, 0, 0, false, 0, 0, 0, 0, 0},
-			SlotData{1, 0, 0, true, 1, 1, 0, 0, 0},
-			SlotData{2, 0, 0, false, 2, 2, 0, 0, 0},
-			SlotData{3, 0, 0, true, 3, 3, 0, 0, 0},
-			SlotData{4, 0, 0, false, 4, 4, 0, 0, 0},
-			SlotData{5, 0, 0, true, 5, 5, 0, 0, 0},
-			SlotData{6, 0, 0, false, 6, 6, 0, 0, 0},
-			SlotData{7, 0, 0, true, 7, 7, 0, 0, 0},
+		SlotInfo: SlotInfo{
+			Slots: []SlotData{
+				SlotData{0, 0, 0, false, 0, 0, 0, 0, 0},
+				SlotData{1, 0, 0, true, 1, 1, 0, 0, 0},
+				SlotData{2, 0, 0, false, 2, 2, 0, 0, 0},
+				SlotData{3, 0, 0, true, 3, 3, 0, 0, 0},
+				SlotData{4, 0, 0, false, 4, 4, 0, 0, 0},
+				SlotData{5, 0, 0, true, 5, 5, 0, 0, 0},
+				SlotData{6, 0, 0, false, 6, 6, 0, 0, 0},
+				SlotData{7, 0, 0, true, 7, 7, 0, 0, 0},
+			},
+			RandomSeed: rand.Uint32(),
+			SlotLayout: LayoutMelee,
+			NumPlayers: uint8(rand.Intn(24)),
 		},
-		RandomSeed:   rand.Uint32(),
-		SlotLayout:   LayoutMelee,
-		NumPlayers:   uint8(rand.Intn(24)),
 		PlayerID:     uint8(rand.Intn(2552)),
 		ExternalPort: uint16(rand.Intn(65534)),
 		ExternalIP:   net.IPv4bcast,

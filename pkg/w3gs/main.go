@@ -44,6 +44,7 @@ const (
 	pidChatFromHost      = 0x0F
 	pidStartLag          = 0x10
 	pidStopLag           = 0x11
+	pidPlayerKicked      = 0x1C
 	pidLeaveAck          = 0x1B
 	pidReqJoin           = 0x1E
 	pidLeaveReq          = 0x21
@@ -70,13 +71,13 @@ const (
 	pidIncomingAction2   = 0x48
 )
 
-//pidPlayerKicked = 0x1c
-//pidChatOthers   = 0x34
+//pidChatOthers = 0x34 (?)
+//pidGameOver   = 0x14 (?) [Payload is a single byte (PlayerID?) after game is over]
 
 // Game versions
 var (
-	gameWAR3 = "WAR3"
-	gameW3XP = "W3XP"
+	gameWAR3 = "3RAW"
+	gameW3XP = "PX3W"
 )
 
 // Slot layout
@@ -202,6 +203,8 @@ func UnmarshalPacket(data []byte) (Packet, int, error) {
 		pkt = &StartLag{}
 	case pidStopLag:
 		pkt = &StopLag{}
+	case pidPlayerKicked:
+		pkt = &LeaveReq{}
 	case pidLeaveAck:
 		pkt = &LeaveAck{}
 	case pidReqJoin:

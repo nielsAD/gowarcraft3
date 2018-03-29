@@ -221,7 +221,7 @@ func TestIP(t *testing.T) {
 	}
 
 	buf.writeIP(net.IPv4(127, 0, 0, 1))
-	if buf.readUInt32() != 2130706433 {
+	if buf.readUInt32() != 0x100007f {
 		t.Fatal("Wrong integer format")
 	}
 
