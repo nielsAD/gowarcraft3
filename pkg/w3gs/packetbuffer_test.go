@@ -181,6 +181,39 @@ func TestBool(t *testing.T) {
 	}
 }
 
+func TestPort(t *testing.T) {
+	var val = uint16(6112)
+	var buf = packetBuffer{bytes: make([]byte, 0)}
+
+	for i := 1; i <= iterations; i++ {
+		buf.writePort(val)
+		if buf.size() != i*2 {
+			t.Fatalf("Write(%v): %v != %v", i, buf.size(), i*2)
+		}
+	}
+
+	var alt = ^val
+	buf.writePortAt(2, alt)
+	if buf.size() != iterations*2 {
+		t.Fatalf("WriteAt: %v != %v", buf.size(), iterations*2)
+	}
+
+	for i := iterations - 1; i >= 0; i-- {
+		var read = buf.readPort()
+
+		if i == 1 {
+			read = ^read
+		}
+		if read != val {
+			t.Fatalf("Read(%v): %v != %v", i, read, val)
+		}
+
+		if buf.size() != i*2 {
+			t.Fatalf("Leftover(%v): %v != %v", i, buf.size(), i*2)
+		}
+	}
+}
+
 func TestIP(t *testing.T) {
 	var ip4 = net.IPv4(192, 168, 1, 101).To4()
 	var buf = packetBuffer{bytes: make([]byte, 0)}

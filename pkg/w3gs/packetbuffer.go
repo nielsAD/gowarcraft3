@@ -48,6 +48,10 @@ func (b *packetBuffer) writeBool(v bool) {
 	b.bytes = append(b.bytes, i)
 }
 
+func (b *packetBuffer) writePort(v uint16) {
+	b.bytes = append(b.bytes, byte(v>>8), byte(v))
+}
+
 func (b *packetBuffer) writeIP(v net.IP) error {
 	if ip4 := v.To4(); ip4 != nil {
 		b.writeBlob(ip4)
@@ -85,6 +89,10 @@ func (b *packetBuffer) writeBoolAt(p int, v bool) {
 		i = 1
 	}
 	b.bytes[p] = i
+}
+
+func (b *packetBuffer) writePortAt(p int, v uint16) {
+	b.bytes[p+1], b.bytes[p] = byte(v), byte(v>>8)
 }
 
 func (b *packetBuffer) writeIPAt(p int, v net.IP) error {
@@ -137,6 +145,12 @@ func (b *packetBuffer) readBool() bool {
 		res = true
 	}
 	b.bytes = b.bytes[1:]
+	return res
+}
+
+func (b *packetBuffer) readPort() uint16 {
+	var res = uint16(b.bytes[1]) | uint16(b.bytes[0])<<8
+	b.bytes = b.bytes[2:]
 	return res
 }
 

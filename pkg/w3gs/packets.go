@@ -99,11 +99,10 @@ func (pkt *SlotInfoJoin) MarshalBinary() ([]byte, error) {
 	buf.writeUInt16(0)
 
 	pkt.SlotInfo.write(&buf)
-
 	buf.writeUInt8(pkt.PlayerID)
-	buf.writeUInt16(connAddressFamily)
-	buf.writeUInt16(pkt.ExternalPort)
 
+	buf.writeUInt16(connAddressFamily)
+	buf.writePort(pkt.ExternalPort)
 	if err := buf.writeIP(pkt.ExternalIP); err != nil && pkt.ExternalIP != nil {
 		return nil, err
 	}
@@ -134,8 +133,9 @@ func (pkt *SlotInfoJoin) UnmarshalBinary(data []byte) error {
 	}
 
 	pkt.PlayerID = buf.readUInt8()
+
 	buf.skip(2)
-	pkt.ExternalPort = buf.readUInt16()
+	pkt.ExternalPort = buf.readPort()
 	pkt.ExternalIP = buf.readIP()
 
 	return nil
@@ -229,7 +229,7 @@ func (pkt *PlayerInfo) MarshalBinary() ([]byte, error) {
 	buf.writeUInt16(1)
 
 	buf.writeUInt16(connAddressFamily)
-	buf.writeUInt16(pkt.ExternalPort)
+	buf.writePort(pkt.ExternalPort)
 	if err := buf.writeIP(pkt.ExternalIP); err != nil && pkt.ExternalIP != nil {
 		return nil, err
 	}
@@ -238,7 +238,7 @@ func (pkt *PlayerInfo) MarshalBinary() ([]byte, error) {
 	buf.writeUInt32(0)
 
 	buf.writeUInt16(connAddressFamily)
-	buf.writeUInt16(pkt.InternalPort)
+	buf.writePort(pkt.InternalPort)
 	if err := buf.writeIP(pkt.InternalIP); err != nil && pkt.InternalIP != nil {
 		return nil, err
 	}
@@ -271,11 +271,11 @@ func (pkt *PlayerInfo) UnmarshalBinary(data []byte) error {
 	}
 
 	buf.skip(4)
-	pkt.ExternalPort = buf.readUInt16()
+	pkt.ExternalPort = buf.readPort()
 	pkt.ExternalIP = buf.readIP()
 
 	buf.skip(10)
-	pkt.InternalPort = buf.readUInt16()
+	pkt.InternalPort = buf.readPort()
 	pkt.InternalIP = buf.readIP()
 
 	if buf.size() != 8 {
@@ -963,7 +963,7 @@ func (pkt *ReqJoin) MarshalBinary() ([]byte, error) {
 	buf.writeUInt16(0)
 
 	buf.writeUInt16(connAddressFamily)
-	buf.writeUInt16(pkt.InternalPort)
+	buf.writePort(pkt.InternalPort)
 	if err := buf.writeIP(pkt.InternalIP); err != nil && pkt.InternalIP != nil {
 		return nil, err
 	}
@@ -1003,7 +1003,7 @@ func (pkt *ReqJoin) UnmarshalBinary(data []byte) error {
 
 	buf.skip(4)
 
-	pkt.InternalPort = buf.readUInt16()
+	pkt.InternalPort = buf.readPort()
 	pkt.InternalIP = buf.readIP()
 
 	return nil
