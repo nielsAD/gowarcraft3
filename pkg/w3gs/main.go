@@ -14,6 +14,7 @@ package w3gs
 import (
 	"encoding"
 	"encoding/binary"
+	"errors"
 )
 
 // Packet interface.
@@ -22,63 +23,62 @@ type Packet interface {
 	encoding.BinaryUnmarshaler
 }
 
-// W3GS magic number
-const protocolsig = 0xF7
+// Errors
+var (
+	ErrNoProtocolSig   = errors.New("w3gs: Invalid w3gs packet (no signature found)")
+	ErrWrongSize       = errors.New("w3gs: Wrong size input data")
+	ErrMalformedData   = errors.New("w3gs: Malformed input data")
+	ErrInvalidChecksum = errors.New("w3gs: Checksum invalid")
+)
 
-// AF_INET
-const connAddressFamily uint16 = 2
+// ProtocolSig is the W3GS magic number used in the packet header.
+const ProtocolSig = 0xF7
 
 // W3GS packet type identifiers
 const (
-	pidUnknownPacket     = 0x00
-	pidPingFromHost      = 0x01
-	pidSlotInfoJoin      = 0x04
-	pidRejectJoin        = 0x05
-	pidPlayerInfo        = 0x06
-	pidPlayerLeft        = 0x07
-	pidPlayerLoaded      = 0x08
-	pidSlotInfo          = 0x09
-	pidCountDownStart    = 0x0A
-	pidCountDownEnd      = 0x0B
-	pidIncomingAction    = 0x0C
-	pidChatFromHost      = 0x0F
-	pidStartLag          = 0x10
-	pidStopLag           = 0x11
-	pidPlayerKicked      = 0x1C
-	pidLeaveAck          = 0x1B
-	pidReqJoin           = 0x1E
-	pidLeaveReq          = 0x21
-	pidGameLoadedSelf    = 0x23
-	pidOutgoingAction    = 0x26
-	pidOutgoingKeepAlive = 0x27
-	pidChatToHost        = 0x28
-	pidDropReq           = 0x29
-	pidSearchGame        = 0x2F
-	pidGameInfo          = 0x30
-	pidCreateGame        = 0x31
-	pidRefreshGame       = 0x32
-	pidDecreateGame      = 0x33
-	pidPingFromOthers    = 0x35
-	pidPongToOthers      = 0x36
-	pidClientInfo        = 0x37
-	pidMapCheck          = 0x3D
-	pidStartDownload     = 0x3F
-	pidMapSize           = 0x42
-	pidMapPart           = 0x43
-	pidMapPartOK         = 0x44
-	pidMapPartError      = 0x45
-	pidPongToHost        = 0x46
-	pidIncomingAction2   = 0x48
+	PidUnknownPacket     = 0x00
+	PidPingFromHost      = 0x01
+	PidSlotInfoJoin      = 0x04
+	PidRejectJoin        = 0x05
+	PidPlayerInfo        = 0x06
+	PidPlayerLeft        = 0x07
+	PidPlayerLoaded      = 0x08
+	PidSlotInfo          = 0x09
+	PidCountDownStart    = 0x0A
+	PidCountDownEnd      = 0x0B
+	PidIncomingAction    = 0x0C
+	PidChatFromHost      = 0x0F
+	PidStartLag          = 0x10
+	PidStopLag           = 0x11
+	PidPlayerKicked      = 0x1C
+	PidLeaveAck          = 0x1B
+	PidReqJoin           = 0x1E
+	PidLeaveReq          = 0x21
+	PidGameLoadedSelf    = 0x23
+	PidOutgoingAction    = 0x26
+	PidOutgoingKeepAlive = 0x27
+	PidChatToHost        = 0x28
+	PidDropReq           = 0x29
+	PidSearchGame        = 0x2F
+	PidGameInfo          = 0x30
+	PidCreateGame        = 0x31
+	PidRefreshGame       = 0x32
+	PidDecreateGame      = 0x33
+	PidPingFromOthers    = 0x35
+	PidPongToOthers      = 0x36
+	PidClientInfo        = 0x37
+	PidMapCheck          = 0x3D
+	PidStartDownload     = 0x3F
+	PidMapSize           = 0x42
+	PidMapPart           = 0x43
+	PidMapPartOK         = 0x44
+	PidMapPartError      = 0x45
+	PidPongToHost        = 0x46
+	PidIncomingAction2   = 0x48
 )
 
-//pidChatOthers = 0x34 (?)
-//pidGameOver   = 0x14 (?) [Payload is a single byte (PlayerID?) after game is over]
-
-// Game versions
-var (
-	gameWAR3 = "3RAW"
-	gameW3XP = "PX3W"
-)
+//PidChatOthers = 0x34 (?)
+//PidGameOver   = 0x14 (?) [Payload is a single byte (PlayerID?) after game is over]
 
 // Slot layout
 const (
@@ -166,93 +166,93 @@ const (
 
 // UnmarshalPacket decodes binary data and returns it in the proper (unmarshalled) packet type.
 func UnmarshalPacket(data []byte) (Packet, int, error) {
-	if len(data) < 4 || (data)[0] != protocolsig {
-		return nil, 0, errMalformedData
+	if len(data) < 4 || (data)[0] != ProtocolSig {
+		return nil, 0, ErrNoProtocolSig
 	}
 	var size = int(binary.LittleEndian.Uint16(data[2:]))
 	if size > len(data) {
-		return nil, 0, errMalformedData
+		return nil, 0, ErrMalformedData
 	}
 
 	var pkt Packet
 
 	switch data[1] {
-	case pidPingFromHost:
-		pkt = &PingFromHost{}
-	case pidSlotInfoJoin:
+	case PidPingFromHost:
+		pkt = &Ping{}
+	case PidSlotInfoJoin:
 		pkt = &SlotInfoJoin{}
-	case pidRejectJoin:
+	case PidRejectJoin:
 		pkt = &RejectJoin{}
-	case pidPlayerInfo:
+	case PidPlayerInfo:
 		pkt = &PlayerInfo{}
-	case pidPlayerLeft:
+	case PidPlayerLeft:
 		pkt = &PlayerLeft{}
-	case pidPlayerLoaded:
+	case PidPlayerLoaded:
 		pkt = &PlayerLoaded{}
-	case pidSlotInfo:
+	case PidSlotInfo:
 		pkt = &SlotInfo{}
-	case pidCountDownStart:
+	case PidCountDownStart:
 		pkt = &CountDownStart{}
-	case pidCountDownEnd:
+	case PidCountDownEnd:
 		pkt = &CountDownEnd{}
-	case pidIncomingAction:
-		pkt = &IncomingAction{}
-	case pidChatFromHost:
-		pkt = &ChatFromHost{}
-	case pidStartLag:
+	case PidIncomingAction:
+		pkt = &TimeSlot{}
+	case PidChatFromHost:
+		pkt = &MessageRelay{}
+	case PidStartLag:
 		pkt = &StartLag{}
-	case pidStopLag:
+	case PidStopLag:
 		pkt = &StopLag{}
-	case pidPlayerKicked:
-		pkt = &LeaveReq{}
-	case pidLeaveAck:
+	case PidPlayerKicked:
+		pkt = &PlayerKicked{}
+	case PidLeaveAck:
 		pkt = &LeaveAck{}
-	case pidReqJoin:
-		pkt = &ReqJoin{}
-	case pidLeaveReq:
-		pkt = &LeaveReq{}
-	case pidGameLoadedSelf:
-		pkt = &GameLoadedSelf{}
-	case pidOutgoingAction:
-		pkt = &OutgoingAction{}
-	case pidOutgoingKeepAlive:
-		pkt = &OutgoingKeepAlive{}
-	case pidChatToHost:
-		pkt = &ChatToHost{}
-	case pidDropReq:
-		pkt = &DropReq{}
-	case pidSearchGame:
+	case PidReqJoin:
+		pkt = &Join{}
+	case PidLeaveReq:
+		pkt = &Leave{}
+	case PidGameLoadedSelf:
+		pkt = &GameLoaded{}
+	case PidOutgoingAction:
+		pkt = &GameAction{}
+	case PidOutgoingKeepAlive:
+		pkt = &TimeSlotAck{}
+	case PidChatToHost:
+		pkt = &Message{}
+	case PidDropReq:
+		pkt = &DropLaggers{}
+	case PidSearchGame:
 		pkt = &SearchGame{}
-	case pidGameInfo:
+	case PidGameInfo:
 		pkt = &GameInfo{}
-	case pidCreateGame:
+	case PidCreateGame:
 		pkt = &CreateGame{}
-	case pidRefreshGame:
+	case PidRefreshGame:
 		pkt = &RefreshGame{}
-	case pidDecreateGame:
+	case PidDecreateGame:
 		pkt = &DecreateGame{}
-	case pidPingFromOthers:
-		pkt = &PingFromOthers{}
-	case pidPongToOthers:
-		pkt = &PongToOthers{}
-	case pidClientInfo:
+	case PidPingFromOthers:
+		pkt = &PeerPing{}
+	case PidPongToOthers:
+		pkt = &PeerPong{}
+	case PidClientInfo:
 		pkt = &ClientInfo{}
-	case pidMapCheck:
+	case PidMapCheck:
 		pkt = &MapCheck{}
-	case pidStartDownload:
+	case PidStartDownload:
 		pkt = &StartDownload{}
-	case pidMapSize:
+	case PidMapSize:
 		pkt = &MapSize{}
-	case pidMapPart:
+	case PidMapPart:
 		pkt = &MapPart{}
-	case pidMapPartOK:
+	case PidMapPartOK:
 		pkt = &MapPartOK{}
-	case pidMapPartError:
+	case PidMapPartError:
 		pkt = &MapPartError{}
-	case pidPongToHost:
-		pkt = &PongToHost{}
-	case pidIncomingAction2:
-		pkt = &IncomingAction{}
+	case PidPongToHost:
+		pkt = &Pong{}
+	case PidIncomingAction2:
+		pkt = &TimeSlot{}
 	default:
 		pkt = &UnknownPacket{}
 	}
