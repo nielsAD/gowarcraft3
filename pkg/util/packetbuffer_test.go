@@ -319,6 +319,8 @@ func TestString(t *testing.T) {
 
 func BenchmarkWriteUInt32(b *testing.B) {
 	var buf = util.PacketBuffer{Bytes: make([]byte, 0)}
+
+	b.SetBytes(4)
 	for n := 0; n < b.N; n++ {
 		buf.WriteUInt32(4294967294)
 	}
@@ -329,6 +331,8 @@ func BenchmarkReadUInt32(b *testing.B) {
 	for n := 0; n < b.N; n++ {
 		buf.WriteUInt32(4294967294)
 	}
+
+	b.SetBytes(4)
 	b.ResetTimer()
 	for n := 0; n < b.N; n++ {
 		buf.ReadUInt32()

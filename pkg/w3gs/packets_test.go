@@ -352,20 +352,24 @@ func TestUnmarshalPacket(t *testing.T) {
 }
 
 func BenchmarkMarshalBinary(b *testing.B) {
+	var pkt = w3gs.SlotInfoJoin{
+		SlotInfo: w3gs.SlotInfo{
+			Slots:      sd,
+			RandomSeed: rand.Uint32(),
+			SlotLayout: w3gs.LayoutMelee,
+			NumPlayers: uint8(rand.Intn(24)),
+		},
+		PlayerID: uint8(rand.Intn(2552)),
+		ExternalAddr: w3gs.ConnAddr{
+			Port: uint16(rand.Intn(65534)),
+			IP:   net.IPv4bcast,
+		},
+	}
+	var data, _ = pkt.MarshalBinary()
+
+	b.SetBytes(int64(len(data)))
+	b.ResetTimer()
 	for n := 0; n < b.N; n++ {
-		var pkt = w3gs.SlotInfoJoin{
-			SlotInfo: w3gs.SlotInfo{
-				Slots:      sd,
-				RandomSeed: rand.Uint32(),
-				SlotLayout: w3gs.LayoutMelee,
-				NumPlayers: uint8(rand.Intn(24)),
-			},
-			PlayerID: uint8(rand.Intn(2552)),
-			ExternalAddr: w3gs.ConnAddr{
-				Port: uint16(rand.Intn(65534)),
-				IP:   net.IPv4bcast,
-			},
-		}
 		pkt.MarshalBinary()
 	}
 }
@@ -385,7 +389,55 @@ func BenchmarkUnmarshalBinary(b *testing.B) {
 		},
 	}
 	var data, _ = pkt.MarshalBinary()
+	var res w3gs.SlotInfoJoin
 
+	b.SetBytes(int64(len(data)))
+	b.ResetTimer()
+	for n := 0; n < b.N; n++ {
+		res.UnmarshalBinary(data)
+	}
+}
+
+func BenchmarkCreateAndMarshalBinary(b *testing.B) {
+	var size = 0
+	b.ResetTimer()
+	for n := 0; n < b.N; n++ {
+		var pkt = w3gs.SlotInfoJoin{
+			SlotInfo: w3gs.SlotInfo{
+				Slots:      sd,
+				RandomSeed: rand.Uint32(),
+				SlotLayout: w3gs.LayoutMelee,
+				NumPlayers: uint8(rand.Intn(24)),
+			},
+			PlayerID: uint8(rand.Intn(2552)),
+			ExternalAddr: w3gs.ConnAddr{
+				Port: uint16(rand.Intn(65534)),
+				IP:   net.IPv4bcast,
+			},
+		}
+		var data, _ = pkt.MarshalBinary()
+		size = len(data)
+	}
+	b.SetBytes(int64(size))
+}
+
+func BenchmarkCreateAndUnmarshalBinary(b *testing.B) {
+	var pkt = w3gs.SlotInfoJoin{
+		SlotInfo: w3gs.SlotInfo{
+			Slots:      sd,
+			RandomSeed: rand.Uint32(),
+			SlotLayout: w3gs.LayoutMelee,
+			NumPlayers: uint8(rand.Intn(24)),
+		},
+		PlayerID: uint8(rand.Intn(2552)),
+		ExternalAddr: w3gs.ConnAddr{
+			Port: uint16(rand.Intn(65534)),
+			IP:   net.IPv4bcast,
+		},
+	}
+	var data, _ = pkt.MarshalBinary()
+
+	b.SetBytes(int64(len(data)))
 	b.ResetTimer()
 	for n := 0; n < b.N; n++ {
 		var res w3gs.SlotInfoJoin

@@ -11,7 +11,6 @@ import (
 const connAddressFamily uint16 = 2
 
 // ConnAddr stores a single socket connection tuple (port+ip).
-//
 type ConnAddr struct {
 	Port uint16
 	IP   net.IP
