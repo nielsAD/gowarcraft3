@@ -180,19 +180,23 @@ func (pkt *PeerPong) MarshalBinary() ([]byte, error) {
 //
 //    (UINT32) Host Counter (Game ID)
 //    (UINT32) Entry Key (used in LAN)
-//    (UINT8) Unknown (0)
+//    (UINT8) Unknown (0x00)
 //    (UINT16) Listen Port
-//    (UINT32) Peer Key
+//    (UINT32) Join counter
 //    (STRING) Player name
-//    (UINT32) Unknown
+//    (UINT8) Number of bytes that follow (0x01 < 1.29; 0x02 >= 1.29)
+//    (UINT8)[] Unknown (0x00)
+//    (UINT16) AF_INET (0x02)
 //    (UINT16) Internal Port
 //    (UINT32) Internal IP
+//    (UINT32) Unknown (0x00)
+//    (UINT32) Unknown (0x00)
 //
 type Join struct {
 	HostCounter  uint32
 	EntryKey     uint32
 	ListenPort   uint16
-	PeerKey      uint32
+	JoinCounter  uint32
 	PlayerName   string
 	InternalAddr ConnAddr
 }
@@ -212,10 +216,11 @@ func (pkt *Join) MarshalBinary() ([]byte, error) {
 	buf.WriteUInt8(0)
 
 	buf.WriteUInt16(pkt.ListenPort)
-	buf.WriteUInt32(pkt.PeerKey)
+	buf.WriteUInt32(pkt.JoinCounter)
 	buf.WriteString(pkt.PlayerName)
 
-	buf.WriteUInt16(0)
+	buf.WriteUInt8(1)
+	buf.WriteUInt8(0)
 
 	if err := pkt.InternalAddr.write(&buf); err != nil {
 		return nil, err
@@ -240,18 +245,23 @@ func (pkt *Join) UnmarshalBinary(data []byte) error {
 	buf.Skip(1)
 
 	pkt.ListenPort = buf.ReadUInt16()
-	pkt.PeerKey = buf.ReadUInt32()
+	pkt.JoinCounter = buf.ReadUInt32()
 
 	var err error
 	if pkt.PlayerName, err = buf.ReadString(); err != nil {
 		return err
 	}
 
-	if len(data) != 38+len(pkt.PlayerName) {
+	if buf.Size() < 17 {
 		return ErrWrongSize
 	}
 
-	buf.Skip(2)
+	buf.Skip(int(buf.ReadUInt8()))
+
+	if buf.Size() != 16 {
+		return ErrWrongSize
+	}
+
 	pkt.InternalAddr.read(&buf)
 
 	return nil

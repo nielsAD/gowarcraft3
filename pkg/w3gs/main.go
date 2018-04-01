@@ -15,6 +15,7 @@ import (
 	"encoding"
 	"encoding/binary"
 	"errors"
+	"io"
 )
 
 // Packet interface.
@@ -164,19 +165,37 @@ const (
 	GameTypeMaskSize  = GameTypeSizeSmall | GameTypeSizeMedium | GameTypeSizeLarge
 )
 
-// UnmarshalPacket decodes binary data and returns it in the proper (unmarshalled) packet type.
-func UnmarshalPacket(data []byte) (Packet, int, error) {
-	if len(data) < 4 || (data)[0] != ProtocolSig {
+// UnmarshalPacketWithBuffer reads exactly one packet from r (using b as buffer) and
+// returns it in the proper (unmarshalled) packet type. Buffer should be large enough
+// to hold the entire packet (in general, wc3 doesn't send packets larger than ~1500b)
+func UnmarshalPacketWithBuffer(r io.Reader, b []byte) (Packet, int, error) {
+	if n, err := io.ReadFull(r, b[:4]); err != nil {
+		if err == io.ErrUnexpectedEOF {
+			err = ErrNoProtocolSig
+		}
+
+		return nil, n, err
+	}
+
+	if b[0] != ProtocolSig {
 		return nil, 0, ErrNoProtocolSig
 	}
-	var size = int(binary.LittleEndian.Uint16(data[2:]))
-	if size > len(data) {
+
+	var size = int(binary.LittleEndian.Uint16(b[2:]))
+	if size < 4 {
 		return nil, 0, ErrMalformedData
+	}
+
+	if n, err := io.ReadFull(r, b[4:size]); err != nil {
+		if err == io.EOF {
+			err = io.ErrUnexpectedEOF
+		}
+		return nil, n, err
 	}
 
 	var pkt Packet
 
-	switch data[1] {
+	switch b[1] {
 	case PidPingFromHost:
 		pkt = &Ping{}
 	case PidSlotInfoJoin:
@@ -257,9 +276,15 @@ func UnmarshalPacket(data []byte) (Packet, int, error) {
 		pkt = &UnknownPacket{}
 	}
 
-	if err := pkt.UnmarshalBinary(data[:size]); err != nil {
+	if err := pkt.UnmarshalBinary(b[:size]); err != nil {
 		return nil, size, err
 	}
 
 	return pkt, size, nil
+}
+
+// UnmarshalPacket reads exactly one packet from r andreturns it in the proper (unmarshalled) packet type.
+func UnmarshalPacket(r io.Reader) (Packet, int, error) {
+	var buf [2048]byte
+	return UnmarshalPacketWithBuffer(r, buf[:])
 }

@@ -1,6 +1,8 @@
 package w3gs_test
 
 import (
+	"bytes"
+	"io"
 	"math/rand"
 	"net"
 	"reflect"
@@ -61,7 +63,7 @@ func TestMarshalPacket(t *testing.T) {
 			HostCounter: 1,
 			EntryKey:    2,
 			ListenPort:  3,
-			PeerKey:     4,
+			JoinCounter: 4,
 			PlayerName:  "Grubby",
 			InternalAddr: w3gs.ConnAddr{
 				Port: 6,
@@ -299,7 +301,7 @@ func TestMarshalPacket(t *testing.T) {
 			}
 		}
 
-		var pkt2, size, e = w3gs.UnmarshalPacket(data)
+		var pkt2, size, e = w3gs.UnmarshalPacket(bytes.NewBuffer(data))
 		if e != nil {
 			t.Log(reflect.TypeOf(pkt))
 			t.Fatal(e)
@@ -335,18 +337,24 @@ func TestMarshalPacket(t *testing.T) {
 }
 
 func TestUnmarshalPacket(t *testing.T) {
-	if _, _, e := w3gs.UnmarshalPacket([]byte{w3gs.ProtocolSig, 255}); e != w3gs.ErrNoProtocolSig {
+	if _, _, e := w3gs.UnmarshalPacket(bytes.NewBuffer([]byte{0, 255, 4, 0})); e != w3gs.ErrNoProtocolSig {
+		t.Fatal("ErrNoProtocolSig expected if no protocol signature")
+	}
+	if _, _, e := w3gs.UnmarshalPacket(bytes.NewBuffer([]byte{w3gs.ProtocolSig, 255})); e != w3gs.ErrNoProtocolSig {
 		t.Fatal("ErrNoProtocolSig expected if no size")
 	}
-	if _, _, e := w3gs.UnmarshalPacket([]byte{w3gs.ProtocolSig, 255, 255, 0}); e != w3gs.ErrMalformedData {
-		t.Fatal("errMalformedData expected if invalid size")
+	if _, _, e := w3gs.UnmarshalPacket(bytes.NewBuffer([]byte{w3gs.ProtocolSig, 255, 255, 0})); e != io.ErrUnexpectedEOF {
+		t.Fatal("ErrUnexpectedEOF expected if invalid size", e)
+	}
+	if _, _, e := w3gs.UnmarshalPacket(bytes.NewBuffer([]byte{w3gs.ProtocolSig, 255, 3, 0})); e != w3gs.ErrMalformedData {
+		t.Fatal("ErrMalformedData expected if invalid size")
 	}
 
 	var packet = make([]byte, 2048)
 	packet[0] = w3gs.ProtocolSig
 	packet[1] = w3gs.PidSlotInfoJoin
 	packet[3] = 8
-	if _, _, e := w3gs.UnmarshalPacket(packet); e != w3gs.ErrWrongSize {
+	if _, _, e := w3gs.UnmarshalPacket(bytes.NewBuffer(packet)); e != w3gs.ErrWrongSize {
 		t.Fatal("ErrWrongSize expected if invalid data")
 	}
 }
