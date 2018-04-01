@@ -34,6 +34,14 @@ func main() {
 	} else {
 		handle, err = pcap.OpenLive(*iface, int32(*snaplen), *promisc, pcap.BlockForever)
 		if err != nil {
+			devs, e := pcap.FindAllDevs()
+			if e == nil {
+				log.Print("Following interfaces are available:")
+				for _, d := range devs {
+					log.Printf("%v\t%v\n", d.Name, d.Description)
+				}
+			}
+
 			log.Fatalf("Could not create pcap handle: %v", err)
 		}
 		defer handle.Close()
