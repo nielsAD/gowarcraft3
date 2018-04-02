@@ -2,6 +2,7 @@ package util_test
 
 import (
 	"bytes"
+	"io"
 	"net"
 	"testing"
 
@@ -17,6 +18,23 @@ func reverse(numbers []byte) []byte {
 		numbers[i], numbers[j] = numbers[j], numbers[i]
 	}
 	return numbers
+}
+
+func TestReaderWriter(t *testing.T) {
+	var blob = []byte{1, 2, 3, 4, 5, 6, 7, 8, 9, 10}
+	var reader = util.PacketBuffer{Bytes: blob}
+	var writer util.PacketBuffer
+
+	io.Copy(&writer, &reader)
+	if reader.Size() != 0 {
+		t.Fatalf("reader.size != 0")
+	}
+	if writer.Size() != len(blob) {
+		t.Fatalf("writer.size != blob")
+	}
+	if bytes.Compare(writer.Bytes, blob) != 0 {
+		t.Fatalf("Reader/Writer: %v != %v", writer.Bytes, blob)
+	}
 }
 
 func TestBlob(t *testing.T) {
@@ -327,7 +345,7 @@ func BenchmarkWriteUInt32(b *testing.B) {
 }
 
 func BenchmarkReadUInt32(b *testing.B) {
-	var buf = util.PacketBuffer{Bytes: make([]byte, 0)}
+	var buf = util.PacketBuffer{Bytes: make([]byte, 0, b.N*4)}
 	for n := 0; n < b.N; n++ {
 		buf.WriteUInt32(4294967294)
 	}

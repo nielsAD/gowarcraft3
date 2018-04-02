@@ -2,7 +2,6 @@
 package main
 
 import (
-	"bytes"
 	"encoding/hex"
 	"flag"
 	"io"
@@ -18,6 +17,7 @@ import (
 	"github.com/google/gopacket/tcpassembly"
 	"github.com/google/gopacket/tcpassembly/tcpreader"
 
+	"github.com/nielsAD/noot/pkg/util"
 	"github.com/nielsAD/noot/pkg/w3gs"
 )
 
@@ -164,7 +164,7 @@ func main() {
 			case *layers.TCP:
 				asm.Assemble(packet.NetworkLayer().NetworkFlow(), tcp)
 			case *layers.UDP:
-				dumpPackets("UDP", packet.NetworkLayer().NetworkFlow(), bytes.NewBuffer(packet.ApplicationLayer().Payload()))
+				dumpPackets("UDP", packet.NetworkLayer().NetworkFlow(), &util.PacketBuffer{Bytes: packet.ApplicationLayer().Payload()})
 			}
 		}
 	}()

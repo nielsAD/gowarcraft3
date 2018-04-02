@@ -561,10 +561,11 @@ func (pkt *SlotInfo) read(buf *util.PacketBuffer) error {
 //
 // Format:
 //
-//     (UINT32) Player Counter
+//    (UINT32) Player Counter
 //      (UINT8) Player number
 //    (STRING) Player name
-//      (UINT16) Unknown (0x01)
+//    (UINT8) Number of bytes that follow (0x01)
+//    (UINT8)[] Unknown (0x00)
 //      (UINT16) AF_INET (0x02)
 //      (UINT16) Port
 //     (UINT32) External IP
@@ -597,7 +598,8 @@ func (pkt *PlayerInfo) MarshalBinary() ([]byte, error) {
 	buf.WriteUInt8(pkt.PlayerID)
 	buf.WriteString(pkt.PlayerName)
 
-	buf.WriteUInt16(1)
+	buf.WriteUInt8(1)
+	buf.WriteUInt8(0)
 
 	if err := pkt.ExternalAddr.write(&buf); err != nil {
 		return nil, err
@@ -631,7 +633,8 @@ func (pkt *PlayerInfo) UnmarshalBinary(data []byte) error {
 		return ErrWrongSize
 	}
 
-	buf.Skip(2)
+	buf.Skip(int(buf.ReadUInt8()))
+
 	pkt.ExternalAddr.read(&buf)
 	pkt.InternalAddr.read(&buf)
 
@@ -1068,7 +1071,7 @@ func (pkt *GameAction) UnmarshalBinary(data []byte) error {
 	var buf = util.PacketBuffer{Bytes: data[4:]}
 	var crc = buf.ReadUInt32()
 
-	pkt.Data = append([]byte(nil), data[8:]...)
+	pkt.Data = buf.ReadBlob(buf.Size())
 	if crc != uint32(crc32.ChecksumIEEE(pkt.Data)) {
 		return ErrInvalidChecksum
 	}

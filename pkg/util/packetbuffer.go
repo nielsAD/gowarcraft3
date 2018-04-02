@@ -3,6 +3,7 @@ package util
 import (
 	"bytes"
 	"errors"
+	"io"
 	"net"
 )
 
@@ -25,6 +26,12 @@ func (b *PacketBuffer) Size() int {
 // Skip consumes len bytes and throws away the result
 func (b *PacketBuffer) Skip(len int) {
 	b.Bytes = b.Bytes[len:]
+}
+
+// Write implements io.Writer interface
+func (b *PacketBuffer) Write(p []byte) (int, error) {
+	b.WriteBlob(p)
+	return len(p), nil
 }
 
 // WriteBlob appends blob v to the buffer
@@ -130,10 +137,26 @@ func (b *PacketBuffer) WriteStringAt(p int, s string) {
 	b.WriteUInt8At(p+len(Bytes), 0)
 }
 
-// ReadBlob consumes a blob of size len and returns its value
+// Read implements io.Reader interface
+func (b *PacketBuffer) Read(p []byte) (int, error) {
+	var size = len(b.Bytes)
+	if size == 0 {
+		return 0, io.EOF
+	}
+	if size > len(p) {
+		size = len(p)
+	}
+
+	copy(p[:size], b.Bytes[:size])
+	b.Bytes = b.Bytes[size:]
+
+	return size, nil
+}
+
+// ReadBlob consumes a blob of size len and returns (a copy of) its value
 func (b *PacketBuffer) ReadBlob(len int) []byte {
 	if len > 0 {
-		var res = b.Bytes[:len]
+		var res = append([]byte(nil), b.Bytes[:len]...)
 		b.Bytes = b.Bytes[len:]
 		return res
 	}

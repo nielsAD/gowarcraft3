@@ -1,13 +1,12 @@
 package w3gs_test
 
 import (
-	"bytes"
 	"io"
-	"math/rand"
 	"net"
 	"reflect"
 	"testing"
 
+	"github.com/nielsAD/noot/pkg/util"
 	"github.com/nielsAD/noot/pkg/w3gs"
 )
 
@@ -301,7 +300,7 @@ func TestMarshalPacket(t *testing.T) {
 			}
 		}
 
-		var pkt2, size, e = w3gs.UnmarshalPacket(bytes.NewBuffer(data))
+		var pkt2, size, e = w3gs.UnmarshalPacket(&util.PacketBuffer{Bytes: data})
 		if e != nil {
 			t.Log(reflect.TypeOf(pkt))
 			t.Fatal(e)
@@ -337,16 +336,16 @@ func TestMarshalPacket(t *testing.T) {
 }
 
 func TestUnmarshalPacket(t *testing.T) {
-	if _, _, e := w3gs.UnmarshalPacket(bytes.NewBuffer([]byte{0, 255, 4, 0})); e != w3gs.ErrNoProtocolSig {
+	if _, _, e := w3gs.UnmarshalPacket(&util.PacketBuffer{Bytes: []byte{0, 255, 4, 0}}); e != w3gs.ErrNoProtocolSig {
 		t.Fatal("ErrNoProtocolSig expected if no protocol signature")
 	}
-	if _, _, e := w3gs.UnmarshalPacket(bytes.NewBuffer([]byte{w3gs.ProtocolSig, 255})); e != w3gs.ErrNoProtocolSig {
+	if _, _, e := w3gs.UnmarshalPacket(&util.PacketBuffer{Bytes: []byte{w3gs.ProtocolSig, 255}}); e != w3gs.ErrNoProtocolSig {
 		t.Fatal("ErrNoProtocolSig expected if no size")
 	}
-	if _, _, e := w3gs.UnmarshalPacket(bytes.NewBuffer([]byte{w3gs.ProtocolSig, 255, 255, 0})); e != io.ErrUnexpectedEOF {
+	if _, _, e := w3gs.UnmarshalPacket(&util.PacketBuffer{Bytes: []byte{w3gs.ProtocolSig, 255, 255, 0}}); e != io.ErrUnexpectedEOF {
 		t.Fatal("ErrUnexpectedEOF expected if invalid size", e)
 	}
-	if _, _, e := w3gs.UnmarshalPacket(bytes.NewBuffer([]byte{w3gs.ProtocolSig, 255, 3, 0})); e != w3gs.ErrMalformedData {
+	if _, _, e := w3gs.UnmarshalPacket(&util.PacketBuffer{Bytes: []byte{w3gs.ProtocolSig, 255, 3, 0}}); e != w3gs.ErrMalformedData {
 		t.Fatal("ErrMalformedData expected if invalid size")
 	}
 
@@ -354,23 +353,23 @@ func TestUnmarshalPacket(t *testing.T) {
 	packet[0] = w3gs.ProtocolSig
 	packet[1] = w3gs.PidSlotInfoJoin
 	packet[3] = 8
-	if _, _, e := w3gs.UnmarshalPacket(bytes.NewBuffer(packet)); e != w3gs.ErrWrongSize {
+	if _, _, e := w3gs.UnmarshalPacket(&util.PacketBuffer{Bytes: packet}); e != w3gs.ErrWrongSize {
 		t.Fatal("ErrWrongSize expected if invalid data")
 	}
 }
 
 func BenchmarkMarshalBinary(b *testing.B) {
-	var pkt = w3gs.SlotInfoJoin{
-		SlotInfo: w3gs.SlotInfo{
-			Slots:      sd,
-			RandomSeed: rand.Uint32(),
-			SlotLayout: w3gs.LayoutMelee,
-			NumPlayers: uint8(rand.Intn(24)),
-		},
-		PlayerID: uint8(rand.Intn(2552)),
-		ExternalAddr: w3gs.ConnAddr{
-			Port: uint16(rand.Intn(65534)),
-			IP:   net.IPv4bcast,
+	var pkt = w3gs.TimeSlot{
+		TimeIncrementMS: 50,
+		Actions: []w3gs.PlayerAction{
+			w3gs.PlayerAction{PlayerID: 0, Data: make([]byte, 128)},
+			w3gs.PlayerAction{PlayerID: 1, Data: make([]byte, 128)},
+			w3gs.PlayerAction{PlayerID: 2, Data: make([]byte, 128)},
+			w3gs.PlayerAction{PlayerID: 3, Data: make([]byte, 128)},
+			w3gs.PlayerAction{PlayerID: 4, Data: make([]byte, 128)},
+			w3gs.PlayerAction{PlayerID: 5, Data: make([]byte, 128)},
+			w3gs.PlayerAction{PlayerID: 6, Data: make([]byte, 128)},
+			w3gs.PlayerAction{PlayerID: 7, Data: make([]byte, 128)},
 		},
 	}
 	var data, _ = pkt.MarshalBinary()
@@ -383,17 +382,17 @@ func BenchmarkMarshalBinary(b *testing.B) {
 }
 
 func BenchmarkUnmarshalBinary(b *testing.B) {
-	var pkt = w3gs.SlotInfoJoin{
-		SlotInfo: w3gs.SlotInfo{
-			Slots:      sd,
-			RandomSeed: rand.Uint32(),
-			SlotLayout: w3gs.LayoutMelee,
-			NumPlayers: uint8(rand.Intn(24)),
-		},
-		PlayerID: uint8(rand.Intn(2552)),
-		ExternalAddr: w3gs.ConnAddr{
-			Port: uint16(rand.Intn(65534)),
-			IP:   net.IPv4bcast,
+	var pkt = w3gs.TimeSlot{
+		TimeIncrementMS: 50,
+		Actions: []w3gs.PlayerAction{
+			w3gs.PlayerAction{PlayerID: 0, Data: make([]byte, 128)},
+			w3gs.PlayerAction{PlayerID: 1, Data: make([]byte, 128)},
+			w3gs.PlayerAction{PlayerID: 2, Data: make([]byte, 128)},
+			w3gs.PlayerAction{PlayerID: 3, Data: make([]byte, 128)},
+			w3gs.PlayerAction{PlayerID: 4, Data: make([]byte, 128)},
+			w3gs.PlayerAction{PlayerID: 5, Data: make([]byte, 128)},
+			w3gs.PlayerAction{PlayerID: 6, Data: make([]byte, 128)},
+			w3gs.PlayerAction{PlayerID: 7, Data: make([]byte, 128)},
 		},
 	}
 	var data, _ = pkt.MarshalBinary()
@@ -410,17 +409,17 @@ func BenchmarkCreateAndMarshalBinary(b *testing.B) {
 	var size = 0
 	b.ResetTimer()
 	for n := 0; n < b.N; n++ {
-		var pkt = w3gs.SlotInfoJoin{
-			SlotInfo: w3gs.SlotInfo{
-				Slots:      sd,
-				RandomSeed: rand.Uint32(),
-				SlotLayout: w3gs.LayoutMelee,
-				NumPlayers: uint8(rand.Intn(24)),
-			},
-			PlayerID: uint8(rand.Intn(2552)),
-			ExternalAddr: w3gs.ConnAddr{
-				Port: uint16(rand.Intn(65534)),
-				IP:   net.IPv4bcast,
+		var pkt = w3gs.TimeSlot{
+			TimeIncrementMS: 50,
+			Actions: []w3gs.PlayerAction{
+				w3gs.PlayerAction{PlayerID: 0, Data: make([]byte, 128)},
+				w3gs.PlayerAction{PlayerID: 1, Data: make([]byte, 128)},
+				w3gs.PlayerAction{PlayerID: 2, Data: make([]byte, 128)},
+				w3gs.PlayerAction{PlayerID: 3, Data: make([]byte, 128)},
+				w3gs.PlayerAction{PlayerID: 4, Data: make([]byte, 128)},
+				w3gs.PlayerAction{PlayerID: 5, Data: make([]byte, 128)},
+				w3gs.PlayerAction{PlayerID: 6, Data: make([]byte, 128)},
+				w3gs.PlayerAction{PlayerID: 7, Data: make([]byte, 128)},
 			},
 		}
 		var data, _ = pkt.MarshalBinary()
@@ -430,17 +429,17 @@ func BenchmarkCreateAndMarshalBinary(b *testing.B) {
 }
 
 func BenchmarkCreateAndUnmarshalBinary(b *testing.B) {
-	var pkt = w3gs.SlotInfoJoin{
-		SlotInfo: w3gs.SlotInfo{
-			Slots:      sd,
-			RandomSeed: rand.Uint32(),
-			SlotLayout: w3gs.LayoutMelee,
-			NumPlayers: uint8(rand.Intn(24)),
-		},
-		PlayerID: uint8(rand.Intn(2552)),
-		ExternalAddr: w3gs.ConnAddr{
-			Port: uint16(rand.Intn(65534)),
-			IP:   net.IPv4bcast,
+	var pkt = w3gs.TimeSlot{
+		TimeIncrementMS: 50,
+		Actions: []w3gs.PlayerAction{
+			w3gs.PlayerAction{PlayerID: 0, Data: make([]byte, 128)},
+			w3gs.PlayerAction{PlayerID: 1, Data: make([]byte, 128)},
+			w3gs.PlayerAction{PlayerID: 2, Data: make([]byte, 128)},
+			w3gs.PlayerAction{PlayerID: 3, Data: make([]byte, 128)},
+			w3gs.PlayerAction{PlayerID: 4, Data: make([]byte, 128)},
+			w3gs.PlayerAction{PlayerID: 5, Data: make([]byte, 128)},
+			w3gs.PlayerAction{PlayerID: 6, Data: make([]byte, 128)},
+			w3gs.PlayerAction{PlayerID: 7, Data: make([]byte, 128)},
 		},
 	}
 	var data, _ = pkt.MarshalBinary()
@@ -448,7 +447,7 @@ func BenchmarkCreateAndUnmarshalBinary(b *testing.B) {
 	b.SetBytes(int64(len(data)))
 	b.ResetTimer()
 	for n := 0; n < b.N; n++ {
-		var res w3gs.SlotInfoJoin
+		var res w3gs.TimeSlot
 		res.UnmarshalBinary(data)
 	}
 }
