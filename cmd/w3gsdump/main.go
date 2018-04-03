@@ -32,14 +32,14 @@ var (
 var logger = log.New(os.Stdout, "", log.Ltime)
 
 func dumpPackets(layer string, flow gopacket.Flow, r io.Reader) error {
-	var buf [2048]byte
+	var buf w3gs.DeserializationBuffer
 	for {
-		var pkt, size, err = w3gs.DeserializePacketWithBuffer(r, buf[:])
+		var pkt, size, err = w3gs.DeserializePacketWithBuffer(r, &buf)
 		if err == io.EOF || err == w3gs.ErrNoProtocolSig {
 			return err
 		} else if err != nil {
 			logger.Printf("[%-3v] %-32v %-14v %v\n", layer, flow, "ERROR", err)
-			logger.Printf("Payload:\n%v", hex.Dump(buf[:size]))
+			logger.Printf("Payload:\n%v", hex.Dump(buf.Buffer[:size]))
 			return err
 		}
 

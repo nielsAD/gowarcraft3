@@ -418,13 +418,16 @@ func BenchmarkDeserializePacket(b *testing.B) {
 		Slots: sd,
 	}
 
-	var bbuf = make([]byte, 2048)
 	var pbuf = util.PacketBuffer{Bytes: make([]byte, 0, 2048)}
 	pkt.Serialize(&pbuf)
 
 	b.SetBytes(int64(pbuf.Size()))
 	b.ResetTimer()
+
+	var bbuf w3gs.DeserializationBuffer
+	var r = &util.PacketBuffer{}
 	for n := 0; n < b.N; n++ {
-		w3gs.DeserializePacketWithBuffer(&util.PacketBuffer{Bytes: pbuf.Bytes}, bbuf)
+		r.Bytes = pbuf.Bytes
+		w3gs.DeserializePacketWithBuffer(r, &bbuf)
 	}
 }

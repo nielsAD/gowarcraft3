@@ -7,9 +7,6 @@ import (
 	"github.com/nielsAD/noot/pkg/util"
 )
 
-// AF_INET
-const connAddressFamily uint16 = 2
-
 func readPacketHeader(buf *util.PacketBuffer) (byte, int) {
 	var bsize = buf.Size()
 	if bsize < 4 {
@@ -28,6 +25,9 @@ func readPacketSize(buf *util.PacketBuffer) int {
 	var _, psize = readPacketHeader(buf)
 	return psize
 }
+
+// AF_INET
+const connAddressFamily uint16 = 2
 
 // ConnAddr stores a single socket connection tuple (port+ip).
 type ConnAddr struct {
@@ -539,21 +539,21 @@ func (pkt *SlotInfo) deserialize(buf *util.PacketBuffer) error {
 		return ErrWrongSize
 	}
 
-	if numSlots > 0 {
-		pkt.Slots = make([]SlotData, numSlots)
-		for i := 0; i < len(pkt.Slots); i++ {
-			pkt.Slots[i].PlayerID = buf.ReadUInt8()
-			pkt.Slots[i].DownloadStatus = buf.ReadUInt8()
-			pkt.Slots[i].SlotStatus = buf.ReadUInt8()
-			pkt.Slots[i].Computer = buf.ReadBool()
-			pkt.Slots[i].Team = buf.ReadUInt8()
-			pkt.Slots[i].Color = buf.ReadUInt8()
-			pkt.Slots[i].Race = buf.ReadUInt8()
-			pkt.Slots[i].ComputerType = buf.ReadUInt8()
-			pkt.Slots[i].Handicap = buf.ReadUInt8()
-		}
-	} else {
-		pkt.Slots = nil
+	if cap(pkt.Slots) < numSlots {
+		pkt.Slots = make([]SlotData, 0, numSlots)
+	}
+	pkt.Slots = pkt.Slots[:numSlots]
+
+	for i := 0; i < len(pkt.Slots); i++ {
+		pkt.Slots[i].PlayerID = buf.ReadUInt8()
+		pkt.Slots[i].DownloadStatus = buf.ReadUInt8()
+		pkt.Slots[i].SlotStatus = buf.ReadUInt8()
+		pkt.Slots[i].Computer = buf.ReadBool()
+		pkt.Slots[i].Team = buf.ReadUInt8()
+		pkt.Slots[i].Color = buf.ReadUInt8()
+		pkt.Slots[i].Race = buf.ReadUInt8()
+		pkt.Slots[i].ComputerType = buf.ReadUInt8()
+		pkt.Slots[i].Handicap = buf.ReadUInt8()
 	}
 
 	pkt.RandomSeed = buf.ReadUInt32()
@@ -961,13 +961,13 @@ func (pkt *StartLag) Deserialize(buf *util.PacketBuffer) error {
 		return ErrWrongSize
 	}
 
-	if numPlayers > 0 {
-		pkt.Players = make([]LagPlayer, numPlayers)
-		for i := 0; i < len(pkt.Players); i++ {
-			pkt.Players[i].deserialize(buf)
-		}
-	} else {
-		pkt.Players = nil
+	if cap(pkt.Players) < numPlayers {
+		pkt.Players = make([]LagPlayer, 0, numPlayers)
+	}
+	pkt.Players = pkt.Players[:numPlayers]
+
+	for i := 0; i < len(pkt.Players); i++ {
+		pkt.Players[i].deserialize(buf)
 	}
 
 	return nil
@@ -1174,33 +1174,34 @@ func (pkt *TimeSlot) Deserialize(buf *util.PacketBuffer) error {
 	if size == 6 {
 		pkt.Actions = nil
 		return nil
+	} else if size < 8 {
+		return ErrWrongSize
 	}
 
+	size -= 8
+
 	var crc = buf.ReadUInt16()
-	if crc != uint16(crc32.ChecksumIEEE(buf.Bytes[:size-8])) {
+	if crc != uint16(crc32.ChecksumIEEE(buf.Bytes[:size])) {
 		return ErrInvalidChecksum
 	}
 
-	buf = &util.PacketBuffer{Bytes: buf.ReadBlob(size - 8)}
-
 	pkt.Actions = pkt.Actions[:0]
-	for buf.Size() > 3 {
+	for size > 3 {
 		var action = PlayerAction{
 			PlayerID: buf.ReadUInt8(),
 		}
 
 		var subsize = int(buf.ReadUInt16())
-		if buf.Size() < subsize {
+		if size < subsize {
 			return ErrMalformedData
 		}
+		size -= 3 + subsize
 
-		action.Data = buf.Bytes[:subsize]
-		buf.Skip(subsize)
-
+		action.Data = buf.ReadBlob(subsize)
 		pkt.Actions = append(pkt.Actions, action)
 	}
 
-	if buf.Size() != 0 {
+	if size != 0 {
 		return ErrWrongSize
 	}
 

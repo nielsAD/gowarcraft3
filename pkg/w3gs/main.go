@@ -12,7 +12,6 @@
 package w3gs
 
 import (
-	"encoding/binary"
 	"errors"
 	"io"
 
@@ -31,7 +30,6 @@ var (
 	ErrWrongSize       = errors.New("w3gs: Wrong size input data")
 	ErrMalformedData   = errors.New("w3gs: Malformed input data")
 	ErrInvalidChecksum = errors.New("w3gs: Checksum invalid")
-	ErrBufferTooSmall  = errors.New("w3gs: Buffer too small")
 )
 
 // ProtocolSig is the W3GS magic number used in the packet header.
@@ -167,14 +165,54 @@ const (
 	GameTypeMaskSize  = GameTypeSizeSmall | GameTypeSizeMedium | GameTypeSizeLarge
 )
 
+// DeserializationBuffer is used by DeserializePacketWithBuffer to bring amortized allocs to 0 for repeated calls
+type DeserializationBuffer struct {
+	Buffer         [2048]byte
+	ping           Ping
+	slotInfoJoin   SlotInfoJoin
+	rejectJoin     RejectJoin
+	playerInfo     PlayerInfo
+	playerLeft     PlayerLeft
+	playerLoaded   PlayerLoaded
+	slotInfo       SlotInfo
+	countDownStart CountDownStart
+	countDownEnd   CountDownEnd
+	timeSlot       TimeSlot
+	messageRelay   MessageRelay
+	startLag       StartLag
+	stopLag        StopLag
+	playerKicked   PlayerKicked
+	leaveAck       LeaveAck
+	join           Join
+	leave          Leave
+	gameLoaded     GameLoaded
+	gameAction     GameAction
+	timeSlotAck    TimeSlotAck
+	message        Message
+	dropLaggers    DropLaggers
+	searchGame     SearchGame
+	gameInfo       GameInfo
+	createGame     CreateGame
+	refreshGame    RefreshGame
+	decreateGame   DecreateGame
+	peerPing       PeerPing
+	peerPong       PeerPong
+	clientInfo     ClientInfo
+	mapCheck       MapCheck
+	startDownload  StartDownload
+	mapSize        MapSize
+	mapPart        MapPart
+	mapPartOK      MapPartOK
+	mapPartError   MapPartError
+	pong           Pong
+	unknownPacket  UnknownPacket
+}
+
 // DeserializePacketWithBuffer reads exactly one packet from r (using b as buffer) and
 // returns it in the proper (deserialized) packet type. Buffer should be large enough
 // to hold the entire packet (in general, wc3 doesn't send packets larger than ~1500b)
-func DeserializePacketWithBuffer(r io.Reader, b []byte) (Packet, int, error) {
-	if len(b) < 4 {
-		return nil, 0, ErrBufferTooSmall
-	}
-	if n, err := io.ReadFull(r, b[:4]); err != nil {
+func DeserializePacketWithBuffer(r io.Reader, b *DeserializationBuffer) (Packet, int, error) {
+	if n, err := io.ReadFull(r, b.Buffer[:4]); err != nil {
 		if err == io.ErrUnexpectedEOF {
 			err = ErrNoProtocolSig
 		}
@@ -182,188 +220,146 @@ func DeserializePacketWithBuffer(r io.Reader, b []byte) (Packet, int, error) {
 		return nil, n, err
 	}
 
-	if b[0] != ProtocolSig {
+	if b.Buffer[0] != ProtocolSig {
 		return nil, 0, ErrNoProtocolSig
 	}
 
-	var size = int(binary.LittleEndian.Uint16(b[2:]))
-	if size < 4 {
+	var size = int(uint16(b.Buffer[3])<<8 | uint16(b.Buffer[2]))
+	if size < 4 || size > len(b.Buffer) {
 		return nil, 0, ErrMalformedData
 	}
-	if len(b) < size {
-		return nil, 4, ErrBufferTooSmall
-	}
 
-	if n, err := io.ReadFull(r, b[4:size]); err != nil {
+	if n, err := io.ReadFull(r, b.Buffer[4:size]); err != nil {
 		if err == io.EOF {
 			err = io.ErrUnexpectedEOF
 		}
 		return nil, n + 4, err
 	}
 
-	var buf = util.PacketBuffer{Bytes: b[:size]}
+	var pbuf = util.PacketBuffer{Bytes: b.Buffer[:size]}
 
 	var pkt Packet
 	var err error
 
 	// Explicitly call deserialize on type instead of interface for compiler optimizations
-	switch b[1] {
+	switch b.Buffer[1] {
 	case PidPingFromHost:
-		var tmp Ping
-		err = tmp.Deserialize(&buf)
-		pkt = &tmp
+		err = b.ping.Deserialize(&pbuf)
+		pkt = &b.ping
 	case PidSlotInfoJoin:
-		var tmp SlotInfoJoin
-		err = tmp.Deserialize(&buf)
-		pkt = &tmp
+		err = b.slotInfoJoin.Deserialize(&pbuf)
+		pkt = &b.slotInfoJoin
 	case PidRejectJoin:
-		var tmp RejectJoin
-		err = tmp.Deserialize(&buf)
-		pkt = &tmp
+		err = b.rejectJoin.Deserialize(&pbuf)
+		pkt = &b.rejectJoin
 	case PidPlayerInfo:
-		var tmp PlayerInfo
-		err = tmp.Deserialize(&buf)
-		pkt = &tmp
+		err = b.playerInfo.Deserialize(&pbuf)
+		pkt = &b.playerInfo
 	case PidPlayerLeft:
-		var tmp PlayerLeft
-		err = tmp.Deserialize(&buf)
-		pkt = &tmp
+		err = b.playerLeft.Deserialize(&pbuf)
+		pkt = &b.playerLeft
 	case PidPlayerLoaded:
-		var tmp PlayerLoaded
-		err = tmp.Deserialize(&buf)
-		pkt = &tmp
+		err = b.playerLoaded.Deserialize(&pbuf)
+		pkt = &b.playerLoaded
 	case PidSlotInfo:
-		var tmp SlotInfo
-		err = tmp.Deserialize(&buf)
-		pkt = &tmp
+		err = b.slotInfo.Deserialize(&pbuf)
+		pkt = &b.slotInfo
 	case PidCountDownStart:
-		var tmp CountDownStart
-		err = tmp.Deserialize(&buf)
-		pkt = &tmp
+		err = b.countDownStart.Deserialize(&pbuf)
+		pkt = &b.countDownStart
 	case PidCountDownEnd:
-		var tmp CountDownEnd
-		err = tmp.Deserialize(&buf)
-		pkt = &tmp
+		err = b.countDownEnd.Deserialize(&pbuf)
+		pkt = &b.countDownEnd
 	case PidIncomingAction:
-		var tmp TimeSlot
-		err = tmp.Deserialize(&buf)
-		pkt = &tmp
+		err = b.timeSlot.Deserialize(&pbuf)
+		pkt = &b.timeSlot
 	case PidChatFromHost:
-		var tmp MessageRelay
-		err = tmp.Deserialize(&buf)
-		pkt = &tmp
+		err = b.messageRelay.Deserialize(&pbuf)
+		pkt = &b.messageRelay
 	case PidStartLag:
-		var tmp StartLag
-		err = tmp.Deserialize(&buf)
-		pkt = &tmp
+		err = b.startLag.Deserialize(&pbuf)
+		pkt = &b.startLag
 	case PidStopLag:
-		var tmp StopLag
-		err = tmp.Deserialize(&buf)
-		pkt = &tmp
+		err = b.stopLag.Deserialize(&pbuf)
+		pkt = &b.stopLag
 	case PidPlayerKicked:
-		var tmp PlayerKicked
-		err = tmp.Deserialize(&buf)
-		pkt = &tmp
+		err = b.playerKicked.Deserialize(&pbuf)
+		pkt = &b.playerKicked
 	case PidLeaveAck:
-		var tmp LeaveAck
-		err = tmp.Deserialize(&buf)
-		pkt = &tmp
+		err = b.leaveAck.Deserialize(&pbuf)
+		pkt = &b.leaveAck
 	case PidReqJoin:
-		var tmp Join
-		err = tmp.Deserialize(&buf)
-		pkt = &tmp
+		err = b.join.Deserialize(&pbuf)
+		pkt = &b.join
 	case PidLeaveReq:
-		var tmp Leave
-		err = tmp.Deserialize(&buf)
-		pkt = &tmp
+		err = b.leave.Deserialize(&pbuf)
+		pkt = &b.leave
 	case PidGameLoadedSelf:
-		var tmp GameLoaded
-		err = tmp.Deserialize(&buf)
-		pkt = &tmp
+		err = b.gameLoaded.Deserialize(&pbuf)
+		pkt = &b.gameLoaded
 	case PidOutgoingAction:
-		var tmp GameAction
-		err = tmp.Deserialize(&buf)
-		pkt = &tmp
+		err = b.gameAction.Deserialize(&pbuf)
+		pkt = &b.gameAction
 	case PidOutgoingKeepAlive:
-		var tmp TimeSlotAck
-		err = tmp.Deserialize(&buf)
-		pkt = &tmp
+		err = b.timeSlotAck.Deserialize(&pbuf)
+		pkt = &b.timeSlotAck
 	case PidChatToHost:
-		var tmp Message
-		err = tmp.Deserialize(&buf)
-		pkt = &tmp
+		err = b.message.Deserialize(&pbuf)
+		pkt = &b.message
 	case PidDropReq:
-		var tmp DropLaggers
-		err = tmp.Deserialize(&buf)
-		pkt = &tmp
+		err = b.dropLaggers.Deserialize(&pbuf)
+		pkt = &b.dropLaggers
 	case PidSearchGame:
-		var tmp SearchGame
-		err = tmp.Deserialize(&buf)
-		pkt = &tmp
+		err = b.searchGame.Deserialize(&pbuf)
+		pkt = &b.searchGame
 	case PidGameInfo:
-		var tmp GameInfo
-		err = tmp.Deserialize(&buf)
-		pkt = &tmp
+		err = b.gameInfo.Deserialize(&pbuf)
+		pkt = &b.gameInfo
 	case PidCreateGame:
-		var tmp CreateGame
-		err = tmp.Deserialize(&buf)
-		pkt = &tmp
+		err = b.createGame.Deserialize(&pbuf)
+		pkt = &b.createGame
 	case PidRefreshGame:
-		var tmp RefreshGame
-		err = tmp.Deserialize(&buf)
-		pkt = &tmp
+		err = b.refreshGame.Deserialize(&pbuf)
+		pkt = &b.refreshGame
 	case PidDecreateGame:
-		var tmp DecreateGame
-		err = tmp.Deserialize(&buf)
-		pkt = &tmp
+		err = b.decreateGame.Deserialize(&pbuf)
+		pkt = &b.decreateGame
 	case PidPingFromOthers:
-		var tmp PeerPing
-		err = tmp.Deserialize(&buf)
-		pkt = &tmp
+		err = b.peerPing.Deserialize(&pbuf)
+		pkt = &b.peerPing
 	case PidPongToOthers:
-		var tmp PeerPong
-		err = tmp.Deserialize(&buf)
-		pkt = &tmp
+		err = b.peerPong.Deserialize(&pbuf)
+		pkt = &b.peerPong
 	case PidClientInfo:
-		var tmp ClientInfo
-		err = tmp.Deserialize(&buf)
-		pkt = &tmp
+		err = b.clientInfo.Deserialize(&pbuf)
+		pkt = &b.clientInfo
 	case PidMapCheck:
-		var tmp MapCheck
-		err = tmp.Deserialize(&buf)
-		pkt = &tmp
+		err = b.mapCheck.Deserialize(&pbuf)
+		pkt = &b.mapCheck
 	case PidStartDownload:
-		var tmp StartDownload
-		err = tmp.Deserialize(&buf)
-		pkt = &tmp
+		err = b.startDownload.Deserialize(&pbuf)
+		pkt = &b.startDownload
 	case PidMapSize:
-		var tmp MapSize
-		err = tmp.Deserialize(&buf)
-		pkt = &tmp
+		err = b.mapSize.Deserialize(&pbuf)
+		pkt = &b.mapSize
 	case PidMapPart:
-		var tmp MapPart
-		err = tmp.Deserialize(&buf)
-		pkt = &tmp
+		err = b.mapPart.Deserialize(&pbuf)
+		pkt = &b.mapPart
 	case PidMapPartOK:
-		var tmp MapPartOK
-		err = tmp.Deserialize(&buf)
-		pkt = &tmp
+		err = b.mapPartOK.Deserialize(&pbuf)
+		pkt = &b.mapPartOK
 	case PidMapPartError:
-		var tmp MapPartError
-		err = tmp.Deserialize(&buf)
-		pkt = &tmp
+		err = b.mapPartError.Deserialize(&pbuf)
+		pkt = &b.mapPartError
 	case PidPongToHost:
-		var tmp Pong
-		err = tmp.Deserialize(&buf)
-		pkt = &tmp
+		err = b.pong.Deserialize(&pbuf)
+		pkt = &b.pong
 	case PidIncomingAction2:
-		var tmp TimeSlot
-		err = tmp.Deserialize(&buf)
-		pkt = &tmp
+		err = b.timeSlot.Deserialize(&pbuf)
+		pkt = &b.timeSlot
 	default:
-		var tmp UnknownPacket
-		err = tmp.Deserialize(&buf)
-		pkt = &tmp
+		err = b.unknownPacket.Deserialize(&pbuf)
+		pkt = &b.unknownPacket
 	}
 
 	if err != nil {
@@ -375,6 +371,5 @@ func DeserializePacketWithBuffer(r io.Reader, b []byte) (Packet, int, error) {
 
 // DeserializePacket reads exactly one packet from r andreturns it in the proper (deserialized) packet type.
 func DeserializePacket(r io.Reader) (Packet, int, error) {
-	var buf [2048]byte
-	return DeserializePacketWithBuffer(r, buf[:])
+	return DeserializePacketWithBuffer(r, &DeserializationBuffer{})
 }

@@ -158,10 +158,10 @@ func (b *PacketBuffer) Read(p []byte) (int, error) {
 	return size, nil
 }
 
-// ReadBlob consumes a blob of size len and returns (a copy of) its value
+// ReadBlob consumes a blob of size len and returns (a slice of) its value
 func (b *PacketBuffer) ReadBlob(len int) []byte {
 	if len > 0 {
-		var res = append([]byte(nil), b.Bytes[:len]...)
+		var res = b.Bytes[:len]
 		b.Bytes = b.Bytes[len:]
 		return res
 	}
