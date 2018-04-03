@@ -35,9 +35,10 @@ var sd = []w3gs.SlotData{
 	},
 }
 
-func TestMarshalPacket(t *testing.T) {
+func TestSerializePacket(t *testing.T) {
 	var types = []w3gs.Packet{
 		&w3gs.UnknownPacket{
+			ID:   255,
 			Blob: []byte{w3gs.ProtocolSig, 255, 4, 0},
 		},
 		&w3gs.Ping{},
@@ -281,48 +282,38 @@ func TestMarshalPacket(t *testing.T) {
 		&w3gs.MapPartError{},
 	}
 
-	var tooShort = make([]byte, 0)
-	var tooLong = make([]byte, 2048)
-
 	for _, pkt := range types {
-		var data, err = pkt.MarshalBinary()
-		if err != nil {
+		var err error
+		var buf = util.PacketBuffer{Bytes: make([]byte, 0, 2048)}
+
+		if err = pkt.Serialize(&buf); err != nil {
 			t.Log(reflect.TypeOf(pkt))
 			t.Fatal(err)
 		}
 
-		if len(data) != cap(data) {
-			switch pkt.(type) {
-			case *w3gs.Message, *w3gs.MessageRelay:
-				// Whitelisted
-			default:
-				t.Fatalf("Capacity mismatch for %v (%v != %v)", reflect.TypeOf(pkt), len(data), cap(data))
-			}
-		}
-
-		var pkt2, size, e = w3gs.UnmarshalPacket(&util.PacketBuffer{Bytes: data})
+		var pkt2, _, e = w3gs.DeserializePacket(&buf)
 		if e != nil {
 			t.Log(reflect.TypeOf(pkt))
 			t.Fatal(e)
 		}
-		if size != len(data) {
-			t.Fatalf("UnmarshalPacket size mismatch for %v", reflect.TypeOf(pkt))
+		if buf.Size() > 0 {
+			t.Fatalf("DeserializePacket size mismatch for %v", reflect.TypeOf(pkt))
 		}
 		if reflect.TypeOf(pkt2) != reflect.TypeOf(pkt) {
-			t.Fatalf("UnmarshalPacket type mismatch %v != %v", reflect.TypeOf(pkt2), reflect.TypeOf(pkt))
+			t.Fatalf("DeserializePacket type mismatch %v != %v", reflect.TypeOf(pkt2), reflect.TypeOf(pkt))
 		}
 		if !reflect.DeepEqual(pkt, pkt2) {
 			t.Logf("I: %+v", pkt)
 			t.Logf("O: %+v", pkt2)
-			t.Errorf("UnmarshalPacket value mismatch for %v", reflect.TypeOf(pkt))
+			t.Errorf("DeserializePacket value mismatch for %v", reflect.TypeOf(pkt))
 		}
 
-		err = pkt.UnmarshalBinary(tooShort)
+		err = pkt.Deserialize(&util.PacketBuffer{Bytes: make([]byte, 0)})
 		if err != w3gs.ErrWrongSize {
 			t.Fatalf("ErrWrongSize expected for %v", reflect.TypeOf(pkt))
 		}
 
-		err = pkt.UnmarshalBinary(tooLong)
+		err = pkt.Deserialize(&util.PacketBuffer{Bytes: make([]byte, 2048)})
 		if err != w3gs.ErrWrongSize && err != w3gs.ErrInvalidChecksum {
 			switch pkt.(type) {
 			case *w3gs.UnknownPacket:
@@ -335,119 +326,105 @@ func TestMarshalPacket(t *testing.T) {
 	}
 }
 
-func TestUnmarshalPacket(t *testing.T) {
-	if _, _, e := w3gs.UnmarshalPacket(&util.PacketBuffer{Bytes: []byte{0, 255, 4, 0}}); e != w3gs.ErrNoProtocolSig {
+func TestDeserializePacket(t *testing.T) {
+	if _, _, e := w3gs.DeserializePacket(&util.PacketBuffer{Bytes: []byte{0, 255, 4, 0}}); e != w3gs.ErrNoProtocolSig {
 		t.Fatal("ErrNoProtocolSig expected if no protocol signature")
 	}
-	if _, _, e := w3gs.UnmarshalPacket(&util.PacketBuffer{Bytes: []byte{w3gs.ProtocolSig, 255}}); e != w3gs.ErrNoProtocolSig {
+	if _, _, e := w3gs.DeserializePacket(&util.PacketBuffer{Bytes: []byte{w3gs.ProtocolSig, 255}}); e != w3gs.ErrNoProtocolSig {
 		t.Fatal("ErrNoProtocolSig expected if no size")
 	}
-	if _, _, e := w3gs.UnmarshalPacket(&util.PacketBuffer{Bytes: []byte{w3gs.ProtocolSig, 255, 255, 0}}); e != io.ErrUnexpectedEOF {
+	if _, _, e := w3gs.DeserializePacket(&util.PacketBuffer{Bytes: []byte{w3gs.ProtocolSig, 255, 255, 0}}); e != io.ErrUnexpectedEOF {
 		t.Fatal("ErrUnexpectedEOF expected if invalid size", e)
 	}
-	if _, _, e := w3gs.UnmarshalPacket(&util.PacketBuffer{Bytes: []byte{w3gs.ProtocolSig, 255, 3, 0}}); e != w3gs.ErrMalformedData {
+	if _, _, e := w3gs.DeserializePacket(&util.PacketBuffer{Bytes: []byte{w3gs.ProtocolSig, 255, 3, 0}}); e != w3gs.ErrMalformedData {
 		t.Fatal("ErrMalformedData expected if invalid size")
 	}
 
-	var packet = make([]byte, 2048)
-	packet[0] = w3gs.ProtocolSig
-	packet[1] = w3gs.PidSlotInfoJoin
-	packet[3] = 8
-	if _, _, e := w3gs.UnmarshalPacket(&util.PacketBuffer{Bytes: packet}); e != w3gs.ErrWrongSize {
+	var buf = util.PacketBuffer{Bytes: make([]byte, 2048)}
+	buf.WriteUInt8At(0, w3gs.ProtocolSig)
+	buf.WriteUInt8At(1, w3gs.PidSlotInfoJoin)
+	buf.WriteUInt16At(2, 8)
+	if _, _, e := w3gs.DeserializePacket(&buf); e != w3gs.ErrWrongSize {
 		t.Fatal("ErrWrongSize expected if invalid data")
 	}
 }
 
-func BenchmarkMarshalBinary(b *testing.B) {
-	var pkt = w3gs.TimeSlot{
-		TimeIncrementMS: 50,
-		Actions: []w3gs.PlayerAction{
-			w3gs.PlayerAction{PlayerID: 0, Data: make([]byte, 128)},
-			w3gs.PlayerAction{PlayerID: 1, Data: make([]byte, 128)},
-			w3gs.PlayerAction{PlayerID: 2, Data: make([]byte, 128)},
-			w3gs.PlayerAction{PlayerID: 3, Data: make([]byte, 128)},
-			w3gs.PlayerAction{PlayerID: 4, Data: make([]byte, 128)},
-			w3gs.PlayerAction{PlayerID: 5, Data: make([]byte, 128)},
-			w3gs.PlayerAction{PlayerID: 6, Data: make([]byte, 128)},
-			w3gs.PlayerAction{PlayerID: 7, Data: make([]byte, 128)},
-		},
+func BenchmarkSerialize(b *testing.B) {
+	var pkt = w3gs.SlotInfo{
+		Slots: sd,
 	}
-	var data, _ = pkt.MarshalBinary()
 
-	b.SetBytes(int64(len(data)))
+	var buf = util.PacketBuffer{Bytes: make([]byte, 0, 2048)}
+	pkt.Serialize(&buf)
+
+	b.SetBytes(int64(buf.Size()))
 	b.ResetTimer()
 	for n := 0; n < b.N; n++ {
-		pkt.MarshalBinary()
+		buf.Clear()
+		pkt.Serialize(&buf)
 	}
 }
 
-func BenchmarkUnmarshalBinary(b *testing.B) {
-	var pkt = w3gs.TimeSlot{
-		TimeIncrementMS: 50,
-		Actions: []w3gs.PlayerAction{
-			w3gs.PlayerAction{PlayerID: 0, Data: make([]byte, 128)},
-			w3gs.PlayerAction{PlayerID: 1, Data: make([]byte, 128)},
-			w3gs.PlayerAction{PlayerID: 2, Data: make([]byte, 128)},
-			w3gs.PlayerAction{PlayerID: 3, Data: make([]byte, 128)},
-			w3gs.PlayerAction{PlayerID: 4, Data: make([]byte, 128)},
-			w3gs.PlayerAction{PlayerID: 5, Data: make([]byte, 128)},
-			w3gs.PlayerAction{PlayerID: 6, Data: make([]byte, 128)},
-			w3gs.PlayerAction{PlayerID: 7, Data: make([]byte, 128)},
-		},
+func BenchmarkDeserialize(b *testing.B) {
+	var pkt = w3gs.SlotInfo{
+		Slots: sd,
 	}
-	var data, _ = pkt.MarshalBinary()
-	var res w3gs.SlotInfoJoin
 
-	b.SetBytes(int64(len(data)))
+	var res w3gs.SlotInfo
+	var buf = util.PacketBuffer{Bytes: make([]byte, 0, 2048)}
+	pkt.Serialize(&buf)
+
+	b.SetBytes(int64(buf.Size()))
 	b.ResetTimer()
 	for n := 0; n < b.N; n++ {
-		res.UnmarshalBinary(data)
+		res.Deserialize(&util.PacketBuffer{Bytes: buf.Bytes})
 	}
 }
 
-func BenchmarkCreateAndMarshalBinary(b *testing.B) {
+func BenchmarkCreateAndSerialize(b *testing.B) {
 	var size = 0
+	var buf = util.PacketBuffer{Bytes: make([]byte, 0, 2048)}
+
 	b.ResetTimer()
 	for n := 0; n < b.N; n++ {
-		var pkt = w3gs.TimeSlot{
-			TimeIncrementMS: 50,
-			Actions: []w3gs.PlayerAction{
-				w3gs.PlayerAction{PlayerID: 0, Data: make([]byte, 128)},
-				w3gs.PlayerAction{PlayerID: 1, Data: make([]byte, 128)},
-				w3gs.PlayerAction{PlayerID: 2, Data: make([]byte, 128)},
-				w3gs.PlayerAction{PlayerID: 3, Data: make([]byte, 128)},
-				w3gs.PlayerAction{PlayerID: 4, Data: make([]byte, 128)},
-				w3gs.PlayerAction{PlayerID: 5, Data: make([]byte, 128)},
-				w3gs.PlayerAction{PlayerID: 6, Data: make([]byte, 128)},
-				w3gs.PlayerAction{PlayerID: 7, Data: make([]byte, 128)},
-			},
+		var pkt = w3gs.SlotInfo{
+			Slots: sd,
 		}
-		var data, _ = pkt.MarshalBinary()
-		size = len(data)
+
+		buf.Clear()
+		pkt.Serialize(&buf)
+		size = buf.Size()
 	}
 	b.SetBytes(int64(size))
 }
 
-func BenchmarkCreateAndUnmarshalBinary(b *testing.B) {
-	var pkt = w3gs.TimeSlot{
-		TimeIncrementMS: 50,
-		Actions: []w3gs.PlayerAction{
-			w3gs.PlayerAction{PlayerID: 0, Data: make([]byte, 128)},
-			w3gs.PlayerAction{PlayerID: 1, Data: make([]byte, 128)},
-			w3gs.PlayerAction{PlayerID: 2, Data: make([]byte, 128)},
-			w3gs.PlayerAction{PlayerID: 3, Data: make([]byte, 128)},
-			w3gs.PlayerAction{PlayerID: 4, Data: make([]byte, 128)},
-			w3gs.PlayerAction{PlayerID: 5, Data: make([]byte, 128)},
-			w3gs.PlayerAction{PlayerID: 6, Data: make([]byte, 128)},
-			w3gs.PlayerAction{PlayerID: 7, Data: make([]byte, 128)},
-		},
+func BenchmarkCreateAndDeserialize(b *testing.B) {
+	var pkt = w3gs.SlotInfo{
+		Slots: sd,
 	}
-	var data, _ = pkt.MarshalBinary()
+	var buf = util.PacketBuffer{Bytes: make([]byte, 0, 2048)}
+	pkt.Serialize(&buf)
 
-	b.SetBytes(int64(len(data)))
+	b.SetBytes(int64(buf.Size()))
 	b.ResetTimer()
 	for n := 0; n < b.N; n++ {
-		var res w3gs.TimeSlot
-		res.UnmarshalBinary(data)
+		var res w3gs.SlotInfo
+		res.Deserialize(&util.PacketBuffer{Bytes: buf.Bytes})
+	}
+}
+
+func BenchmarkDeserializePacket(b *testing.B) {
+	var pkt = w3gs.SlotInfo{
+		Slots: sd,
+	}
+
+	var bbuf = make([]byte, 2048)
+	var pbuf = util.PacketBuffer{Bytes: make([]byte, 0, 2048)}
+	pkt.Serialize(&pbuf)
+
+	b.SetBytes(int64(pbuf.Size()))
+	b.ResetTimer()
+	for n := 0; n < b.N; n++ {
+		w3gs.DeserializePacketWithBuffer(&util.PacketBuffer{Bytes: pbuf.Bytes}, bbuf)
 	}
 }

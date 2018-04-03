@@ -31,16 +31,16 @@ var (
 
 var logger = log.New(os.Stdout, "", log.Ltime)
 
-func dumpPackets(layer string, flow gopacket.Flow, r io.Reader) {
+func dumpPackets(layer string, flow gopacket.Flow, r io.Reader) error {
 	var buf [2048]byte
 	for {
-		var pkt, size, err = w3gs.UnmarshalPacketWithBuffer(r, buf[:])
+		var pkt, size, err = w3gs.DeserializePacketWithBuffer(r, buf[:])
 		if err == io.EOF || err == w3gs.ErrNoProtocolSig {
-			break
+			return err
 		} else if err != nil {
 			logger.Printf("[%-3v] %-32v %-14v %v\n", layer, flow, "ERROR", err)
 			logger.Printf("Payload:\n%v", hex.Dump(buf[:size]))
-			break
+			return err
 		}
 
 		// Truncate blobs
@@ -127,8 +127,6 @@ func main() {
 	} else if *iface != "" {
 		var handle, err = pcap.OpenLive(*iface, int32(*snaplen), *promisc, pcap.BlockForever)
 		if err != nil {
-			log.Fatalf("Could not create pcap handle: %v", err)
-
 			if devs, e := pcap.FindAllDevs(); e == nil {
 				log.Print("Following interfaces are available:")
 				for _, d := range devs {
@@ -137,6 +135,8 @@ func main() {
 						log.Printf("\t%v\n", a.IP)
 					}
 				}
+
+				log.Fatalf("Could not create pcap handle: %v", err)
 			}
 		}
 		addHandle(handle, packets, &wg)
@@ -147,6 +147,10 @@ func main() {
 		}
 
 		for _, d := range devs {
+			if len(d.Addresses) == 0 {
+				continue
+			}
+
 			var handle, err = pcap.OpenLive(d.Name, int32(*snaplen), *promisc, pcap.BlockForever)
 			if err != nil {
 				log.Fatalf("Could not create pcap handle: %v", err)
