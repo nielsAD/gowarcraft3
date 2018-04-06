@@ -51,11 +51,13 @@ func TestSerializePacket(t *testing.T) {
 		},
 		&w3gs.PeerPing{},
 		&w3gs.PeerPing{
-			Payload: 123,
+			Payload:   123,
+			PeerMask:  456,
+			GameTicks: 789,
 		},
 		&w3gs.PeerPong{},
 		&w3gs.PeerPong{
-			Ping: w3gs.Ping{Payload: 456},
+			Ping: w3gs.Ping{Payload: 1011},
 		},
 
 		&w3gs.Join{},
@@ -72,7 +74,7 @@ func TestSerializePacket(t *testing.T) {
 		},
 		&w3gs.RejectJoin{},
 		&w3gs.RejectJoin{
-			Reason: w3gs.RejectJoinWrongPass,
+			Reason: w3gs.RejectJoinWrongKey,
 		},
 		&w3gs.SlotInfoJoin{},
 		&w3gs.SlotInfoJoin{
@@ -127,7 +129,11 @@ func TestSerializePacket(t *testing.T) {
 		&w3gs.GameLoaded{},
 		&w3gs.PlayerLoaded{},
 		&w3gs.PlayerLoaded{
-			PlayerID: 123,
+			PlayerID: 12,
+		},
+		&w3gs.GameOver{},
+		&w3gs.GameOver{
+			PlayerID: 34,
 		},
 
 		&w3gs.StartLag{},
@@ -169,6 +175,11 @@ func TestSerializePacket(t *testing.T) {
 		&w3gs.TimeSlotAck{
 			Checksum: 456,
 		},
+		&w3gs.Desync{},
+		&w3gs.Desync{
+			Checksum:       789,
+			PlayersInState: []uint8{1, 2, 3},
+		},
 
 		&w3gs.Message{},
 		&w3gs.Message{
@@ -201,6 +212,15 @@ func TestSerializePacket(t *testing.T) {
 				Content:      "Pitiful",
 			},
 		},
+		&w3gs.PeerMessage{},
+		&w3gs.PeerMessage{
+			Message: w3gs.Message{
+				RecipientIDs: []uint8{1, 2, 3},
+				SenderID:     4,
+				Flags:        w3gs.ChatMessage,
+				Content:      "You fail to amuse me",
+			},
+		},
 
 		&w3gs.SearchGame{},
 		&w3gs.SearchGame{
@@ -208,6 +228,7 @@ func TestSerializePacket(t *testing.T) {
 				TFT:     true,
 				Version: 666,
 			},
+			Counter: 1,
 		},
 		&w3gs.GameInfo{},
 		&w3gs.GameInfo{
@@ -221,7 +242,8 @@ func TestSerializePacket(t *testing.T) {
 			StatString:     "xxxxx",
 			SlotsTotal:     24,
 			GameTypeFlags:  w3gs.GameTypeNewGame,
-			SlotsAvailable: 22,
+			SlotsUsed:      1,
+			SlotsAvailable: 24,
 			UptimeSec:      8,
 			GamePort:       9,
 		},
@@ -236,18 +258,24 @@ func TestSerializePacket(t *testing.T) {
 		&w3gs.RefreshGame{},
 		&w3gs.RefreshGame{
 			HostCounter:    1,
-			PlayersInGame:  2,
+			SlotsUsed:      2,
 			SlotsAvailable: 3,
 		},
 		&w3gs.DecreateGame{},
 		&w3gs.DecreateGame{
 			HostCounter: 777,
 		},
-		&w3gs.ClientInfo{},
-		&w3gs.ClientInfo{
+
+		&w3gs.PeerConnect{},
+		&w3gs.PeerConnect{
 			JoinCounter: 1,
 			EntryKey:    2,
 			PlayerID:    3,
+			PeerMask:    4,
+		},
+		&w3gs.PeerMask{},
+		&w3gs.PeerMask{
+			PeerMask: 5,
 		},
 
 		&w3gs.MapCheck{},
@@ -261,10 +289,10 @@ func TestSerializePacket(t *testing.T) {
 		&w3gs.StartDownload{
 			PlayerID: 111,
 		},
-		&w3gs.MapSize{},
-		&w3gs.MapSize{
-			Ready:   true,
-			MapSize: 2,
+		&w3gs.MapState{},
+		&w3gs.MapState{
+			Ready:    true,
+			FileSize: 2,
 		},
 		&w3gs.MapPart{},
 		&w3gs.MapPart{
@@ -360,7 +388,7 @@ func BenchmarkSerialize(b *testing.B) {
 	b.SetBytes(int64(buf.Size()))
 	b.ResetTimer()
 	for n := 0; n < b.N; n++ {
-		buf.Clear()
+		buf.Truncate()
 		pkt.Serialize(&buf)
 	}
 }
@@ -391,7 +419,7 @@ func BenchmarkCreateAndSerialize(b *testing.B) {
 			Slots: sd,
 		}
 
-		buf.Clear()
+		buf.Truncate()
 		pkt.Serialize(&buf)
 		size = buf.Size()
 	}
@@ -410,6 +438,25 @@ func BenchmarkCreateAndDeserialize(b *testing.B) {
 	for n := 0; n < b.N; n++ {
 		var res w3gs.SlotInfo
 		res.Deserialize(&util.PacketBuffer{Bytes: buf.Bytes})
+	}
+}
+
+func BenchmarkSerializePacket(b *testing.B) {
+	var pkt = w3gs.SlotInfo{
+		Slots: sd,
+	}
+
+	var bbuf w3gs.SerializationBuffer
+	var w = &util.PacketBuffer{}
+
+	w3gs.SerializePacketWithBuffer(w, &bbuf, &pkt)
+
+	b.SetBytes(int64(w.Size()))
+	b.ResetTimer()
+
+	for n := 0; n < b.N; n++ {
+		w.Truncate()
+		w3gs.SerializePacketWithBuffer(w, &bbuf, &pkt)
 	}
 }
 

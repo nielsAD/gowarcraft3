@@ -28,8 +28,8 @@ func (b *PacketBuffer) Skip(len int) {
 	b.Bytes = b.Bytes[len:]
 }
 
-// Clear resets the buffer to size 0
-func (b *PacketBuffer) Clear() {
+// Truncate resets the buffer to size 0
+func (b *PacketBuffer) Truncate() {
 	b.Bytes = b.Bytes[:0]
 }
 

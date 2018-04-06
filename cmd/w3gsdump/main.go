@@ -31,16 +31,25 @@ var (
 
 var logger = log.New(os.Stdout, "", log.Ltime)
 
-func dumpPackets(layer string, flow gopacket.Flow, r io.Reader) error {
+func dumpPackets(layer string, netFlow, transFlow gopacket.Flow, r io.Reader) error {
 	var buf w3gs.DeserializationBuffer
+
+	var src = netFlow.Src().String() + ":" + transFlow.Src().String()
+	var dst = netFlow.Dst().String() + ":" + transFlow.Dst().String()
+
 	for {
 		var pkt, size, err = w3gs.DeserializePacketWithBuffer(r, &buf)
 		if err == io.EOF || err == w3gs.ErrNoProtocolSig {
 			return err
 		} else if err != nil {
-			logger.Printf("[%-3v] %-32v %-14v %v\n", layer, flow, "ERROR", err)
+			logger.Printf("[%-3v] %21v->%-21v %-14v %v\n", layer, src, dst, "ERROR", err)
 			logger.Printf("Payload:\n%v", hex.Dump(buf.Buffer[:size]))
-			return err
+
+			if err == w3gs.ErrWrongSize || err == w3gs.ErrInvalidChecksum || err == w3gs.ErrUnexpectedConst {
+				continue
+			} else {
+				return err
+			}
 		}
 
 		// Truncate blobs
@@ -69,20 +78,22 @@ func dumpPackets(layer string, flow gopacket.Flow, r io.Reader) error {
 			p.Data = p.Data[:*bloblen]
 		}
 
-		logger.Printf("[%-3v] %-32v %-14v %+v\n", layer, flow, reflect.TypeOf(pkt).String()[6:], pkt)
+		logger.Printf("[%-3v] %21v->%-21v %-14v %+v\n", layer, src, dst, reflect.TypeOf(pkt).String()[6:], pkt)
 	}
 }
 
 type streamFactory struct{}
 type stream struct {
-	flow   gopacket.Flow
-	reader tcpreader.ReaderStream
+	netFlow   gopacket.Flow
+	transFlow gopacket.Flow
+	reader    tcpreader.ReaderStream
 }
 
-func (f *streamFactory) New(networkFlow, transportFlow gopacket.Flow) tcpassembly.Stream {
+func (f *streamFactory) New(netFlow, transFlow gopacket.Flow) tcpassembly.Stream {
 	var s = stream{
-		flow:   networkFlow,
-		reader: tcpreader.NewReaderStream(),
+		netFlow:   netFlow,
+		transFlow: transFlow,
+		reader:    tcpreader.NewReaderStream(),
 	}
 
 	go s.run()
@@ -91,12 +102,12 @@ func (f *streamFactory) New(networkFlow, transportFlow gopacket.Flow) tcpassembl
 }
 
 func (s *stream) run() {
-	dumpPackets("TCP", s.flow, &s.reader)
+	dumpPackets("TCP", s.netFlow, s.transFlow, &s.reader)
 	io.Copy(ioutil.Discard, &s.reader)
 }
 
 func addHandle(h *pcap.Handle, c chan<- gopacket.Packet, wg *sync.WaitGroup) {
-	if err := h.SetBPFFilter("(tcp and portrange 1000-32768) or (udp and port 6112)"); err != nil {
+	if err := h.SetBPFFilter("(tcp and portrange 1000-65535) or (udp and port 6112)"); err != nil {
 		log.Fatal("BPF filter error:", err)
 	}
 
@@ -106,8 +117,16 @@ func addHandle(h *pcap.Handle, c chan<- gopacket.Packet, wg *sync.WaitGroup) {
 	go func() {
 		defer h.Close()
 		defer wg.Done()
-		for p := range src.Packets() {
-			c <- p
+
+		for {
+			p, err := src.NextPacket()
+			if err == io.EOF {
+				break
+			} else if err != nil {
+				logger.Println("Sniffing error: ", err)
+			} else {
+				c <- p
+			}
 		}
 	}()
 }
@@ -164,11 +183,12 @@ func main() {
 
 	go func() {
 		for packet := range packets {
-			switch tcp := packet.TransportLayer().(type) {
+			switch trans := packet.TransportLayer().(type) {
 			case *layers.TCP:
-				asm.Assemble(packet.NetworkLayer().NetworkFlow(), tcp)
+				asm.Assemble(packet.NetworkLayer().NetworkFlow(), trans)
 			case *layers.UDP:
-				dumpPackets("UDP", packet.NetworkLayer().NetworkFlow(), &util.PacketBuffer{Bytes: packet.ApplicationLayer().Payload()})
+				var buf = util.PacketBuffer{Bytes: packet.ApplicationLayer().Payload()}
+				dumpPackets("UDP", packet.NetworkLayer().NetworkFlow(), trans.TransportFlow(), &buf)
 			}
 		}
 	}()

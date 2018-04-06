@@ -30,6 +30,7 @@ var (
 	ErrWrongSize       = errors.New("w3gs: Wrong size input data")
 	ErrMalformedData   = errors.New("w3gs: Malformed input data")
 	ErrInvalidChecksum = errors.New("w3gs: Checksum invalid")
+	ErrUnexpectedConst = errors.New("w3gs: Unexpected constant value")
 )
 
 // ProtocolSig is the W3GS magic number used in the packet header.
@@ -48,9 +49,11 @@ const (
 	PidCountDownStart    = 0x0A
 	PidCountDownEnd      = 0x0B
 	PidIncomingAction    = 0x0C
+	PidDesync            = 0x0D
 	PidChatFromHost      = 0x0F
 	PidStartLag          = 0x10
 	PidStopLag           = 0x11
+	PidGameOver          = 0x14
 	PidPlayerKicked      = 0x1C
 	PidLeaveAck          = 0x1B
 	PidReqJoin           = 0x1E
@@ -65,9 +68,11 @@ const (
 	PidCreateGame        = 0x31
 	PidRefreshGame       = 0x32
 	PidDecreateGame      = 0x33
+	PidChatFromOthers    = 0x34
 	PidPingFromOthers    = 0x35
 	PidPongToOthers      = 0x36
 	PidClientInfo        = 0x37
+	PidPeerMask          = 0x3B
 	PidMapCheck          = 0x3D
 	PidStartDownload     = 0x3F
 	PidMapSize           = 0x42
@@ -78,8 +83,7 @@ const (
 	PidIncomingAction2   = 0x48
 )
 
-//PidChatOthers = 0x34 (?)
-//PidGameOver   = 0x14 (?) [Payload is a single byte (PlayerID?) after game is over]
+// Failover related: 0x15 0x16 0x2B 0x2C 0x39
 
 // Slot layout
 const (
@@ -115,10 +119,10 @@ const (
 
 // RejectJoin reason
 const (
-	RejectJoinInvalid   = 0x07
-	RejectJoinFull      = 0x09
-	RejectJoinStarted   = 0x0A
-	RejectJoinWrongPass = 0x1B
+	RejectJoinInvalid  = 0x07
+	RejectJoinFull     = 0x09
+	RejectJoinStarted  = 0x0A
+	RejectJoinWrongKey = 0x1B
 )
 
 // PlayerLeft reason
@@ -165,6 +169,23 @@ const (
 	GameTypeMaskSize  = GameTypeSizeSmall | GameTypeSizeMedium | GameTypeSizeLarge
 )
 
+// SerializationBuffer is used by SerializePacketWithBuffer to bring amortized allocs to 0 for repeated calls
+type SerializationBuffer = util.PacketBuffer
+
+// SerializePacketWithBuffer serializes p and writes it to w.
+func SerializePacketWithBuffer(w io.Writer, b *SerializationBuffer, p Packet) (int, error) {
+	b.Truncate()
+	if err := p.Serialize(b); err != nil {
+		return 0, err
+	}
+	return w.Write(b.Bytes)
+}
+
+// SerializePacket serializes p and writes it to w.
+func SerializePacket(w io.Writer, p Packet) (int, error) {
+	return SerializePacketWithBuffer(w, &SerializationBuffer{}, p)
+}
+
 // DeserializationBuffer is used by DeserializePacketWithBuffer to bring amortized allocs to 0 for repeated calls
 type DeserializationBuffer struct {
 	Buffer         [2048]byte
@@ -178,9 +199,11 @@ type DeserializationBuffer struct {
 	countDownStart CountDownStart
 	countDownEnd   CountDownEnd
 	timeSlot       TimeSlot
+	desync         Desync
 	messageRelay   MessageRelay
 	startLag       StartLag
 	stopLag        StopLag
+	gameOver       GameOver
 	playerKicked   PlayerKicked
 	leaveAck       LeaveAck
 	join           Join
@@ -195,12 +218,14 @@ type DeserializationBuffer struct {
 	createGame     CreateGame
 	refreshGame    RefreshGame
 	decreateGame   DecreateGame
+	peerMessage    PeerMessage
 	peerPing       PeerPing
 	peerPong       PeerPong
-	clientInfo     ClientInfo
+	peerConnect    PeerConnect
+	peerMask       PeerMask
 	mapCheck       MapCheck
 	startDownload  StartDownload
-	mapSize        MapSize
+	mapState       MapState
 	mapPart        MapPart
 	mapPartOK      MapPartOK
 	mapPartError   MapPartError
@@ -208,9 +233,7 @@ type DeserializationBuffer struct {
 	unknownPacket  UnknownPacket
 }
 
-// DeserializePacketWithBuffer reads exactly one packet from r (using b as buffer) and
-// returns it in the proper (deserialized) packet type. Buffer should be large enough
-// to hold the entire packet (in general, wc3 doesn't send packets larger than ~1500b)
+// DeserializePacketWithBuffer reads exactly one packet from r and returns it in the proper (deserialized) packet type.
 func DeserializePacketWithBuffer(r io.Reader, b *DeserializationBuffer) (Packet, int, error) {
 	if n, err := io.ReadFull(r, b.Buffer[:4]); err != nil {
 		if err == io.ErrUnexpectedEOF {
@@ -273,6 +296,9 @@ func DeserializePacketWithBuffer(r io.Reader, b *DeserializationBuffer) (Packet,
 	case PidIncomingAction:
 		err = b.timeSlot.Deserialize(&pbuf)
 		pkt = &b.timeSlot
+	case PidDesync:
+		err = b.desync.Deserialize(&pbuf)
+		pkt = &b.desync
 	case PidChatFromHost:
 		err = b.messageRelay.Deserialize(&pbuf)
 		pkt = &b.messageRelay
@@ -282,6 +308,9 @@ func DeserializePacketWithBuffer(r io.Reader, b *DeserializationBuffer) (Packet,
 	case PidStopLag:
 		err = b.stopLag.Deserialize(&pbuf)
 		pkt = &b.stopLag
+	case PidGameOver:
+		err = b.gameOver.Deserialize(&pbuf)
+		pkt = &b.gameOver
 	case PidPlayerKicked:
 		err = b.playerKicked.Deserialize(&pbuf)
 		pkt = &b.playerKicked
@@ -324,6 +353,9 @@ func DeserializePacketWithBuffer(r io.Reader, b *DeserializationBuffer) (Packet,
 	case PidDecreateGame:
 		err = b.decreateGame.Deserialize(&pbuf)
 		pkt = &b.decreateGame
+	case PidChatFromOthers:
+		err = b.peerMessage.Deserialize(&pbuf)
+		pkt = &b.peerMessage
 	case PidPingFromOthers:
 		err = b.peerPing.Deserialize(&pbuf)
 		pkt = &b.peerPing
@@ -331,8 +363,11 @@ func DeserializePacketWithBuffer(r io.Reader, b *DeserializationBuffer) (Packet,
 		err = b.peerPong.Deserialize(&pbuf)
 		pkt = &b.peerPong
 	case PidClientInfo:
-		err = b.clientInfo.Deserialize(&pbuf)
-		pkt = &b.clientInfo
+		err = b.peerConnect.Deserialize(&pbuf)
+		pkt = &b.peerConnect
+	case PidPeerMask:
+		err = b.peerMask.Deserialize(&pbuf)
+		pkt = &b.peerMask
 	case PidMapCheck:
 		err = b.mapCheck.Deserialize(&pbuf)
 		pkt = &b.mapCheck
@@ -340,8 +375,8 @@ func DeserializePacketWithBuffer(r io.Reader, b *DeserializationBuffer) (Packet,
 		err = b.startDownload.Deserialize(&pbuf)
 		pkt = &b.startDownload
 	case PidMapSize:
-		err = b.mapSize.Deserialize(&pbuf)
-		pkt = &b.mapSize
+		err = b.mapState.Deserialize(&pbuf)
+		pkt = &b.mapState
 	case PidMapPart:
 		err = b.mapPart.Deserialize(&pbuf)
 		pkt = &b.mapPart
@@ -369,7 +404,7 @@ func DeserializePacketWithBuffer(r io.Reader, b *DeserializationBuffer) (Packet,
 	return pkt, size, nil
 }
 
-// DeserializePacket reads exactly one packet from r andreturns it in the proper (deserialized) packet type.
+// DeserializePacket reads exactly one packet from r and returns it in the proper (deserialized) packet type.
 func DeserializePacket(r io.Reader) (Packet, int, error) {
 	return DeserializePacketWithBuffer(r, &DeserializationBuffer{})
 }
