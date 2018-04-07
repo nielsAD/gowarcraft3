@@ -132,7 +132,7 @@ func (pkt *UnknownPacket) Deserialize(buf *util.PacketBuffer) error {
 //
 // Format:
 //
-//    (UINT32) Ping
+//    (UINT32) Ping (GetTickCount)
 //
 type Ping struct {
 	Payload uint32
@@ -168,7 +168,7 @@ func (pkt *Ping) Deserialize(buf *util.PacketBuffer) error {
 //
 // Format:
 //
-//    (UINT32) Pong
+//    (UINT32) Pong (copy of Ping payload)
 //
 type Pong struct {
 	Ping
@@ -191,7 +191,7 @@ func (pkt *Pong) Serialize(buf *util.PacketBuffer) error {
 // Format:
 //
 //    (UINT32) Ping
-//    (UINT32) Peer key ?
+//    (UINT32) Peer mask  (see [0x37] W3GS_ClientInfo)
 //    (UINT32) Game ticks
 //
 type PeerPing struct {
@@ -232,7 +232,7 @@ func (pkt *PeerPing) Deserialize(buf *util.PacketBuffer) error {
 //
 // Format:
 //
-//    (UINT32) Pong
+//    (UINT32) Pong (copy of Ping payload)
 //
 type PeerPong struct {
 	Ping
@@ -256,19 +256,19 @@ func (pkt *PeerPong) Serialize(buf *util.PacketBuffer) error {
 //
 // Format:
 //
-//    (UINT32) Host Counter (Game ID)
-//    (UINT32) Entry Key (used in LAN)
-//    (UINT8) Unknown (0x00)
-//    (UINT16) Listen Port
-//    (UINT32) Join counter
-//    (STRING) Player name
-//    (UINT8) Number of bytes that follow (0x01 < 1.29; 0x02 >= 1.29)
-//    (UINT8)[] Unknown (0x00)
-//    (UINT16) AF_INET (0x02)
-//    (UINT16) Internal Port
-//    (UINT32) Internal IP
-//    (UINT32) Unknown (0x00)
-//    (UINT32) Unknown (0x00)
+//    (UINT32)   Host Counter (Game ID)
+//    (UINT32)   Entry Key (used in LAN)
+//     (UINT8)   Unknown (0x00)
+//    (UINT16)   Listen Port
+//    (UINT32)   Join counter
+//    (STRING)   Player name
+//     (UINT8)   Number of bytes that follow (0x01 < 1.29; 0x02 >= 1.29)
+//     (UINT8)[] Unknown (0x00)
+//    (UINT16)   AF_INET (0x02)
+//    (UINT16)   Internal Port
+//    (UINT32)   Internal IP
+//    (UINT32)   Unknown (0x00)
+//    (UINT32)   Unknown (0x00)
 //
 type Join struct {
 	HostCounter  uint32
@@ -389,19 +389,19 @@ func (pkt *RejectJoin) Deserialize(buf *util.PacketBuffer) error {
 // Format:
 //
 //    Embedded [0x09] W3GS_SlotInfo:
-//	     (UINT16)   Length of Slot data
-//	     (UINT8)    Number of slots
-//	     (UINT8)[]  Slot data
-//	    (UINT32)    Random seed
-//	     (UINT8)    Slots layout
-//	     (UINT8)    Number of player slots without observers
+//	    (UINT16)   Length of Slot data
+//	     (UINT8)   Number of slots
+//	     (UINT8)[] Slot data
+//	    (UINT32)   Random seed
+//	     (UINT8)   Slots layout
+//	     (UINT8)   Number of player slots without observers
 //
-//     (UINT8)    Player number
-//    (UINT16)    AF_INET (0x02)
-//    (UINT16)    Port
-//    (UINT32)    External IP
-//    (UINT32)    Unknown (0x00)
-//    (UINT32)    Unknown (0x00)
+//     (UINT8) Player number
+//    (UINT16) AF_INET (0x02)
+//    (UINT16) Port
+//    (UINT32) External IP
+//    (UINT32) Unknown (0x00)
+//    (UINT32) Unknown (0x00)
 //
 type SlotInfoJoin struct {
 	SlotInfo
@@ -457,12 +457,12 @@ func (pkt *SlotInfoJoin) Deserialize(buf *util.PacketBuffer) error {
 //
 // Format:
 //
-//     (UINT16)   Length of Slot data
-//     (UINT8)    Number of slots
-//     (UINT8) [] Slot data
-//    (UINT32)    Random seed
-//     (UINT8)    Slots layout
-//     (UINT8)    Number of player slots without observers
+//    (UINT16)   Length of Slot data
+//     (UINT8)   Number of slots
+//     (UINT8)[] Slot data
+//    (UINT32)   Random seed
+//     (UINT8)   Slots layout
+//     (UINT8)   Number of player slots without observers
 //
 //    For each slot:
 //       (UINT8) Player number
@@ -624,25 +624,23 @@ func (pkt *SlotInfo) deserialize(buf *util.PacketBuffer) error {
 //
 // The external and internal IP are always zero for the host.
 //
-// NOTE: This packet needs a better structure in the Format. Until then, you will have to deal with the unorganized fields.
-//
 // Format:
 //
-//    (UINT32) Player Counter
-//      (UINT8) Player number
-//    (STRING) Player name
-//    (UINT8) Number of bytes that follow (0x01)
-//    (UINT8)[] Unknown (0x00)
-//      (UINT16) AF_INET (0x02)
-//      (UINT16) Port
-//     (UINT32) External IP
-//     (UINT32) Unknown (0x00)
-//     (UINT32) Unknown (0x00)
-//      (UINT16) AF_INET (0x02)
-//      (UINT16) Port
-//     (UINT32) Internal IP
-//     (UINT32) Unknown (0x00)
-//     (UINT32) Unknown (0x00)
+//    (UINT32)   Join Counter
+//     (UINT8)   Player number
+//    (STRING)   Player name
+//     (UINT8)   Number of bytes that follow (0x01)
+//     (UINT8)[] Unknown (0x00)
+//    (UINT16)   AF_INET (0x02)
+//    (UINT16)   Port
+//    (UINT32)   External IP
+//    (UINT32)   Unknown (0x00)
+//    (UINT32)   Unknown (0x00)
+//    (UINT16)   AF_INET (0x02)
+//    (UINT16)   Port
+//    (UINT32)   Internal IP
+//    (UINT32)   Unknown (0x00)
+//    (UINT32)   Unknown (0x00)
 //
 type PlayerInfo struct {
 	JoinCounter  uint32
@@ -785,7 +783,7 @@ func (pkt *PlayerKicked) Serialize(buf *util.PacketBuffer) error {
 
 // LeaveAck implements the [0x1B] W3GS_LeaveAck packet (S -> C).
 //
-// This is the response to 0x21 W3GS_LeaveReq.
+// This is the response to [0x21] W3GS_LeaveReq.
 //
 // You will leave the game once the connection is terminated.
 //
@@ -829,7 +827,7 @@ func (pkt *LeaveAck) Deserialize(buf *util.PacketBuffer) error {
 //
 // Format:
 //
-//    (UINT8) Player number
+//     (UINT8) Player number
 //    (UINT32) Reason
 //
 type PlayerLeft struct {
@@ -892,7 +890,7 @@ func (pkt *CountDownStart) Deserialize(buf *util.PacketBuffer) error {
 //
 // The game has finished the countdown and has now started. Players should see a loading screen for the map once this is received.
 //
-// W3GS_COUNTDOWN_START should be received before this packet, even if there is no countdown or if the countdown was 0 seconds.
+// [0x0A] W3GS_COUNTDOWN_START should be received before this packet, even if there is no countdown or if the countdown was 0 seconds.
 //
 // Format:
 //
@@ -1017,8 +1015,8 @@ func (pkt *GameOver) Deserialize(buf *util.PacketBuffer) error {
 //    (UINT8) Number of lagging players
 //
 //    For every lagging player:
-//    (UINT8) Player number
-//    (UINT32) Lag duration in milliseconds
+//        (UINT8) Player number
+//       (UINT32) Lag duration in milliseconds
 //
 type StartLag struct {
 	Players []LagPlayer
@@ -1089,7 +1087,7 @@ func (lp *LagPlayer) deserialize(buf *util.PacketBuffer) {
 //
 // Format:
 //
-//    (UINT8) Player number
+//     (UINT8) Player number
 //    (UINT32) Lag duration in milliseconds
 //
 type StopLag struct {
@@ -1151,8 +1149,8 @@ func (pkt *DropLaggers) Deserialize(buf *util.PacketBuffer) error {
 //
 // Format:
 //
-//    (UINT32) CRC-32 encryption
-//    (VOID) Action data
+//    (UINT32) CRC-32 checksum
+//      (VOID) Action data
 //
 type GameAction struct {
 	Data []byte
@@ -1197,9 +1195,9 @@ func (pkt *GameAction) Deserialize(buf *util.PacketBuffer) error {
 //    (UINT16) CRC-16 encryption
 //
 //    For each action:
-//    (UINT8) Player number
-//    (UINT16) Length of action data
-//    (VOID) Action data
+//        (UINT8) Player number
+//       (UINT16) Length of action data
+//         (VOID) Action data
 //
 type TimeSlot struct {
 	Fragment        bool
@@ -1307,7 +1305,7 @@ func (pkt *TimeSlot) Deserialize(buf *util.PacketBuffer) error {
 // Format:
 //
 //    (UINT8)  Unknown
-//    (UINT32) Unknown Checksum ?
+//    (UINT32) Unknown (checksum?)
 //
 type TimeSlotAck struct {
 	Unknown1 uint8
@@ -1393,10 +1391,10 @@ func (pkt *Desync) Deserialize(buf *util.PacketBuffer) error {
 //
 // Format:
 //
-//    (UINT8) Player count
+//    (UINT8)   Player count
 //    (UINT8)[] Player numbers that will receive the message
-//    (UINT8) From player number
-//    (UINT8) Flags
+//    (UINT8)   From player number
+//    (UINT8)   Flags
 //
 //    For Flag 0x10:
 //       (STRING) Message
@@ -1505,10 +1503,10 @@ func (pkt *Message) Deserialize(buf *util.PacketBuffer) error {
 //
 // Format:
 //
-//    (UINT8) Player count
+//    (UINT8)   Player count
 //    (UINT8)[] Player numbers that will receive the message
-//    (UINT8) From player number
-//    (UINT8) Flags
+//    (UINT8)   From player number
+//    (UINT8)   Flags
 //
 //    For Flag 0x10:
 //       (STRING) Message
@@ -1544,10 +1542,10 @@ func (pkt *MessageRelay) Serialize(buf *util.PacketBuffer) error {
 //
 // Format:
 //
-//    (UINT8) Player count
+//    (UINT8)   Player count
 //    (UINT8)[] Player numbers that will receive the message
-//    (UINT8) From player number
-//    (UINT8) Flags
+//    (UINT8)   From player number
+//    (UINT8)   Flags
 //
 //    For Flag 0x10:
 //       (STRING) Message
@@ -1579,7 +1577,9 @@ func (pkt *PeerMessage) Serialize(buf *util.PacketBuffer) error {
 
 // SearchGame implements the [0x2F] W3GS_SearchGame packet (C -> S).
 //
-// This is sent to the entire local area network to detect games.
+// This is broadcasted to the entire local area network to detect games during initial
+// search of local games. After that, it is sent directly to clients that broadcasted
+// [0x31] W3GS_CreateGame (counter is increased for every direct message).
 //
 // Product is either WAR3 or W3XP.
 //
@@ -1659,14 +1659,14 @@ func (gv *GameVersion) deserialize(buf *util.PacketBuffer) {
 //    (UINT32) Host Counter
 //    (UINT32) Entry key
 //    (STRING) Game name
-//    (UINT8) Unknown (0x00)
+//     (UINT8) Unknown (0x00)
 //    (STRING) Statstring
 //    (UINT32) Slots total
 //    (UINT32) Game Type Info
 //    (UINT32) Player slots used
 //    (UINT32) Player slots available (total slots - closed slots - AI slots)
 //    (UINT32) Time since creation
-//    (UINT16) Game Port
+//    (UINT16) Listen Port
 //
 type GameInfo struct {
 	GameVersion
@@ -1860,13 +1860,15 @@ func (pkt *DecreateGame) Deserialize(buf *util.PacketBuffer) error {
 //
 // A client sends this to another client to gain information about self when connected.
 //
+// Peer Mask is a bit mask with bits set for every peer connected to this client.
+//
 // Format:
 //
 //    (UINT32) Player Counter
 //    (UINT32) Entry key
-//    (UINT8) Player number
-//    (UINT8) Unknown (0xFF, status?)
-//    (UINT32) Unknown (peer key?)
+//     (UINT8) Player number
+//     (UINT8) Unknown (0xFF, status?)
+//    (UINT32) Peer Mask
 //
 type PeerConnect struct {
 	JoinCounter uint32
@@ -1916,7 +1918,7 @@ func (pkt *PeerConnect) Deserialize(buf *util.PacketBuffer) error {
 //
 // Format:
 //
-//    (UINT16) Mask
+//    (UINT16) Peer Mask
 //
 type PeerMask struct {
 	PeerMask uint16
@@ -1952,12 +1954,12 @@ func (pkt *PeerMask) Deserialize(buf *util.PacketBuffer) error {
 //
 // Format:
 //
-//    (UINT32) Unknown (0x01)
-//    (STRING) File Path
-//    (UINT32) File size
-//    (UINT32) Map info
-//    (UINT32) File CRC encryption
-//    (UINT8)[20] File SHA-1 hash
+//    (UINT32)     Unknown (0x01)
+//    (STRING)     File Path
+//    (UINT32)     File size
+//    (UINT32)     Map info
+//    (UINT32)     File CRC encryption
+//     (UINT8)[20] File SHA-1 hash
 //
 type MapCheck struct {
 	FilePath          string
@@ -2018,8 +2020,8 @@ func (pkt *MapCheck) Deserialize(buf *util.PacketBuffer) error {
 //
 // Format:
 //
-//    (UINT32) Unknown (0x01) [if S -> C]
-//    (UINT8) Player number   [if S -> C]
+//    (UINT32) Unknown (0x01)
+//     (UINT8) Player number
 //
 type StartDownload struct {
 	PlayerID uint8
@@ -2057,7 +2059,7 @@ func (pkt *StartDownload) Deserialize(buf *util.PacketBuffer) error {
 // Format:
 //
 //    (UINT32) Unknown (0x01)
-//    (UINT8) Size Flag
+//     (UINT8) Size Flag (0x01 is ready, 0x03 to request the next 0x43] W3GS_MapPart)
 //    (UINT32) Map Size
 //
 type MapState struct {
@@ -2109,12 +2111,12 @@ func (pkt *MapState) Deserialize(buf *util.PacketBuffer) error {
 //
 // Format:
 //
-//    (UINT8) To player number
-//    (UINT8) From player number
-//    (UINT32) Unknown (0x01)
-//    (UINT32) Chunk position in file
-//    (UINT32) CRC-32 encryption
-//    (UINT8)[1442] Data
+//     (UINT8)       To player number
+//     (UINT8)       From player number
+//    (UINT32)       Unknown (0x01)
+//    (UINT32)       Chunk position in file
+//    (UINT32)       CRC-32 encryption
+//     (UINT8)[1442] Data
 //
 type MapPart struct {
 	RecipientID uint8
@@ -2171,8 +2173,8 @@ func (pkt *MapPart) Deserialize(buf *util.PacketBuffer) error {
 //
 // Format:
 //
-//    (UINT8) From player number
-//    (UINT8) To player number
+//     (UINT8) From player number
+//     (UINT8) To player number
 //    (UINT32) Unknown (0x01)
 //    (UINT32) Chunk position in file
 //
@@ -2214,8 +2216,6 @@ func (pkt *MapPartOK) Deserialize(buf *util.PacketBuffer) error {
 }
 
 // MapPartError implements the [0x45] W3GS_MapPartError packet (C -> S).
-//
-// More research is required.
 //
 // This is sent when downloading a map in reply to 0x43 W3GS_MapPart and a chunk of the map file does not match its CRC encryption.
 //
