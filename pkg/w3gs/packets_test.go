@@ -67,7 +67,7 @@ func TestSerializePacket(t *testing.T) {
 			ListenPort:  3,
 			JoinCounter: 4,
 			PlayerName:  "Grubby",
-			InternalAddr: w3gs.ConnAddr{
+			InternalAddr: w3gs.SockAddr{
 				Port: 6,
 				IP:   net.IP{7, 8, 9, 10},
 			},
@@ -85,7 +85,7 @@ func TestSerializePacket(t *testing.T) {
 				NumPlayers: 12,
 			},
 			PlayerID: 13,
-			ExternalAddr: w3gs.ConnAddr{
+			ExternalAddr: w3gs.SockAddr{
 				Port: 14,
 				IP:   net.IP{15, 16, 17, 18},
 			},
@@ -99,11 +99,11 @@ func TestSerializePacket(t *testing.T) {
 			JoinCounter: 1,
 			PlayerID:    2,
 			PlayerName:  "Moon",
-			ExternalAddr: w3gs.ConnAddr{
+			ExternalAddr: w3gs.SockAddr{
 				Port: 4,
 				IP:   net.IP{5, 6, 7, 8},
 			},
-			InternalAddr: w3gs.ConnAddr{
+			InternalAddr: w3gs.SockAddr{
 				Port: 9,
 				IP:   net.IP{10, 11, 12, 13},
 			},

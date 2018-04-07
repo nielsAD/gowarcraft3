@@ -26,8 +26,8 @@ func readPacketSize(buf *util.PacketBuffer) int {
 	return psize
 }
 
-// ConnAddr stores a single socket connection tuple (port+ip).
-type ConnAddr struct {
+// SockAddr stores a single socket connection tuple (port+ip).
+type SockAddr struct {
 	Port uint16
 	IP   net.IP
 }
@@ -35,7 +35,7 @@ type ConnAddr struct {
 // AF_INET
 const connAddressFamily uint16 = 2
 
-func (ca *ConnAddr) serialize(buf *util.PacketBuffer) error {
+func (ca *SockAddr) serialize(buf *util.PacketBuffer) error {
 	if ca.Port == 0 && ca.IP == nil {
 		buf.WriteUInt16(0)
 	} else {
@@ -52,46 +52,52 @@ func (ca *ConnAddr) serialize(buf *util.PacketBuffer) error {
 	return nil
 }
 
-func (ca *ConnAddr) deserialize(buf *util.PacketBuffer) error {
+func (ca *SockAddr) deserialize(buf *util.PacketBuffer) error {
 	switch buf.ReadUInt16() {
 	case 0:
+		if buf.ReadPort() != 0 || buf.ReadIP() != nil {
+			return ErrUnexpectedConst
+		}
+		ca.Port = 0
+		ca.IP = nil
 	case connAddressFamily:
+		ca.Port = buf.ReadPort()
+		ca.IP = buf.ReadIP()
 	default:
 		return ErrUnexpectedConst
 	}
 
-	ca.Port = buf.ReadPort()
-	ca.IP = buf.ReadIP()
 	if buf.ReadUInt32() != 0 || buf.ReadUInt32() != 0 {
 		return ErrUnexpectedConst
 	}
+
 	return nil
 }
 
-// Addr converts net.Addr to ConnAddr
-func Addr(a net.Addr) ConnAddr {
+// Addr converts net.Addr to SockAddr
+func Addr(a net.Addr) SockAddr {
 	switch t := a.(type) {
 	case *net.UDPAddr:
-		return ConnAddr{
+		return SockAddr{
 			Port: uint16(t.Port),
 			IP:   t.IP,
 		}
 	case *net.TCPAddr:
-		return ConnAddr{
+		return SockAddr{
 			Port: uint16(t.Port),
 			IP:   t.IP,
 		}
 	case *net.IPAddr:
-		return ConnAddr{
+		return SockAddr{
 			IP: t.IP,
 		}
 	default:
-		return ConnAddr{}
+		return SockAddr{}
 	}
 }
 
-// TCPAddr converts ConnAddr to net.Addr
-func TCPAddr(c *ConnAddr) *net.TCPAddr {
+// TCPAddr converts SockAddr to net.Addr
+func TCPAddr(c *SockAddr) *net.TCPAddr {
 	return &net.TCPAddr{
 		IP:   c.IP,
 		Port: int(c.Port),
@@ -276,7 +282,7 @@ type Join struct {
 	ListenPort   uint16
 	JoinCounter  uint32
 	PlayerName   string
-	InternalAddr ConnAddr
+	InternalAddr SockAddr
 }
 
 // Serialize encodes the struct into its binary form.
@@ -406,7 +412,7 @@ func (pkt *RejectJoin) Deserialize(buf *util.PacketBuffer) error {
 type SlotInfoJoin struct {
 	SlotInfo
 	PlayerID     uint8
-	ExternalAddr ConnAddr
+	ExternalAddr SockAddr
 }
 
 // Serialize encodes the struct into its binary form.
@@ -646,8 +652,8 @@ type PlayerInfo struct {
 	JoinCounter  uint32
 	PlayerID     uint8
 	PlayerName   string
-	ExternalAddr ConnAddr
-	InternalAddr ConnAddr
+	ExternalAddr SockAddr
+	InternalAddr SockAddr
 }
 
 // Serialize encodes the struct into its binary form.
