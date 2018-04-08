@@ -10,8 +10,12 @@ import (
 // Errors
 var (
 	ErrInvalidIP4              = errors.New("pbuf: Invalid IP4 address")
+	ErrInvalidSockAddr         = errors.New("pbuf: Invalid SockAddr structure")
 	ErrNoStringTerminatorFound = errors.New("pbuf: No null terminator for string found in buffer")
 )
+
+// AF_INET
+const connAddressFamily uint16 = 2
 
 // PacketBuffer wraps a []byte slice and adds helper functions for binary (de)serialization
 type PacketBuffer struct {
@@ -78,10 +82,30 @@ func (b *PacketBuffer) WriteIP(v net.IP) error {
 	if ip4 := v.To4(); ip4 != nil {
 		b.WriteBlob(ip4)
 		return nil
+	} else if v != nil {
+		return ErrInvalidIP4
 	}
 
 	b.WriteUInt32(0)
-	return ErrInvalidIP4
+	return nil
+}
+
+// WriteSockAddr appends SockAddr v to the buffer
+func (b *PacketBuffer) WriteSockAddr(v *SockAddr) error {
+	if v.Port == 0 && v.IP == nil {
+		b.WriteUInt16(0)
+	} else {
+		b.WriteUInt16(connAddressFamily)
+	}
+
+	b.WritePort(v.Port)
+	if err := b.WriteIP(v.IP); err != nil {
+		return err
+	}
+
+	b.WriteUInt32(0)
+	b.WriteUInt32(0)
+	return nil
 }
 
 // WriteString appends string v to the buffer
@@ -133,6 +157,24 @@ func (b *PacketBuffer) WriteIPAt(p int, v net.IP) error {
 
 	b.WriteUInt32At(p, 0)
 	return ErrInvalidIP4
+}
+
+// WriteSockAddrAt overwrites position p in the buffer with SockAddr v
+func (b *PacketBuffer) WriteSockAddrAt(p int, v *SockAddr) error {
+	if v.Port == 0 && v.IP == nil {
+		b.WriteUInt16At(p, 0)
+	} else {
+		b.WriteUInt16At(p, connAddressFamily)
+	}
+
+	b.WritePortAt(p+2, v.Port)
+	if err := b.WriteIPAt(p+4, v.IP); err != nil {
+		return err
+	}
+
+	b.WriteUInt32At(p+8, 0)
+	b.WriteUInt32At(p+12, 0)
+	return nil
 }
 
 // WriteStringAt overwrites position p in the buffer with string v
@@ -214,6 +256,29 @@ func (b *PacketBuffer) ReadIP() net.IP {
 		return nil
 	}
 	return res
+}
+
+// ReadSockAddr consumes a SockAddr structure and returns its value
+func (b *PacketBuffer) ReadSockAddr() (SockAddr, error) {
+	var res = SockAddr{}
+
+	switch b.ReadUInt16() {
+	case 0:
+		if b.ReadPort() != 0 || b.ReadIP() != nil {
+			return res, ErrInvalidSockAddr
+		}
+	case connAddressFamily:
+		res.Port = b.ReadPort()
+		res.IP = b.ReadIP()
+	default:
+		return res, ErrInvalidSockAddr
+	}
+
+	if b.ReadUInt32() != 0 || b.ReadUInt32() != 0 {
+		return res, ErrInvalidSockAddr
+	}
+
+	return res, nil
 }
 
 // ReadString consumes a null terminated string and returns its value

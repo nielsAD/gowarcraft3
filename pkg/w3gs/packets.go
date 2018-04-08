@@ -2,7 +2,6 @@ package w3gs
 
 import (
 	"hash/crc32"
-	"net"
 
 	"github.com/nielsAD/noot/pkg/util"
 )
@@ -24,84 +23,6 @@ func readPacketHeader(buf *util.PacketBuffer) (byte, int) {
 func readPacketSize(buf *util.PacketBuffer) int {
 	var _, psize = readPacketHeader(buf)
 	return psize
-}
-
-// SockAddr stores a single socket connection tuple (port+ip).
-type SockAddr struct {
-	Port uint16
-	IP   net.IP
-}
-
-// AF_INET
-const connAddressFamily uint16 = 2
-
-func (ca *SockAddr) serialize(buf *util.PacketBuffer) error {
-	if ca.Port == 0 && ca.IP == nil {
-		buf.WriteUInt16(0)
-	} else {
-		buf.WriteUInt16(connAddressFamily)
-	}
-
-	buf.WritePort(ca.Port)
-	if err := buf.WriteIP(ca.IP); err != nil && ca.IP != nil {
-		return err
-	}
-
-	buf.WriteUInt32(0)
-	buf.WriteUInt32(0)
-	return nil
-}
-
-func (ca *SockAddr) deserialize(buf *util.PacketBuffer) error {
-	switch buf.ReadUInt16() {
-	case 0:
-		if buf.ReadPort() != 0 || buf.ReadIP() != nil {
-			return ErrUnexpectedConst
-		}
-		ca.Port = 0
-		ca.IP = nil
-	case connAddressFamily:
-		ca.Port = buf.ReadPort()
-		ca.IP = buf.ReadIP()
-	default:
-		return ErrUnexpectedConst
-	}
-
-	if buf.ReadUInt32() != 0 || buf.ReadUInt32() != 0 {
-		return ErrUnexpectedConst
-	}
-
-	return nil
-}
-
-// Addr converts net.Addr to SockAddr
-func Addr(a net.Addr) SockAddr {
-	switch t := a.(type) {
-	case *net.UDPAddr:
-		return SockAddr{
-			Port: uint16(t.Port),
-			IP:   t.IP,
-		}
-	case *net.TCPAddr:
-		return SockAddr{
-			Port: uint16(t.Port),
-			IP:   t.IP,
-		}
-	case *net.IPAddr:
-		return SockAddr{
-			IP: t.IP,
-		}
-	default:
-		return SockAddr{}
-	}
-}
-
-// TCPAddr converts SockAddr to net.Addr
-func TCPAddr(c *SockAddr) *net.TCPAddr {
-	return &net.TCPAddr{
-		IP:   c.IP,
-		Port: int(c.Port),
-	}
 }
 
 // UnknownPacket is used to store unknown packets.
@@ -282,7 +203,7 @@ type Join struct {
 	ListenPort   uint16
 	JoinCounter  uint32
 	PlayerName   string
-	InternalAddr SockAddr
+	InternalAddr util.SockAddr
 }
 
 // Serialize encodes the struct into its binary form.
@@ -303,7 +224,7 @@ func (pkt *Join) Serialize(buf *util.PacketBuffer) error {
 	buf.WriteUInt8(1)
 	buf.WriteUInt8(0)
 
-	if err := pkt.InternalAddr.serialize(buf); err != nil {
+	if err := buf.WriteSockAddr(&pkt.InternalAddr); err != nil {
 		return err
 	}
 
@@ -342,7 +263,7 @@ func (pkt *Join) Deserialize(buf *util.PacketBuffer) error {
 	}
 	buf.Skip(skip)
 
-	if err := pkt.InternalAddr.deserialize(buf); err != nil {
+	if pkt.InternalAddr, err = buf.ReadSockAddr(); err != nil {
 		return err
 	}
 
@@ -412,7 +333,7 @@ func (pkt *RejectJoin) Deserialize(buf *util.PacketBuffer) error {
 type SlotInfoJoin struct {
 	SlotInfo
 	PlayerID     uint8
-	ExternalAddr SockAddr
+	ExternalAddr util.SockAddr
 }
 
 // Serialize encodes the struct into its binary form.
@@ -424,7 +345,7 @@ func (pkt *SlotInfoJoin) Serialize(buf *util.PacketBuffer) error {
 	pkt.SlotInfo.serialize(buf)
 	buf.WriteUInt8(pkt.PlayerID)
 
-	if err := pkt.ExternalAddr.serialize(buf); err != nil {
+	if err := buf.WriteSockAddr(&pkt.ExternalAddr); err != nil {
 		return err
 	}
 
@@ -448,7 +369,8 @@ func (pkt *SlotInfoJoin) Deserialize(buf *util.PacketBuffer) error {
 
 	pkt.PlayerID = buf.ReadUInt8()
 
-	if err := pkt.ExternalAddr.deserialize(buf); err != nil {
+	var err error
+	if pkt.ExternalAddr, err = buf.ReadSockAddr(); err != nil {
 		return err
 	}
 
@@ -652,8 +574,8 @@ type PlayerInfo struct {
 	JoinCounter  uint32
 	PlayerID     uint8
 	PlayerName   string
-	ExternalAddr SockAddr
-	InternalAddr SockAddr
+	ExternalAddr util.SockAddr
+	InternalAddr util.SockAddr
 }
 
 // Serialize encodes the struct into its binary form.
@@ -669,11 +591,10 @@ func (pkt *PlayerInfo) Serialize(buf *util.PacketBuffer) error {
 	buf.WriteUInt8(1)
 	buf.WriteUInt8(0)
 
-	if err := pkt.ExternalAddr.serialize(buf); err != nil {
+	if err := buf.WriteSockAddr(&pkt.ExternalAddr); err != nil {
 		return err
 	}
-
-	if err := pkt.InternalAddr.serialize(buf); err != nil {
+	if err := buf.WriteSockAddr(&pkt.InternalAddr); err != nil {
 		return err
 	}
 
@@ -704,10 +625,10 @@ func (pkt *PlayerInfo) Deserialize(buf *util.PacketBuffer) error {
 	}
 	buf.Skip(skip)
 
-	if err := pkt.ExternalAddr.deserialize(buf); err != nil {
+	if pkt.ExternalAddr, err = buf.ReadSockAddr(); err != nil {
 		return err
 	}
-	if err := pkt.InternalAddr.deserialize(buf); err != nil {
+	if pkt.InternalAddr, err = buf.ReadSockAddr(); err != nil {
 		return err
 	}
 
@@ -1618,7 +1539,10 @@ func (pkt *SearchGame) Deserialize(buf *util.PacketBuffer) error {
 		return ErrWrongSize
 	}
 
-	pkt.GameVersion.deserialize(buf)
+	if err := pkt.GameVersion.deserialize(buf); err != nil {
+		return err
+	}
+
 	pkt.Counter = buf.ReadUInt32()
 
 	return nil
@@ -1636,8 +1560,9 @@ type GameVersion struct {
 
 // Game versions
 var (
-	gameWAR3 = "3RAW"
-	gameW3XP = "PX3W"
+	gameW3DM = "MD3W" // Demo
+	gameWAR3 = "3RAW" // ROC
+	gameW3XP = "PX3W" // TFT
 )
 
 func (gv *GameVersion) serialize(buf *util.PacketBuffer) {
@@ -1649,9 +1574,17 @@ func (gv *GameVersion) serialize(buf *util.PacketBuffer) {
 	buf.WriteUInt32(gv.Version)
 }
 
-func (gv *GameVersion) deserialize(buf *util.PacketBuffer) {
-	gv.TFT = string(buf.ReadBlob(4)) == gameW3XP
+func (gv *GameVersion) deserialize(buf *util.PacketBuffer) error {
+	switch string(buf.ReadBlob(4)) {
+	case gameW3XP:
+		gv.TFT = true
+	case gameWAR3:
+		gv.TFT = false
+	default:
+		return ErrUnexpectedConst
+	}
 	gv.Version = buf.ReadUInt32()
+	return nil
 }
 
 // GameInfo implements the [0x30] W3GS_GameInfo packet (S -> C).
@@ -1717,7 +1650,10 @@ func (pkt *GameInfo) Deserialize(buf *util.PacketBuffer) error {
 		return ErrWrongSize
 	}
 
-	pkt.GameVersion.deserialize(buf)
+	if err := pkt.GameVersion.deserialize(buf); err != nil {
+		return err
+	}
+
 	pkt.HostCounter = buf.ReadUInt32()
 	pkt.EntryKey = buf.ReadUInt32()
 
@@ -1783,7 +1719,10 @@ func (pkt *CreateGame) Deserialize(buf *util.PacketBuffer) error {
 		return ErrWrongSize
 	}
 
-	pkt.GameVersion.deserialize(buf)
+	if err := pkt.GameVersion.deserialize(buf); err != nil {
+		return err
+	}
+
 	pkt.HostCounter = buf.ReadUInt32()
 
 	return nil

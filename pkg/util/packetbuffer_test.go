@@ -68,6 +68,10 @@ func TestBlob(t *testing.T) {
 			t.Fatalf("Leftover(%v): %v != %v", i, buf.Size(), i*len(blob))
 		}
 	}
+
+	if buf.ReadBlob(0) != nil {
+		t.Fatal("nil expected")
+	}
 }
 
 func TestUInt8(t *testing.T) {
@@ -286,8 +290,87 @@ func TestIP(t *testing.T) {
 	if buf.WriteIP(net.IP([]byte{0, 0})) != util.ErrInvalidIP4 {
 		t.Fatal("errInvalidIP expected")
 	}
-	if buf.ReadUInt32() != 0 {
-		t.Fatal("Default value expected")
+}
+
+func TestSockAddr(t *testing.T) {
+	var addr = util.SockAddr{
+		Port: 6112,
+		IP:   net.IPv4(192, 168, 1, 101).To4(),
+	}
+	var buf = util.PacketBuffer{Bytes: make([]byte, 0)}
+
+	for i := 1; i <= iterations; i++ {
+		if err := buf.WriteSockAddr(&addr); err != nil {
+			t.Fatal(err)
+		}
+		if buf.Size() != i*16 {
+			t.Fatalf("Write(%v): %v != %v", i, buf.Size(), i*4)
+		}
+	}
+
+	var rev = util.SockAddr{
+		Port: ^addr.Port,
+		IP:   net.IP(reverse([]byte(addr.IP))),
+	}
+	if err := buf.WriteSockAddrAt(16, &util.SockAddr{Port: 0, IP: net.IP([]byte{0, 0})}); err != util.ErrInvalidIP4 {
+		t.Fatal("errInvalidIP expected")
+	}
+	if err := buf.WriteSockAddrAt(16, &rev); err != nil {
+		t.Fatal(err)
+	}
+	if buf.Size() != iterations*16 {
+		t.Fatalf("WriteAt: %v != %v", buf.Size(), iterations*4)
+	}
+
+	for i := iterations - 1; i >= 0; i-- {
+		var read, err = buf.ReadSockAddr()
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		if i == 1 {
+			read.Port = ^read.Port
+			read.IP = net.IP(reverse([]byte(read.IP)))
+		}
+		if !read.Equal(&addr) {
+			t.Fatalf("read(%v): %v != %v", i, read, addr)
+		}
+
+		if buf.Size() != i*16 {
+			t.Fatalf("Leftover(%v): %v != %v", i, buf.Size(), i*4)
+		}
+	}
+
+	if err := buf.WriteSockAddr(&util.SockAddr{}); err != nil || buf.Bytes[0] != 0 || buf.Bytes[1] != 0 {
+		t.Fatal("Address family 0 expected")
+	}
+
+	if s, err := buf.ReadSockAddr(); err != nil || s.Port != 0 || s.IP != nil {
+		t.Fatal("Empty SockAddr expected")
+	}
+
+	if err := buf.WriteSockAddr(&util.SockAddr{Port: 0, IP: net.IP([]byte{0, 0})}); err != util.ErrInvalidIP4 {
+		t.Fatal("errInvalidIP expected")
+	}
+
+	buf.WriteSockAddr(&util.SockAddr{})
+	buf.Bytes[0] = 1
+	if _, err := buf.ReadSockAddr(); err != util.ErrInvalidSockAddr {
+		t.Fatal("ErrInvalidSockAddr expected")
+	}
+	buf.Skip(15)
+
+	buf.WriteSockAddr(&util.SockAddr{})
+	buf.Bytes[3] = 1
+	if _, err := buf.ReadSockAddr(); err != util.ErrInvalidSockAddr {
+		t.Fatal("ErrInvalidSockAddr expected")
+	}
+	buf.Truncate()
+
+	buf.WriteSockAddr(&util.SockAddr{})
+	buf.Bytes[15] = 1
+	if _, err := buf.ReadSockAddr(); err != util.ErrInvalidSockAddr {
+		t.Fatal("ErrInvalidSockAddr expected")
 	}
 }
 

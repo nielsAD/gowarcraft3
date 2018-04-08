@@ -225,7 +225,7 @@ func fakeplayer(addr *net.TCPAddr) {
 		ListenPort:   uint16(serv.Addr().(*net.TCPAddr).Port),
 		JoinCounter:  1,
 		PlayerName:   *playername,
-		InternalAddr: w3gs.Addr(conn.LocalAddr()),
+		InternalAddr: util.Addr(conn.LocalAddr()),
 	})
 
 	for {
