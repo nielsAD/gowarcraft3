@@ -286,7 +286,7 @@ func (pkt *Join) Deserialize(buf *util.PacketBuffer) error {
 //    (UINT32) Reason
 //
 type RejectJoin struct {
-	Reason uint32
+	Reason RejectReason
 }
 
 // Serialize encodes the struct into its binary form.
@@ -294,7 +294,7 @@ func (pkt *RejectJoin) Serialize(buf *util.PacketBuffer) error {
 	buf.WriteUInt8(ProtocolSig)
 	buf.WriteUInt8(PidRejectJoin)
 	buf.WriteUInt16(8)
-	buf.WriteUInt32(pkt.Reason)
+	buf.WriteUInt32(uint32(pkt.Reason))
 	return nil
 }
 
@@ -304,7 +304,7 @@ func (pkt *RejectJoin) Deserialize(buf *util.PacketBuffer) error {
 		return ErrWrongSize
 	}
 
-	pkt.Reason = buf.ReadUInt32()
+	pkt.Reason = RejectReason(buf.ReadUInt32())
 
 	return nil
 }
@@ -406,7 +406,7 @@ func (pkt *SlotInfoJoin) Deserialize(buf *util.PacketBuffer) error {
 type SlotInfo struct {
 	Slots      []SlotData
 	RandomSeed uint32
-	SlotLayout uint8
+	SlotLayout SlotLayout
 	NumPlayers uint8
 }
 
@@ -455,12 +455,12 @@ type SlotInfo struct {
 type SlotData struct {
 	PlayerID       uint8
 	DownloadStatus uint8
-	SlotStatus     uint8
+	SlotStatus     SlotStatus
 	Computer       bool
 	Team           uint8
 	Color          uint8
-	Race           uint8
-	ComputerType   uint8
+	Race           RacePref
+	ComputerType   AI
 	Handicap       uint8
 }
 
@@ -500,17 +500,17 @@ func (pkt *SlotInfo) serialize(buf *util.PacketBuffer) {
 	for i := 0; i < len(pkt.Slots); i++ {
 		buf.WriteUInt8(pkt.Slots[i].PlayerID)
 		buf.WriteUInt8(pkt.Slots[i].DownloadStatus)
-		buf.WriteUInt8(pkt.Slots[i].SlotStatus)
+		buf.WriteUInt8(uint8(pkt.Slots[i].SlotStatus))
 		buf.WriteBool(pkt.Slots[i].Computer)
 		buf.WriteUInt8(pkt.Slots[i].Team)
 		buf.WriteUInt8(pkt.Slots[i].Color)
-		buf.WriteUInt8(pkt.Slots[i].Race)
-		buf.WriteUInt8(pkt.Slots[i].ComputerType)
-		buf.WriteUInt8(pkt.Slots[i].Handicap)
+		buf.WriteUInt8(uint8(pkt.Slots[i].Race))
+		buf.WriteUInt8(uint8(pkt.Slots[i].ComputerType))
+		buf.WriteUInt8(uint8(pkt.Slots[i].Handicap))
 	}
 
 	buf.WriteUInt32(pkt.RandomSeed)
-	buf.WriteUInt8(pkt.SlotLayout)
+	buf.WriteUInt8(uint8(pkt.SlotLayout))
 	buf.WriteUInt8(pkt.NumPlayers)
 }
 
@@ -530,17 +530,17 @@ func (pkt *SlotInfo) deserialize(buf *util.PacketBuffer) error {
 	for i := 0; i < len(pkt.Slots); i++ {
 		pkt.Slots[i].PlayerID = buf.ReadUInt8()
 		pkt.Slots[i].DownloadStatus = buf.ReadUInt8()
-		pkt.Slots[i].SlotStatus = buf.ReadUInt8()
+		pkt.Slots[i].SlotStatus = SlotStatus(buf.ReadUInt8())
 		pkt.Slots[i].Computer = buf.ReadBool()
 		pkt.Slots[i].Team = buf.ReadUInt8()
 		pkt.Slots[i].Color = buf.ReadUInt8()
-		pkt.Slots[i].Race = buf.ReadUInt8()
-		pkt.Slots[i].ComputerType = buf.ReadUInt8()
+		pkt.Slots[i].Race = RacePref(buf.ReadUInt8())
+		pkt.Slots[i].ComputerType = AI(buf.ReadUInt8())
 		pkt.Slots[i].Handicap = buf.ReadUInt8()
 	}
 
 	pkt.RandomSeed = buf.ReadUInt32()
-	pkt.SlotLayout = buf.ReadUInt8()
+	pkt.SlotLayout = SlotLayout(buf.ReadUInt8())
 	pkt.NumPlayers = buf.ReadUInt8()
 
 	return nil
@@ -654,7 +654,7 @@ func (pkt *PlayerInfo) Deserialize(buf *util.PacketBuffer) error {
 //    (UINT32) Reason
 //
 type Leave struct {
-	Reason uint32
+	Reason LeaveReason
 }
 
 // Serialize encodes the struct into its binary form.
@@ -662,7 +662,7 @@ func (pkt *Leave) Serialize(buf *util.PacketBuffer) error {
 	buf.WriteUInt8(ProtocolSig)
 	buf.WriteUInt8(PidLeaveReq)
 	buf.WriteUInt16(8)
-	buf.WriteUInt32(pkt.Reason)
+	buf.WriteUInt32(uint32(pkt.Reason))
 	return nil
 }
 
@@ -672,7 +672,7 @@ func (pkt *Leave) Deserialize(buf *util.PacketBuffer) error {
 		return ErrWrongSize
 	}
 
-	pkt.Reason = buf.ReadUInt32()
+	pkt.Reason = LeaveReason(buf.ReadUInt32())
 	return nil
 }
 
@@ -759,7 +759,7 @@ func (pkt *LeaveAck) Deserialize(buf *util.PacketBuffer) error {
 //
 type PlayerLeft struct {
 	PlayerID uint8
-	Reason   uint32
+	Reason   LeaveReason
 }
 
 // Serialize encodes the struct into its binary form.
@@ -768,7 +768,7 @@ func (pkt *PlayerLeft) Serialize(buf *util.PacketBuffer) error {
 	buf.WriteUInt8(PidPlayerLeft)
 	buf.WriteUInt16(9)
 	buf.WriteUInt8(pkt.PlayerID)
-	buf.WriteUInt32(pkt.Reason)
+	buf.WriteUInt32(uint32(pkt.Reason))
 	return nil
 }
 
@@ -779,7 +779,7 @@ func (pkt *PlayerLeft) Deserialize(buf *util.PacketBuffer) error {
 	}
 
 	pkt.PlayerID = buf.ReadUInt8()
-	pkt.Reason = buf.ReadUInt32()
+	pkt.Reason = LeaveReason(buf.ReadUInt32())
 	return nil
 }
 
@@ -1340,7 +1340,7 @@ func (pkt *Desync) Deserialize(buf *util.PacketBuffer) error {
 type Message struct {
 	RecipientIDs []uint8
 	SenderID     uint8
-	Flags        uint8
+	Type         MessageType
 	NewVal       uint8
 	ExtraFlags   uint32
 	Content      string
@@ -1351,10 +1351,10 @@ func (pkt *Message) Serialize(buf *util.PacketBuffer) error {
 	buf.WriteUInt8(ProtocolSig)
 	buf.WriteUInt8(PidChatToHost)
 
-	switch pkt.Flags {
-	case ChatMessageExtra:
+	switch pkt.Type {
+	case MsgChatExtra:
 		buf.WriteUInt16(uint16(12 + len(pkt.RecipientIDs) + len(pkt.Content)))
-	case ChatMessage:
+	case MsgChat:
 		buf.WriteUInt16(uint16(8 + len(pkt.RecipientIDs) + len(pkt.Content)))
 	default:
 		buf.WriteUInt16(uint16(8 + len(pkt.RecipientIDs)))
@@ -1363,13 +1363,13 @@ func (pkt *Message) Serialize(buf *util.PacketBuffer) error {
 	buf.WriteUInt8(uint8(len(pkt.RecipientIDs)))
 	buf.WriteBlob(pkt.RecipientIDs)
 	buf.WriteUInt8(pkt.SenderID)
-	buf.WriteUInt8(pkt.Flags)
+	buf.WriteUInt8(uint8(pkt.Type))
 
-	switch pkt.Flags {
-	case ChatMessageExtra:
+	switch pkt.Type {
+	case MsgChatExtra:
 		buf.WriteUInt32(pkt.ExtraFlags)
 		fallthrough
-	case ChatMessage:
+	case MsgChat:
 		buf.WriteString(pkt.Content)
 	default:
 		buf.WriteUInt8(pkt.NewVal)
@@ -1392,21 +1392,21 @@ func (pkt *Message) Deserialize(buf *util.PacketBuffer) error {
 
 	pkt.RecipientIDs = buf.ReadBlob(numRecipients)
 	pkt.SenderID = buf.ReadUInt8()
-	pkt.Flags = buf.ReadUInt8()
+	pkt.Type = MessageType(buf.ReadUInt8())
 
 	pkt.NewVal = 0
 	pkt.ExtraFlags = 0
 	pkt.Content = ""
 
-	switch pkt.Flags {
-	case ChatMessageExtra:
+	switch pkt.Type {
+	case MsgChatExtra:
 		if size < 12+numRecipients {
 			return ErrWrongSize
 		}
 		size -= 4
 		pkt.ExtraFlags = buf.ReadUInt32()
 		fallthrough
-	case ChatMessage:
+	case MsgChat:
 		var err error
 		if pkt.Content, err = buf.ReadString(); err != nil {
 			return err
@@ -1614,7 +1614,7 @@ type GameInfo struct {
 	GameName       string
 	StatString     string
 	SlotsTotal     uint32
-	GameTypeFlags  uint32
+	GameType       GameType
 	SlotsUsed      uint32
 	SlotsAvailable uint32
 	UptimeSec      uint32
@@ -1634,7 +1634,7 @@ func (pkt *GameInfo) Serialize(buf *util.PacketBuffer) error {
 	buf.WriteUInt8(0)
 	buf.WriteString(pkt.StatString)
 	buf.WriteUInt32(pkt.SlotsTotal)
-	buf.WriteUInt32(pkt.GameTypeFlags)
+	buf.WriteUInt32(uint32(pkt.GameType))
 	buf.WriteUInt32(pkt.SlotsUsed)
 	buf.WriteUInt32(pkt.SlotsAvailable)
 	buf.WriteUInt32(pkt.UptimeSec)
@@ -1677,7 +1677,7 @@ func (pkt *GameInfo) Deserialize(buf *util.PacketBuffer) error {
 	}
 
 	pkt.SlotsTotal = buf.ReadUInt32()
-	pkt.GameTypeFlags = buf.ReadUInt32()
+	pkt.GameType = GameType(buf.ReadUInt32())
 	pkt.SlotsUsed = buf.ReadUInt32()
 	pkt.SlotsAvailable = buf.ReadUInt32()
 	pkt.UptimeSec = buf.ReadUInt32()

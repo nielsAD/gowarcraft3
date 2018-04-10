@@ -123,7 +123,7 @@ func addHandle(h *pcap.Handle, c chan<- gopacket.Packet, wg *sync.WaitGroup) {
 			if err == io.EOF {
 				break
 			} else if err != nil {
-				logger.Println("Sniffing error: ", err)
+				logger.Println("Sniffing error:", err)
 			} else {
 				c <- p
 			}

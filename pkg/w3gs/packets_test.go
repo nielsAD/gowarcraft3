@@ -1,7 +1,7 @@
 package w3gs_test
 
 import (
-	"io"
+	"bytes"
 	"net"
 	"reflect"
 	"testing"
@@ -35,7 +35,7 @@ var sd = []w3gs.SlotData{
 	},
 }
 
-func TestSerializePacket(t *testing.T) {
+func TestPackets(t *testing.T) {
 	var types = []w3gs.Packet{
 		&w3gs.UnknownPacket{
 			ID:   255,
@@ -185,13 +185,13 @@ func TestSerializePacket(t *testing.T) {
 		&w3gs.Message{
 			RecipientIDs: []uint8{1, 2, 3},
 			SenderID:     4,
-			Flags:        w3gs.ChatMessage,
+			Type:         w3gs.MsgChat,
 			Content:      "Tremble before me",
 		},
 		&w3gs.Message{
 			RecipientIDs: []uint8{1, 2, 3},
 			SenderID:     4,
-			Flags:        w3gs.ChatColorChange,
+			Type:         w3gs.MsgColorChange,
 			NewVal:       5,
 		},
 		&w3gs.MessageRelay{},
@@ -199,7 +199,7 @@ func TestSerializePacket(t *testing.T) {
 			Message: w3gs.Message{
 				RecipientIDs: []uint8{1, 2, 3},
 				SenderID:     4,
-				Flags:        w3gs.ChatMessage,
+				Type:         w3gs.MsgChat,
 				Content:      "I come from the darkness of the pit",
 			},
 		},
@@ -207,7 +207,7 @@ func TestSerializePacket(t *testing.T) {
 			Message: w3gs.Message{
 				RecipientIDs: []uint8{1, 2},
 				SenderID:     4,
-				Flags:        w3gs.ChatMessageExtra,
+				Type:         w3gs.MsgChatExtra,
 				ExtraFlags:   5,
 				Content:      "Pitiful",
 			},
@@ -217,7 +217,7 @@ func TestSerializePacket(t *testing.T) {
 			Message: w3gs.Message{
 				RecipientIDs: []uint8{1, 2, 3},
 				SenderID:     4,
-				Flags:        w3gs.ChatMessage,
+				Type:         w3gs.MsgChat,
 				Content:      "You fail to amuse me",
 			},
 		},
@@ -241,7 +241,7 @@ func TestSerializePacket(t *testing.T) {
 			GameName:       "game1",
 			StatString:     "xxxxx",
 			SlotsTotal:     24,
-			GameTypeFlags:  w3gs.GameTypeNewGame,
+			GameType:       w3gs.GameTypeNewGame,
 			SlotsUsed:      1,
 			SlotsAvailable: 24,
 			UptimeSec:      8,
@@ -319,6 +319,16 @@ func TestSerializePacket(t *testing.T) {
 			t.Fatal(err)
 		}
 
+		var buf2 = util.PacketBuffer{Bytes: make([]byte, 0, 2048)}
+		if _, err = w3gs.SerializePacket(&buf2, pkt); err != nil {
+			t.Log(reflect.TypeOf(pkt))
+			t.Fatal(err)
+		}
+
+		if bytes.Compare(buf.Bytes, buf2.Bytes) != 0 {
+			t.Fatalf("SerializePacket != packet.Serialize %v", reflect.TypeOf(pkt))
+		}
+
 		var pkt2, _, e = w3gs.DeserializePacket(&buf)
 		if e != nil {
 			t.Log(reflect.TypeOf(pkt))
@@ -351,29 +361,6 @@ func TestSerializePacket(t *testing.T) {
 			}
 
 		}
-	}
-}
-
-func TestDeserializePacket(t *testing.T) {
-	if _, _, e := w3gs.DeserializePacket(&util.PacketBuffer{Bytes: []byte{0, 255, 4, 0}}); e != w3gs.ErrNoProtocolSig {
-		t.Fatal("ErrNoProtocolSig expected if no protocol signature")
-	}
-	if _, _, e := w3gs.DeserializePacket(&util.PacketBuffer{Bytes: []byte{w3gs.ProtocolSig, 255}}); e != w3gs.ErrNoProtocolSig {
-		t.Fatal("ErrNoProtocolSig expected if no size")
-	}
-	if _, _, e := w3gs.DeserializePacket(&util.PacketBuffer{Bytes: []byte{w3gs.ProtocolSig, 255, 255, 0}}); e != io.ErrUnexpectedEOF {
-		t.Fatal("ErrUnexpectedEOF expected if invalid size", e)
-	}
-	if _, _, e := w3gs.DeserializePacket(&util.PacketBuffer{Bytes: []byte{w3gs.ProtocolSig, 255, 3, 0}}); e != w3gs.ErrMalformedData {
-		t.Fatal("ErrMalformedData expected if invalid size")
-	}
-
-	var buf = util.PacketBuffer{Bytes: make([]byte, 2048)}
-	buf.WriteUInt8At(0, w3gs.ProtocolSig)
-	buf.WriteUInt8At(1, w3gs.PidSlotInfoJoin)
-	buf.WriteUInt16At(2, 8)
-	if _, _, e := w3gs.DeserializePacket(&buf); e != w3gs.ErrWrongSize {
-		t.Fatal("ErrWrongSize expected if invalid data")
 	}
 }
 
@@ -438,43 +425,5 @@ func BenchmarkCreateAndDeserialize(b *testing.B) {
 	for n := 0; n < b.N; n++ {
 		var res w3gs.SlotInfo
 		res.Deserialize(&util.PacketBuffer{Bytes: buf.Bytes})
-	}
-}
-
-func BenchmarkSerializePacket(b *testing.B) {
-	var pkt = w3gs.SlotInfo{
-		Slots: sd,
-	}
-
-	var bbuf w3gs.SerializationBuffer
-	var w = &util.PacketBuffer{}
-
-	w3gs.SerializePacketWithBuffer(w, &bbuf, &pkt)
-
-	b.SetBytes(int64(w.Size()))
-	b.ResetTimer()
-
-	for n := 0; n < b.N; n++ {
-		w.Truncate()
-		w3gs.SerializePacketWithBuffer(w, &bbuf, &pkt)
-	}
-}
-
-func BenchmarkDeserializePacket(b *testing.B) {
-	var pkt = w3gs.SlotInfo{
-		Slots: sd,
-	}
-
-	var pbuf = util.PacketBuffer{Bytes: make([]byte, 0, 2048)}
-	pkt.Serialize(&pbuf)
-
-	b.SetBytes(int64(pbuf.Size()))
-	b.ResetTimer()
-
-	var bbuf w3gs.DeserializationBuffer
-	var r = &util.PacketBuffer{}
-	for n := 0; n < b.N; n++ {
-		r.Bytes = pbuf.Bytes
-		w3gs.DeserializePacketWithBuffer(r, &bbuf)
 	}
 }
