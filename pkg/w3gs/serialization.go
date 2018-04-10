@@ -86,7 +86,7 @@ func DeserializePacketWithBuffer(r io.Reader, b *DeserializationBuffer) (Packet,
 
 	var size = int(uint16(b.Buffer[3])<<8 | uint16(b.Buffer[2]))
 	if size < 4 || size > len(b.Buffer) {
-		return nil, 0, ErrMalformedData
+		return nil, 0, ErrInvalidPacketSize
 	}
 
 	if n, err := io.ReadFull(r, b.Buffer[4:size]); err != nil {

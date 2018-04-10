@@ -26,16 +26,16 @@ func TestDeserializePacket(t *testing.T) {
 	if _, _, e := w3gs.DeserializePacket(&util.PacketBuffer{Bytes: []byte{w3gs.ProtocolSig, 255, 255, 0}}); e != io.ErrUnexpectedEOF {
 		t.Fatal("ErrUnexpectedEOF expected if invalid size", e)
 	}
-	if _, _, e := w3gs.DeserializePacket(&util.PacketBuffer{Bytes: []byte{w3gs.ProtocolSig, 255, 3, 0}}); e != w3gs.ErrMalformedData {
-		t.Fatal("ErrMalformedData expected if invalid size")
+	if _, _, e := w3gs.DeserializePacket(&util.PacketBuffer{Bytes: []byte{w3gs.ProtocolSig, 255, 3, 0}}); e != w3gs.ErrInvalidPacketSize {
+		t.Fatal("ErrInvalidPacketSize expected if invalid size")
 	}
 
 	var buf = util.PacketBuffer{Bytes: make([]byte, 2048)}
 	buf.WriteUInt8At(0, w3gs.ProtocolSig)
 	buf.WriteUInt8At(1, w3gs.PidSlotInfoJoin)
 	buf.WriteUInt16At(2, 8)
-	if _, _, e := w3gs.DeserializePacket(&buf); e != w3gs.ErrWrongSize {
-		t.Fatal("ErrWrongSize expected if invalid data")
+	if _, _, e := w3gs.DeserializePacket(&buf); e != w3gs.ErrInvalidPacketSize {
+		t.Fatal("ErrInvalidPacketSize expected if invalid data")
 	}
 }
 

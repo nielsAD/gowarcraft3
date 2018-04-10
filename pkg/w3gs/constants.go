@@ -7,11 +7,10 @@ import (
 
 // Errors
 var (
-	ErrNoProtocolSig   = errors.New("w3gs: Invalid w3gs packet (no signature found)")
-	ErrWrongSize       = errors.New("w3gs: Wrong size input data")
-	ErrMalformedData   = errors.New("w3gs: Malformed input data")
-	ErrInvalidChecksum = errors.New("w3gs: Checksum invalid")
-	ErrUnexpectedConst = errors.New("w3gs: Unexpected constant value")
+	ErrNoProtocolSig     = errors.New("w3gs: Invalid w3gs packet (no signature found)")
+	ErrInvalidPacketSize = errors.New("w3gs: Invalid packet size")
+	ErrInvalidChecksum   = errors.New("w3gs: Checksum invalid")
+	ErrUnexpectedConst   = errors.New("w3gs: Unexpected constant value")
 )
 
 // ProtocolSig is the W3GS magic number used in the packet header.

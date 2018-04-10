@@ -347,17 +347,17 @@ func TestPackets(t *testing.T) {
 		}
 
 		err = pkt.Deserialize(&util.PacketBuffer{Bytes: make([]byte, 0)})
-		if err != w3gs.ErrWrongSize {
-			t.Fatalf("ErrWrongSize expected for %v", reflect.TypeOf(pkt))
+		if err != w3gs.ErrInvalidPacketSize {
+			t.Fatalf("ErrInvalidPacketSize expected for %v", reflect.TypeOf(pkt))
 		}
 
 		err = pkt.Deserialize(&util.PacketBuffer{Bytes: make([]byte, 2048)})
-		if err != w3gs.ErrWrongSize && err != w3gs.ErrInvalidChecksum {
+		if err != w3gs.ErrInvalidPacketSize && err != w3gs.ErrInvalidChecksum {
 			switch pkt.(type) {
 			case *w3gs.UnknownPacket:
 				// Whitelisted
 			default:
-				t.Fatalf("ErrWrongSize expected for %v", reflect.TypeOf(pkt))
+				t.Fatalf("ErrInvalidPacketSize expected for %v", reflect.TypeOf(pkt))
 			}
 
 		}
