@@ -3,6 +3,8 @@ package w3gs
 import (
 	"errors"
 	"fmt"
+
+	"github.com/nielsAD/noot/pkg/util"
 )
 
 // Errors
@@ -64,6 +66,16 @@ const (
 )
 
 // Failover related: 0x15 0x16 0x2B 0x2C 0x39
+
+// GameProduct identifier
+type GameProduct util.DWordString
+
+// Game product
+var (
+	ProductDemo = GameProduct(util.DString("W3DM")) // Demo
+	ProductROC  = GameProduct(util.DString("WAR3")) // ROC
+	ProductTFT  = GameProduct(util.DString("W3XP")) // TFT
+)
 
 // SlotLayout enum
 type SlotLayout uint8

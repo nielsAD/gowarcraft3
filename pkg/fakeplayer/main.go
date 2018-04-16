@@ -12,6 +12,7 @@ func JoinLobby(addr *net.TCPAddr, name string, hostCounter uint32, entryKey uint
 			Name: name,
 		},
 		peers:       make(map[uint8]*Peer),
+		DialPeers:   true,
 		HostCounter: hostCounter,
 		EntryKey:    entryKey,
 	}

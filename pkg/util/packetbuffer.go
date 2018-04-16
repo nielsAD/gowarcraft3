@@ -9,9 +9,9 @@ import (
 
 // Errors
 var (
-	ErrInvalidIP4              = errors.New("pbuf: Invalid IP4 address")
-	ErrInvalidSockAddr         = errors.New("pbuf: Invalid SockAddr structure")
-	ErrNoStringTerminatorFound = errors.New("pbuf: No null terminator for string found in buffer")
+	ErrInvalidIP4               = errors.New("pbuf: Invalid IP4 address")
+	ErrInvalidSockAddr          = errors.New("pbuf: Invalid SockAddr structure")
+	ErrNoCStringTerminatorFound = errors.New("pbuf: No null terminator for string found in buffer")
 )
 
 // AF_INET
@@ -82,25 +82,22 @@ func (b *PacketBuffer) WriteIP(v net.IP) error {
 	if ip4 := v.To4(); ip4 != nil {
 		b.WriteBlob(ip4)
 		return nil
-	} else if v != nil {
-		return ErrInvalidIP4
 	}
 
-	b.WriteUInt32(0)
-	return nil
+	return ErrInvalidIP4
 }
 
 // WriteSockAddr appends SockAddr v to the buffer
 func (b *PacketBuffer) WriteSockAddr(v *SockAddr) error {
-	if v.Port == 0 && v.IP == nil {
-		b.WriteUInt16(0)
+	if v.IP == nil {
+		b.WriteUInt32(0)
+		b.WriteUInt32(0)
 	} else {
 		b.WriteUInt16(connAddressFamily)
-	}
-
-	b.WritePort(v.Port)
-	if err := b.WriteIP(v.IP); err != nil {
-		return err
+		b.WritePort(v.Port)
+		if err := b.WriteIP(v.IP); err != nil {
+			return err
+		}
 	}
 
 	b.WriteUInt32(0)
@@ -108,10 +105,16 @@ func (b *PacketBuffer) WriteSockAddr(v *SockAddr) error {
 	return nil
 }
 
-// WriteString appends string v to the buffer
-func (b *PacketBuffer) WriteString(s string) {
-	b.WriteBlob([]byte(s))
+// WriteCString appends null terminated string v to the buffer
+func (b *PacketBuffer) WriteCString(v string) {
+	b.WriteBlob([]byte(v))
 	b.WriteUInt8(0)
+}
+
+// WriteDString appends dword string v to the buffer
+func (b *PacketBuffer) WriteDString(v DWordString) error {
+	b.Bytes = append(b.Bytes, byte(v[3]), byte(v[2]), byte(v[1]), byte(v[0]))
+	return nil
 }
 
 // WriteBlobAt overwrites position p in the buffer with blob v
@@ -155,21 +158,20 @@ func (b *PacketBuffer) WriteIPAt(p int, v net.IP) error {
 		return nil
 	}
 
-	b.WriteUInt32At(p, 0)
 	return ErrInvalidIP4
 }
 
 // WriteSockAddrAt overwrites position p in the buffer with SockAddr v
 func (b *PacketBuffer) WriteSockAddrAt(p int, v *SockAddr) error {
-	if v.Port == 0 && v.IP == nil {
-		b.WriteUInt16At(p, 0)
+	if v.IP == nil {
+		b.WriteUInt32At(p, 0)
+		b.WriteUInt32At(p+4, 0)
 	} else {
 		b.WriteUInt16At(p, connAddressFamily)
-	}
-
-	b.WritePortAt(p+2, v.Port)
-	if err := b.WriteIPAt(p+4, v.IP); err != nil {
-		return err
+		b.WritePortAt(p+2, v.Port)
+		if err := b.WriteIPAt(p+4, v.IP); err != nil {
+			return err
+		}
 	}
 
 	b.WriteUInt32At(p+8, 0)
@@ -177,11 +179,20 @@ func (b *PacketBuffer) WriteSockAddrAt(p int, v *SockAddr) error {
 	return nil
 }
 
-// WriteStringAt overwrites position p in the buffer with string v
-func (b *PacketBuffer) WriteStringAt(p int, s string) {
-	var Bytes = []byte(s)
-	b.WriteBlobAt(p, Bytes)
-	b.WriteUInt8At(p+len(Bytes), 0)
+// WriteCStringAt overwrites position p in the buffer with null terminated string v
+func (b *PacketBuffer) WriteCStringAt(p int, v string) {
+	var bv = []byte(v)
+	b.WriteBlobAt(p, bv)
+	b.WriteUInt8At(p+len(bv), 0)
+}
+
+// WriteDStringAt overwrites position p in the buffer with dword string v
+func (b *PacketBuffer) WriteDStringAt(p int, v DWordString) error {
+	b.Bytes[p+3] = byte(v[0])
+	b.Bytes[p+2] = byte(v[1])
+	b.Bytes[p+1] = byte(v[2])
+	b.Bytes[p+0] = byte(v[3])
+	return nil
 }
 
 // Read implements io.Reader interface
@@ -251,11 +262,7 @@ func (b *PacketBuffer) ReadPort() uint16 {
 
 // ReadIP consumes an ip and returns its value
 func (b *PacketBuffer) ReadIP() net.IP {
-	var res = net.IP(b.ReadBlob(net.IPv4len))
-	if res.Equal(net.IPv4zero) {
-		return nil
-	}
-	return res
+	return net.IP(b.ReadBlob(net.IPv4len))
 }
 
 // ReadSockAddr consumes a SockAddr structure and returns its value
@@ -264,9 +271,11 @@ func (b *PacketBuffer) ReadSockAddr() (SockAddr, error) {
 
 	switch b.ReadUInt16() {
 	case 0:
-		if b.ReadPort() != 0 || b.ReadIP() != nil {
+		if b.ReadPort() != 0 || b.ReadUInt32() != 0 {
 			return res, ErrInvalidSockAddr
 		}
+		res.Port = 0
+		res.IP = nil
 	case connAddressFamily:
 		res.Port = b.ReadPort()
 		res.IP = b.ReadIP()
@@ -281,15 +290,22 @@ func (b *PacketBuffer) ReadSockAddr() (SockAddr, error) {
 	return res, nil
 }
 
-// ReadString consumes a null terminated string and returns its value
-func (b *PacketBuffer) ReadString() (string, error) {
+// ReadCString consumes a null terminated string and returns its value
+func (b *PacketBuffer) ReadCString() (string, error) {
 	var pos = bytes.IndexByte(b.Bytes, 0)
 	if pos == -1 {
 		b.Bytes = b.Bytes[len(b.Bytes):]
-		return "", ErrNoStringTerminatorFound
+		return "", ErrNoCStringTerminatorFound
 	}
 
 	var res = string(b.Bytes[:pos])
 	b.Bytes = b.Bytes[pos+1:]
 	return res, nil
+}
+
+// ReadDString consumes a dword string and returns its value
+func (b *PacketBuffer) ReadDString() DWordString {
+	var res = DWordString{b.Bytes[3], b.Bytes[2], b.Bytes[1], b.Bytes[0]}
+	b.Bytes = b.Bytes[4:]
+	return res
 }

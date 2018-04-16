@@ -282,13 +282,12 @@ func TestIP(t *testing.T) {
 		t.Fatal("Wrong integer format")
 	}
 
-	buf.WriteIP(net.IPv4zero)
-	if buf.ReadIP() != nil {
-		t.Fatal("nil expected")
+	if buf.WriteIP(nil) != util.ErrInvalidIP4 {
+		t.Fatal("errInvalidIP expected for nil")
 	}
 
 	if buf.WriteIP(net.IP([]byte{0, 0})) != util.ErrInvalidIP4 {
-		t.Fatal("errInvalidIP expected")
+		t.Fatal("errInvalidIP expected for {0,0}")
 	}
 }
 
@@ -374,25 +373,25 @@ func TestSockAddr(t *testing.T) {
 	}
 }
 
-func TestString(t *testing.T) {
+func TestCString(t *testing.T) {
 	var str = "helloworld"
 	var buf = util.PacketBuffer{Bytes: make([]byte, 0)}
 
 	for i := 1; i <= iterations; i++ {
-		buf.WriteString(str)
+		buf.WriteCString(str)
 		if buf.Size() != i*(len(str)+1) {
 			t.Fatalf("Write(%v): %v != %v", i, buf.Size(), i*len(str))
 		}
 	}
 
 	var rev = string(reverse([]byte(str)))
-	buf.WriteStringAt(len(str)+1, rev)
+	buf.WriteCStringAt(len(str)+1, rev)
 	if buf.Size() != iterations*(len(str)+1) {
 		t.Fatalf("WriteAt: %v != %v", buf.Size(), iterations*len(str))
 	}
 
 	for i := iterations - 1; i >= 0; i-- {
-		var read, err = buf.ReadString()
+		var read, err = buf.ReadCString()
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -410,11 +409,45 @@ func TestString(t *testing.T) {
 	}
 
 	buf.WriteUInt32(4294967294)
-	if _, err := buf.ReadString(); err != util.ErrNoStringTerminatorFound {
-		t.Fatal("errNoStringTerminatorFound expected")
+	if _, err := buf.ReadCString(); err != util.ErrNoCStringTerminatorFound {
+		t.Fatal("errNoCStringTerminatorFound expected")
 	}
 	if buf.Size() > 0 {
-		t.Fatal("Leftover after invalid string")
+		t.Fatal("Leftover after invalid cstring")
+	}
+}
+
+func TestDString(t *testing.T) {
+	var val = util.DWordString{'t', 'e', 's', 't'}
+	var buf = util.PacketBuffer{Bytes: make([]byte, 0)}
+
+	for i := 1; i <= iterations; i++ {
+		buf.WriteDString(val)
+		if buf.Size() != i*4 {
+			t.Fatalf("Write(%v): %v != %v", i, buf.Size(), i*4)
+		}
+	}
+
+	var alt = val
+	alt[0] = ^alt[0]
+	buf.WriteDStringAt(4, alt)
+	if buf.Size() != iterations*4 {
+		t.Fatalf("WriteAt: %v != %v", buf.Size(), iterations*4)
+	}
+
+	for i := iterations - 1; i >= 0; i-- {
+		var read = buf.ReadDString()
+
+		if i == 1 {
+			read[0] = ^read[0]
+		}
+		if read != val {
+			t.Fatalf("read(%v): %v != %v", i, string(read[:]), string(val[:]))
+		}
+
+		if buf.Size() != i*4 {
+			t.Fatalf("Leftover(%v): %v != %v", i, buf.Size(), i*4)
+		}
 	}
 }
 

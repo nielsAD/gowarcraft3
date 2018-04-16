@@ -225,7 +225,7 @@ func TestPackets(t *testing.T) {
 		&w3gs.SearchGame{},
 		&w3gs.SearchGame{
 			GameVersion: w3gs.GameVersion{
-				TFT:     true,
+				Product: w3gs.ProductDemo,
 				Version: 666,
 			},
 			Counter: 1,
@@ -233,7 +233,7 @@ func TestPackets(t *testing.T) {
 		&w3gs.GameInfo{},
 		&w3gs.GameInfo{
 			GameVersion: w3gs.GameVersion{
-				TFT:     true,
+				Product: w3gs.ProductROC,
 				Version: 1,
 			},
 			HostCounter:    2,
@@ -250,7 +250,7 @@ func TestPackets(t *testing.T) {
 		&w3gs.CreateGame{},
 		&w3gs.CreateGame{
 			GameVersion: w3gs.GameVersion{
-				TFT:     true,
+				Product: w3gs.ProductTFT,
 				Version: 2,
 			},
 			HostCounter: 3,

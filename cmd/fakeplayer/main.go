@@ -20,12 +20,13 @@ var (
 
 	lan      = flag.Bool("lan", false, "Find a game on LAN")
 	gametft  = flag.Bool("tft", true, "Search for TFT or ROC games (only used when searching local)")
-	gamevers = flag.Int("v", 28, "Game version (only used when searching local)")
+	gamevers = flag.Int("v", 29, "Game version (only used when searching local)")
 	entrykey = flag.Uint("e", 0, "Entry key (only used when entering local game)")
 
 	hostcounter = flag.Uint("c", 1, "Host counter")
 	playername  = flag.String("n", "fakeplayer", "Player name")
 	listen      = flag.Int("l", 0, "Listen on port (0 to pick automatically)")
+	dialpeers   = flag.Bool("dial", true, "Dial peers")
 )
 
 var logger = log.New(os.Stdout, "", log.Ltime)
@@ -39,7 +40,11 @@ func main() {
 	var ek = uint32(*entrykey)
 
 	if *lan {
-		addr, hc, ek, err = fakeplayer.FindGameOnLAN(&w3gs.GameVersion{TFT: *gametft, Version: uint32(*gamevers)})
+		var gv = w3gs.ProductTFT
+		if !*gametft {
+			gv = w3gs.ProductROC
+		}
+		addr, hc, ek, err = fakeplayer.FindGameOnLAN(&w3gs.GameVersion{Product: gv, Version: uint32(*gamevers)})
 	} else {
 		var address = strings.Join(flag.Args(), " ")
 		if address == "" {
@@ -57,6 +62,8 @@ func main() {
 	}
 
 	logger.Println("[HOST] Joined lobby")
+
+	f.DialPeers = *dialpeers
 
 	f.OnPeerConnected = func(peer *fakeplayer.Peer) {
 		logger.Printf("[PEER] Connected to %v\n", peer.Name)

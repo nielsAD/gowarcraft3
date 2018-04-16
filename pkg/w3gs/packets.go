@@ -219,7 +219,7 @@ func (pkt *Join) Serialize(buf *util.PacketBuffer) error {
 
 	buf.WriteUInt16(pkt.ListenPort)
 	buf.WriteUInt32(pkt.JoinCounter)
-	buf.WriteString(pkt.PlayerName)
+	buf.WriteCString(pkt.PlayerName)
 
 	buf.WriteUInt8(2)
 	buf.WriteUInt8(0)
@@ -250,7 +250,7 @@ func (pkt *Join) Deserialize(buf *util.PacketBuffer) error {
 	pkt.JoinCounter = buf.ReadUInt32()
 
 	var err error
-	if pkt.PlayerName, err = buf.ReadString(); err != nil {
+	if pkt.PlayerName, err = buf.ReadCString(); err != nil {
 		return err
 	}
 
@@ -587,7 +587,7 @@ func (pkt *PlayerInfo) Serialize(buf *util.PacketBuffer) error {
 
 	buf.WriteUInt32(pkt.JoinCounter)
 	buf.WriteUInt8(pkt.PlayerID)
-	buf.WriteString(pkt.PlayerName)
+	buf.WriteCString(pkt.PlayerName)
 
 	buf.WriteUInt8(1)
 	buf.WriteUInt8(0)
@@ -613,7 +613,7 @@ func (pkt *PlayerInfo) Deserialize(buf *util.PacketBuffer) error {
 	pkt.PlayerID = buf.ReadUInt8()
 
 	var err error
-	if pkt.PlayerName, err = buf.ReadString(); err != nil {
+	if pkt.PlayerName, err = buf.ReadCString(); err != nil {
 		return err
 	}
 	if size < 43+len(pkt.PlayerName) {
@@ -1371,7 +1371,7 @@ func (pkt *Message) Serialize(buf *util.PacketBuffer) error {
 		buf.WriteUInt32(pkt.ExtraFlags)
 		fallthrough
 	case MsgChat:
-		buf.WriteString(pkt.Content)
+		buf.WriteCString(pkt.Content)
 	default:
 		buf.WriteUInt8(pkt.NewVal)
 	}
@@ -1409,7 +1409,7 @@ func (pkt *Message) Deserialize(buf *util.PacketBuffer) error {
 		fallthrough
 	case MsgChat:
 		var err error
-		if pkt.Content, err = buf.ReadString(); err != nil {
+		if pkt.Content, err = buf.ReadCString(); err != nil {
 			return err
 		}
 		if size != 8+numRecipients+len(pkt.Content) {
@@ -1540,10 +1540,7 @@ func (pkt *SearchGame) Deserialize(buf *util.PacketBuffer) error {
 		return ErrInvalidPacketSize
 	}
 
-	if err := pkt.GameVersion.deserialize(buf); err != nil {
-		return err
-	}
-
+	pkt.GameVersion.deserialize(buf)
 	pkt.Counter = buf.ReadUInt32()
 
 	return nil
@@ -1555,37 +1552,18 @@ func (pkt *SearchGame) Deserialize(buf *util.PacketBuffer) error {
 //    (UINT32) Version
 //
 type GameVersion struct {
-	TFT     bool
+	Product GameProduct
 	Version uint32
 }
 
-// Game versions
-var (
-	gameW3DM = "MD3W" // Demo
-	gameWAR3 = "3RAW" // ROC
-	gameW3XP = "PX3W" // TFT
-)
-
 func (gv *GameVersion) serialize(buf *util.PacketBuffer) {
-	if gv.TFT {
-		buf.WriteBlob([]byte(gameW3XP))
-	} else {
-		buf.WriteBlob([]byte(gameWAR3))
-	}
+	buf.WriteDString(util.DWordString(gv.Product))
 	buf.WriteUInt32(gv.Version)
 }
 
-func (gv *GameVersion) deserialize(buf *util.PacketBuffer) error {
-	switch string(buf.ReadBlob(4)) {
-	case gameW3XP:
-		gv.TFT = true
-	case gameWAR3:
-		gv.TFT = false
-	default:
-		return ErrUnexpectedConst
-	}
+func (gv *GameVersion) deserialize(buf *util.PacketBuffer) {
+	gv.Product = GameProduct(buf.ReadDString())
 	gv.Version = buf.ReadUInt32()
-	return nil
 }
 
 // GameInfo implements the [0x30] W3GS_GameInfo packet (S -> C).
@@ -1631,9 +1609,9 @@ func (pkt *GameInfo) Serialize(buf *util.PacketBuffer) error {
 	pkt.GameVersion.serialize(buf)
 	buf.WriteUInt32(pkt.HostCounter)
 	buf.WriteUInt32(pkt.EntryKey)
-	buf.WriteString(pkt.GameName)
+	buf.WriteCString(pkt.GameName)
 	buf.WriteUInt8(0)
-	buf.WriteString(pkt.StatString)
+	buf.WriteCString(pkt.StatString)
 	buf.WriteUInt32(pkt.SlotsTotal)
 	buf.WriteUInt32(uint32(pkt.GameType))
 	buf.WriteUInt32(pkt.SlotsUsed)
@@ -1651,15 +1629,12 @@ func (pkt *GameInfo) Deserialize(buf *util.PacketBuffer) error {
 		return ErrInvalidPacketSize
 	}
 
-	if err := pkt.GameVersion.deserialize(buf); err != nil {
-		return err
-	}
-
+	pkt.GameVersion.deserialize(buf)
 	pkt.HostCounter = buf.ReadUInt32()
 	pkt.EntryKey = buf.ReadUInt32()
 
 	var err error
-	if pkt.GameName, err = buf.ReadString(); err != nil {
+	if pkt.GameName, err = buf.ReadCString(); err != nil {
 		return err
 	}
 	if size < 45+len(pkt.GameName) {
@@ -1670,7 +1645,7 @@ func (pkt *GameInfo) Deserialize(buf *util.PacketBuffer) error {
 		return ErrUnexpectedConst
 	}
 
-	if pkt.StatString, err = buf.ReadString(); err != nil {
+	if pkt.StatString, err = buf.ReadCString(); err != nil {
 		return err
 	}
 	if size < 45+len(pkt.GameName)+len(pkt.StatString) {
@@ -1720,10 +1695,7 @@ func (pkt *CreateGame) Deserialize(buf *util.PacketBuffer) error {
 		return ErrInvalidPacketSize
 	}
 
-	if err := pkt.GameVersion.deserialize(buf); err != nil {
-		return err
-	}
-
+	pkt.GameVersion.deserialize(buf)
 	pkt.HostCounter = buf.ReadUInt32()
 
 	return nil
@@ -1922,7 +1894,7 @@ func (pkt *MapCheck) Serialize(buf *util.PacketBuffer) error {
 	buf.WriteUInt16(uint16(41 + len(pkt.FilePath)))
 
 	buf.WriteUInt32(1)
-	buf.WriteString(pkt.FilePath)
+	buf.WriteCString(pkt.FilePath)
 	buf.WriteUInt32(pkt.FileSize)
 	buf.WriteUInt32(pkt.MapInfo)
 	buf.WriteUInt32(pkt.FileCrcEncryption)
@@ -1943,7 +1915,7 @@ func (pkt *MapCheck) Deserialize(buf *util.PacketBuffer) error {
 	}
 
 	var err error
-	if pkt.FilePath, err = buf.ReadString(); err != nil {
+	if pkt.FilePath, err = buf.ReadCString(); err != nil {
 		return err
 	}
 

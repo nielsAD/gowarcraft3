@@ -10,7 +10,7 @@ import (
 	"github.com/nielsAD/noot/pkg/w3gs"
 )
 
-// FakePlayer represents a mocked player than can join a game lobby
+// FakePlayer represents a mocked player that can join a game lobby
 type FakePlayer struct {
 	Peer
 
@@ -18,6 +18,8 @@ type FakePlayer struct {
 	listener  *net.TCPListener
 	peers     map[uint8]*Peer
 	peerMutex sync.Mutex
+
+	DialPeers bool
 
 	GameTicks   uint32
 	HostCounter uint32
@@ -367,20 +369,22 @@ func (f *FakePlayer) NextPacket() (w3gs.Packet, error) {
 		}
 
 		var conn *net.TCPConn
-		if c, e := net.DialTCP("tcp4", nil, p.InternalAddr.TCPAddr()); e == nil {
-			conn = c
-		} else if c, e := net.DialTCP("tcp4", nil, p.ExternalAddr.TCPAddr()); e == nil {
-			conn = c
-		}
+		if f.DialPeers {
+			if c, e := net.DialTCP("tcp4", nil, p.InternalAddr.TCPAddr()); e == nil {
+				conn = c
+			} else if c, e := net.DialTCP("tcp4", nil, p.ExternalAddr.TCPAddr()); e == nil {
+				conn = c
+			}
 
-		if conn != nil {
-			if _, e := w3gs.SerializePacketWithBuffer(conn, &peer.sbuf, &w3gs.PeerConnect{
-				JoinCounter: p.JoinCounter,
-				EntryKey:    f.EntryKey,
-				PlayerID:    f.ID,
-				PeerMask:    f.PeerMask,
-			}); e != nil {
-				conn = nil
+			if conn != nil {
+				if _, e := w3gs.SerializePacketWithBuffer(conn, &peer.sbuf, &w3gs.PeerConnect{
+					JoinCounter: p.JoinCounter,
+					EntryKey:    f.EntryKey,
+					PlayerID:    f.ID,
+					PeerMask:    f.PeerMask,
+				}); e != nil {
+					conn = nil
+				}
 			}
 		}
 
