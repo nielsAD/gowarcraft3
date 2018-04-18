@@ -280,12 +280,12 @@ func (f *FakePlayer) acceptPeers() {
 }
 
 func (f *FakePlayer) disconnectPeers() {
-	f.peerMutex.Lock()
-	defer f.peerMutex.Unlock()
-
 	if f.listener != nil {
 		f.listener.Close()
 	}
+
+	f.peerMutex.Lock()
+	defer f.peerMutex.Unlock()
 
 	for idx, p := range f.peers {
 		if p.conn != nil {
