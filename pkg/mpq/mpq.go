@@ -84,6 +84,16 @@ func (a *Archive) Close() error {
 	return nil
 }
 
+// WeakSigned checks and verifies the archive against its weak signature if present
+func (a *Archive) WeakSigned() bool {
+	return C.SFileVerifyArchive(a.h) == C.ERROR_WEAK_SIGNATURE_OK
+}
+
+// StrongSigned checks and verifies the archive against its strong signature if present
+func (a *Archive) StrongSigned() bool {
+	return C.SFileVerifyArchive(a.h) == C.ERROR_STRONG_SIGNATURE_OK
+}
+
 // Open a subfile inside an opened MPQ archive
 func (a *Archive) Open(subFileName string) (*File, error) {
 	var res File

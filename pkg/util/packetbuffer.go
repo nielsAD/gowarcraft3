@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"io"
+	"math"
 	"net"
 )
 
@@ -61,6 +62,11 @@ func (b *PacketBuffer) WriteUInt16(v uint16) {
 // WriteUInt32 appends uint32 v to the buffer
 func (b *PacketBuffer) WriteUInt32(v uint32) {
 	b.Bytes = append(b.Bytes, byte(v), byte(v>>8), byte(v>>16), byte(v>>24))
+}
+
+// WriteFloat32 appends float32 v to the buffer
+func (b *PacketBuffer) WriteFloat32(v float32) {
+	b.WriteUInt32(math.Float32bits(v))
 }
 
 // WriteBool appends bool v to the buffer
@@ -135,6 +141,11 @@ func (b *PacketBuffer) WriteUInt16At(p int, v uint16) {
 // WriteUInt32At overwrites position p in the buffer with uint32 v
 func (b *PacketBuffer) WriteUInt32At(p int, v uint32) {
 	b.Bytes[p+3], b.Bytes[p+2], b.Bytes[p+1], b.Bytes[p] = byte(v>>24), byte(v>>16), byte(v>>8), byte(v)
+}
+
+// WriteFloat32At overwrites position p in the buffer with float32 v
+func (b *PacketBuffer) WriteFloat32At(p int, v float32) {
+	b.WriteUInt32At(p, math.Float32bits(v))
 }
 
 // WriteBoolAt overwrites position p in the buffer with bool v
@@ -241,6 +252,11 @@ func (b *PacketBuffer) ReadUInt32() uint32 {
 	var res = uint32(b.Bytes[3])<<24 | uint32(b.Bytes[2])<<16 | uint32(b.Bytes[1])<<8 | uint32(b.Bytes[0])
 	b.Bytes = b.Bytes[4:]
 	return res
+}
+
+// ReadFloat32 consumes a float32 and returns its value
+func (b *PacketBuffer) ReadFloat32() float32 {
+	return math.Float32frombits(b.ReadUInt32())
 }
 
 // ReadBool consumes a bool and returns its value

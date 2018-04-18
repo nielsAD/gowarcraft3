@@ -173,6 +173,39 @@ func TestUInt32(t *testing.T) {
 	}
 }
 
+func TestFloat32(t *testing.T) {
+	var val = float32(1.0)
+	var buf = util.PacketBuffer{Bytes: make([]byte, 0)}
+
+	for i := 1; i <= iterations; i++ {
+		buf.WriteFloat32(val)
+		if buf.Size() != i*4 {
+			t.Fatalf("Write(%v): %v != %v", i, buf.Size(), i*4)
+		}
+	}
+
+	var alt = -val
+	buf.WriteFloat32At(4, alt)
+	if buf.Size() != iterations*4 {
+		t.Fatalf("WriteAt: %v != %v", buf.Size(), iterations*4)
+	}
+
+	for i := iterations - 1; i >= 0; i-- {
+		var read = buf.ReadFloat32()
+
+		if i == 1 {
+			read = -read
+		}
+		if read != val {
+			t.Fatalf("read(%v): %v != %v", i, read, val)
+		}
+
+		if buf.Size() != i*4 {
+			t.Fatalf("Leftover(%v): %v != %v", i, buf.Size(), i*4)
+		}
+	}
+}
+
 func TestBool(t *testing.T) {
 	var buf = util.PacketBuffer{Bytes: make([]byte, 0)}
 

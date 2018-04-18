@@ -312,10 +312,10 @@ const (
 	GameTypeSizeLarge  GameType = 0x080000
 	GameTypeSizeMask            = GameTypeSizeSmall | GameTypeSizeMedium | GameTypeSizeLarge
 
-	GameTypeObsFull    GameType = 0x100000
-	GameTypeObsOnDeath GameType = 0x200000
-	GameTypeObsNone    GameType = 0x400000
-	GameTypeObsMask             = GameTypeObsFull | GameTypeObsFull | GameTypeObsNone
+	GameTypeObsFull     GameType = 0x100000
+	GameTypeObsOnDefeat GameType = 0x200000
+	GameTypeObsNone     GameType = 0x400000
+	GameTypeObsMask              = GameTypeObsFull | GameTypeObsOnDefeat | GameTypeObsNone
 )
 
 func (f GameType) String() string {
@@ -362,8 +362,8 @@ func (f GameType) String() string {
 	switch f & GameTypeObsMask {
 	case GameTypeObsFull:
 		res += "|FullObs"
-	case GameTypeObsOnDeath:
-		res += "|ObsOnDeath"
+	case GameTypeObsOnDefeat:
+		res += "|ObsOnDefeat"
 	case GameTypeObsNone:
 		res += "|NoObs"
 	case 0:
