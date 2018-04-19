@@ -1,0 +1,30 @@
+# Author:  Niels A.D.
+# Project: gowarcraft3 (https://github.com/nielsAD/gowarcraft3)
+# License: Mozilla Public License, v2.0
+
+language: go
+go: 1.10.x
+
+notifications:
+  email:
+    on_success: false
+    on_failure: change
+
+install:
+  # Install library dependencies
+  - sudo apt-get -qq update
+  - sudo apt-get install -y libpcap-dev
+  - cd ./vendor/StormLib; cmake .; make; cd ../..
+
+  # Install golang dependencies
+  - go get github.com/google/gopacket
+  - go get github.com/golang/lint/golint
+
+  # Build all packages
+  - go build ./...
+
+script:
+  - gofmt -l .
+  - go test -v -race ./...
+  - go vet ./...
+  - golint -set_exit_status ./...
