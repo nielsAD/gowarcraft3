@@ -1,10 +1,10 @@
-package util_test
+package protocol_test
 
 import (
 	"net"
 	"testing"
 
-	"github.com/nielsAD/noot/pkg/util"
+	"github.com/nielsAD/gowarcraft3/protocol"
 )
 
 func TestSockAddrConv(t *testing.T) {
@@ -12,7 +12,7 @@ func TestSockAddrConv(t *testing.T) {
 	if e != nil {
 		t.Fatal(e)
 	}
-	ipB := util.Addr(ipA)
+	ipB := protocol.Addr(ipA)
 	if ipA.String() != ipB.IPAddr().String() {
 		t.Fatal("ResolveIPAddr != IpAddr")
 	}
@@ -21,7 +21,7 @@ func TestSockAddrConv(t *testing.T) {
 	if e != nil {
 		t.Fatal(e)
 	}
-	udpB := util.Addr(udpA)
+	udpB := protocol.Addr(udpA)
 	if udpA.String() != udpB.UDPAddr().String() {
 		t.Fatal("ResolveUDPAddr != UDPAddr")
 	}
@@ -30,7 +30,7 @@ func TestSockAddrConv(t *testing.T) {
 	if e != nil {
 		t.Fatal(e)
 	}
-	tcpB := util.Addr(tcpA)
+	tcpB := protocol.Addr(tcpA)
 	if tcpA.String() != tcpB.TCPAddr().String() {
 		t.Fatal("ResolveTCPAddr != TCPAddr")
 	}

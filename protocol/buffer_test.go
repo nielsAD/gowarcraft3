@@ -1,4 +1,4 @@
-package util_test
+package protocol_test
 
 import (
 	"bytes"
@@ -6,7 +6,7 @@ import (
 	"net"
 	"testing"
 
-	"github.com/nielsAD/noot/pkg/util"
+	"github.com/nielsAD/gowarcraft3/protocol"
 )
 
 const iterations = 3
@@ -22,8 +22,8 @@ func reverse(numbers []byte) []byte {
 
 func TestReaderWriter(t *testing.T) {
 	var blob = []byte{1, 2, 3, 4, 5, 6, 7, 8, 9, 10}
-	var reader = util.PacketBuffer{Bytes: blob}
-	var writer util.PacketBuffer
+	var reader = protocol.Buffer{Bytes: blob}
+	var writer protocol.Buffer
 
 	io.Copy(&writer, &reader)
 	if reader.Size() != 0 {
@@ -39,7 +39,7 @@ func TestReaderWriter(t *testing.T) {
 
 func TestBlob(t *testing.T) {
 	var blob = []byte{1, 2, 3, 4, 5, 6, 7, 8, 9, 10}
-	var buf = util.PacketBuffer{Bytes: make([]byte, 0)}
+	var buf = protocol.Buffer{Bytes: make([]byte, 0)}
 
 	for i := 1; i <= iterations; i++ {
 		buf.WriteBlob(blob)
@@ -76,7 +76,7 @@ func TestBlob(t *testing.T) {
 
 func TestUInt8(t *testing.T) {
 	var val = uint8(127)
-	var buf = util.PacketBuffer{Bytes: make([]byte, 0)}
+	var buf = protocol.Buffer{Bytes: make([]byte, 0)}
 
 	for i := 1; i <= iterations; i++ {
 		buf.WriteUInt8(val)
@@ -109,7 +109,7 @@ func TestUInt8(t *testing.T) {
 
 func TestUInt16(t *testing.T) {
 	var val = uint16(65534)
-	var buf = util.PacketBuffer{Bytes: make([]byte, 0)}
+	var buf = protocol.Buffer{Bytes: make([]byte, 0)}
 
 	for i := 1; i <= iterations; i++ {
 		buf.WriteUInt16(val)
@@ -142,7 +142,7 @@ func TestUInt16(t *testing.T) {
 
 func TestUInt32(t *testing.T) {
 	var val = uint32(4294967294)
-	var buf = util.PacketBuffer{Bytes: make([]byte, 0)}
+	var buf = protocol.Buffer{Bytes: make([]byte, 0)}
 
 	for i := 1; i <= iterations; i++ {
 		buf.WriteUInt32(val)
@@ -175,7 +175,7 @@ func TestUInt32(t *testing.T) {
 
 func TestFloat32(t *testing.T) {
 	var val = float32(1.0)
-	var buf = util.PacketBuffer{Bytes: make([]byte, 0)}
+	var buf = protocol.Buffer{Bytes: make([]byte, 0)}
 
 	for i := 1; i <= iterations; i++ {
 		buf.WriteFloat32(val)
@@ -207,7 +207,7 @@ func TestFloat32(t *testing.T) {
 }
 
 func TestBool(t *testing.T) {
-	var buf = util.PacketBuffer{Bytes: make([]byte, 0)}
+	var buf = protocol.Buffer{Bytes: make([]byte, 0)}
 
 	for i := 1; i <= iterations; i++ {
 		buf.WriteBool(i%2 != 0)
@@ -240,7 +240,7 @@ func TestBool(t *testing.T) {
 
 func TestPort(t *testing.T) {
 	var val = uint16(6112)
-	var buf = util.PacketBuffer{Bytes: make([]byte, 0)}
+	var buf = protocol.Buffer{Bytes: make([]byte, 0)}
 
 	for i := 1; i <= iterations; i++ {
 		buf.WritePort(val)
@@ -273,7 +273,7 @@ func TestPort(t *testing.T) {
 
 func TestIP(t *testing.T) {
 	var ip4 = net.IPv4(192, 168, 1, 101).To4()
-	var buf = util.PacketBuffer{Bytes: make([]byte, 0)}
+	var buf = protocol.Buffer{Bytes: make([]byte, 0)}
 
 	for i := 1; i <= iterations; i++ {
 		if err := buf.WriteIP(ip4); err != nil {
@@ -285,7 +285,7 @@ func TestIP(t *testing.T) {
 	}
 
 	var rev = net.IP(reverse([]byte(ip4)))
-	if err := buf.WriteIPAt(4, net.IP([]byte{0, 0})); err != util.ErrInvalidIP4 {
+	if err := buf.WriteIPAt(4, net.IP([]byte{0, 0})); err != protocol.ErrInvalidIP4 {
 		t.Fatal("errInvalidIP expected")
 	}
 	if err := buf.WriteIPAt(4, rev); err != nil {
@@ -315,21 +315,21 @@ func TestIP(t *testing.T) {
 		t.Fatal("Wrong integer format")
 	}
 
-	if buf.WriteIP(nil) != util.ErrInvalidIP4 {
+	if buf.WriteIP(nil) != protocol.ErrInvalidIP4 {
 		t.Fatal("errInvalidIP expected for nil")
 	}
 
-	if buf.WriteIP(net.IP([]byte{0, 0})) != util.ErrInvalidIP4 {
+	if buf.WriteIP(net.IP([]byte{0, 0})) != protocol.ErrInvalidIP4 {
 		t.Fatal("errInvalidIP expected for {0,0}")
 	}
 }
 
 func TestSockAddr(t *testing.T) {
-	var addr = util.SockAddr{
+	var addr = protocol.SockAddr{
 		Port: 6112,
 		IP:   net.IPv4(192, 168, 1, 101).To4(),
 	}
-	var buf = util.PacketBuffer{Bytes: make([]byte, 0)}
+	var buf = protocol.Buffer{Bytes: make([]byte, 0)}
 
 	for i := 1; i <= iterations; i++ {
 		if err := buf.WriteSockAddr(&addr); err != nil {
@@ -340,11 +340,11 @@ func TestSockAddr(t *testing.T) {
 		}
 	}
 
-	var rev = util.SockAddr{
+	var rev = protocol.SockAddr{
 		Port: ^addr.Port,
 		IP:   net.IP(reverse([]byte(addr.IP))),
 	}
-	if err := buf.WriteSockAddrAt(16, &util.SockAddr{Port: 0, IP: net.IP([]byte{0, 0})}); err != util.ErrInvalidIP4 {
+	if err := buf.WriteSockAddrAt(16, &protocol.SockAddr{Port: 0, IP: net.IP([]byte{0, 0})}); err != protocol.ErrInvalidIP4 {
 		t.Fatal("errInvalidIP expected")
 	}
 	if err := buf.WriteSockAddrAt(16, &rev); err != nil {
@@ -373,7 +373,7 @@ func TestSockAddr(t *testing.T) {
 		}
 	}
 
-	if err := buf.WriteSockAddr(&util.SockAddr{}); err != nil || buf.Bytes[0] != 0 || buf.Bytes[1] != 0 {
+	if err := buf.WriteSockAddr(&protocol.SockAddr{}); err != nil || buf.Bytes[0] != 0 || buf.Bytes[1] != 0 {
 		t.Fatal("Address family 0 expected")
 	}
 
@@ -381,34 +381,34 @@ func TestSockAddr(t *testing.T) {
 		t.Fatal("Empty SockAddr expected")
 	}
 
-	if err := buf.WriteSockAddr(&util.SockAddr{Port: 0, IP: net.IP([]byte{0, 0})}); err != util.ErrInvalidIP4 {
+	if err := buf.WriteSockAddr(&protocol.SockAddr{Port: 0, IP: net.IP([]byte{0, 0})}); err != protocol.ErrInvalidIP4 {
 		t.Fatal("errInvalidIP expected")
 	}
 
-	buf.WriteSockAddr(&util.SockAddr{})
+	buf.WriteSockAddr(&protocol.SockAddr{})
 	buf.Bytes[0] = 1
-	if _, err := buf.ReadSockAddr(); err != util.ErrInvalidSockAddr {
+	if _, err := buf.ReadSockAddr(); err != protocol.ErrInvalidSockAddr {
 		t.Fatal("ErrInvalidSockAddr expected")
 	}
 	buf.Skip(15)
 
-	buf.WriteSockAddr(&util.SockAddr{})
+	buf.WriteSockAddr(&protocol.SockAddr{})
 	buf.Bytes[3] = 1
-	if _, err := buf.ReadSockAddr(); err != util.ErrInvalidSockAddr {
+	if _, err := buf.ReadSockAddr(); err != protocol.ErrInvalidSockAddr {
 		t.Fatal("ErrInvalidSockAddr expected")
 	}
 	buf.Truncate()
 
-	buf.WriteSockAddr(&util.SockAddr{})
+	buf.WriteSockAddr(&protocol.SockAddr{})
 	buf.Bytes[15] = 1
-	if _, err := buf.ReadSockAddr(); err != util.ErrInvalidSockAddr {
+	if _, err := buf.ReadSockAddr(); err != protocol.ErrInvalidSockAddr {
 		t.Fatal("ErrInvalidSockAddr expected")
 	}
 }
 
 func TestCString(t *testing.T) {
 	var str = "helloworld"
-	var buf = util.PacketBuffer{Bytes: make([]byte, 0)}
+	var buf = protocol.Buffer{Bytes: make([]byte, 0)}
 
 	for i := 1; i <= iterations; i++ {
 		buf.WriteCString(str)
@@ -442,7 +442,7 @@ func TestCString(t *testing.T) {
 	}
 
 	buf.WriteUInt32(4294967294)
-	if _, err := buf.ReadCString(); err != util.ErrNoCStringTerminatorFound {
+	if _, err := buf.ReadCString(); err != protocol.ErrNoCStringTerminatorFound {
 		t.Fatal("errNoCStringTerminatorFound expected")
 	}
 	if buf.Size() > 0 {
@@ -451,8 +451,8 @@ func TestCString(t *testing.T) {
 }
 
 func TestDString(t *testing.T) {
-	var val = util.DWordString{'t', 'e', 's', 't'}
-	var buf = util.PacketBuffer{Bytes: make([]byte, 0)}
+	var val = protocol.DWordString{'t', 'e', 's', 't'}
+	var buf = protocol.Buffer{Bytes: make([]byte, 0)}
 
 	for i := 1; i <= iterations; i++ {
 		buf.WriteDString(val)
@@ -485,7 +485,7 @@ func TestDString(t *testing.T) {
 }
 
 func BenchmarkWriteUInt32(b *testing.B) {
-	var buf = util.PacketBuffer{Bytes: make([]byte, 0)}
+	var buf = protocol.Buffer{Bytes: make([]byte, 0)}
 
 	b.SetBytes(4)
 	for n := 0; n < b.N; n++ {
@@ -494,7 +494,7 @@ func BenchmarkWriteUInt32(b *testing.B) {
 }
 
 func BenchmarkReadUInt32(b *testing.B) {
-	var buf = util.PacketBuffer{Bytes: make([]byte, 0, b.N*4)}
+	var buf = protocol.Buffer{Bytes: make([]byte, 0, b.N*4)}
 	for n := 0; n < b.N; n++ {
 		buf.WriteUInt32(4294967294)
 	}

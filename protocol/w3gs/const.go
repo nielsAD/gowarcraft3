@@ -4,7 +4,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/nielsAD/noot/pkg/util"
+	"github.com/nielsAD/gowarcraft3/protocol"
 )
 
 // Errors
@@ -68,13 +68,13 @@ const (
 // Failover related: 0x15 0x16 0x2B 0x2C 0x39
 
 // GameProduct identifier
-type GameProduct util.DWordString
+type GameProduct protocol.DWordString
 
 // Game product
 var (
-	ProductDemo = GameProduct(util.DString("W3DM")) // Demo
-	ProductROC  = GameProduct(util.DString("WAR3")) // ROC
-	ProductTFT  = GameProduct(util.DString("W3XP")) // TFT
+	ProductDemo = GameProduct(protocol.DString("W3DM")) // Demo
+	ProductROC  = GameProduct(protocol.DString("WAR3")) // ROC
+	ProductTFT  = GameProduct(protocol.DString("W3XP")) // TFT
 )
 
 // SlotLayout enum

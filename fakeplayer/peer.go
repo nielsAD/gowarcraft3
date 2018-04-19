@@ -6,7 +6,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/nielsAD/noot/pkg/w3gs"
+	"github.com/nielsAD/gowarcraft3/protocol/w3gs"
 )
 
 // Peer represents a (real) player in game

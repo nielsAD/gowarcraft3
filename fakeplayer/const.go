@@ -3,7 +3,7 @@ package fakeplayer
 import (
 	"errors"
 
-	"github.com/nielsAD/noot/pkg/w3gs"
+	"github.com/nielsAD/gowarcraft3/protocol/w3gs"
 )
 
 // Errors

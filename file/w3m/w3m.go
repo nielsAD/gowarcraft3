@@ -1,5 +1,5 @@
-// Package maps implements basic information extraction functions for w3m/w3x files.
-package maps
+// Package w3m implements basic information extraction functions for w3m/w3x files.
+package w3m
 
 import (
 	"bufio"
@@ -9,8 +9,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/nielsAD/noot/pkg/mpq"
-	"github.com/nielsAD/noot/pkg/util"
+	"github.com/nielsAD/gowarcraft3/file/mpq"
+	"github.com/nielsAD/gowarcraft3/protocol"
 )
 
 // Map information for Warcraft III maps
@@ -52,7 +52,7 @@ type Map struct {
 	FogEnd     float32
 	FogDensity float32
 	FogColor   uint32
-	WeatherID  util.DWordString
+	WeatherID  protocol.DWordString
 
 	SoundEnv   string
 	LightEnv   Tileset
@@ -177,7 +177,7 @@ func Load(fileName string) (*Map, error) {
 		return nil, err
 	}
 
-	var b util.PacketBuffer
+	var b protocol.Buffer
 	if _, err := io.Copy(&b, f); err != nil {
 		return nil, err
 	}

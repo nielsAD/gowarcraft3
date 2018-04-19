@@ -3,12 +3,12 @@ package fakeplayer
 import (
 	"net"
 
-	"github.com/nielsAD/noot/pkg/util"
-	"github.com/nielsAD/noot/pkg/w3gs"
+	"github.com/nielsAD/gowarcraft3/protocol"
+	"github.com/nielsAD/gowarcraft3/protocol/w3gs"
 )
 
 func sendUDP(conn *net.UDPConn, addr *net.UDPAddr, pkt w3gs.Packet) (int, error) {
-	var buf util.PacketBuffer
+	var buf protocol.Buffer
 	if err := pkt.Serialize(&buf); err != nil {
 		return 0, nil
 	}
@@ -37,7 +37,7 @@ func FindGameOnLAN(gameVersion *w3gs.GameVersion) (*net.TCPAddr, uint32, uint32,
 			return nil, 0, 0, err
 		}
 
-		pkt, _, err := w3gs.DeserializePacket(&util.PacketBuffer{Bytes: buf[:size]})
+		pkt, _, err := w3gs.DeserializePacket(&protocol.Buffer{Bytes: buf[:size]})
 		if err != nil {
 			return nil, 0, 0, err
 		}

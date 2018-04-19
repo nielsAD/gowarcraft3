@@ -3,11 +3,11 @@ package w3gs
 import (
 	"io"
 
-	"github.com/nielsAD/noot/pkg/util"
+	"github.com/nielsAD/gowarcraft3/protocol"
 )
 
 // SerializationBuffer is used by SerializePacketWithBuffer to bring amortized allocs to 0 for repeated calls
-type SerializationBuffer = util.PacketBuffer
+type SerializationBuffer = protocol.Buffer
 
 // SerializePacketWithBuffer serializes p and writes it to w.
 func SerializePacketWithBuffer(w io.Writer, b *SerializationBuffer, p Packet) (int, error) {
@@ -70,8 +70,8 @@ type DeserializationBuffer struct {
 	unknownPacket  UnknownPacket
 }
 
-// DeserializePacketWithBuffer reads exactly one packet from r and returns it in the proper (deserialized) packet type.
-func DeserializePacketWithBuffer(r io.Reader, b *DeserializationBuffer) (Packet, int, error) {
+// ReadPacketWithBuffer reads exactly one packet from r and returns its raw bytes.
+func ReadPacketWithBuffer(r io.Reader, b *DeserializationBuffer) ([]byte, int, error) {
 	if n, err := io.ReadFull(r, b.Buffer[:4]); err != nil {
 		if err == io.ErrUnexpectedEOF {
 			err = ErrNoProtocolSig
@@ -81,12 +81,12 @@ func DeserializePacketWithBuffer(r io.Reader, b *DeserializationBuffer) (Packet,
 	}
 
 	if b.Buffer[0] != ProtocolSig {
-		return nil, 0, ErrNoProtocolSig
+		return nil, 4, ErrNoProtocolSig
 	}
 
 	var size = int(uint16(b.Buffer[3])<<8 | uint16(b.Buffer[2]))
 	if size < 4 || size > len(b.Buffer) {
-		return nil, 0, ErrInvalidPacketSize
+		return nil, 4, ErrInvalidPacketSize
 	}
 
 	if n, err := io.ReadFull(r, b.Buffer[4:size]); err != nil {
@@ -96,10 +96,19 @@ func DeserializePacketWithBuffer(r io.Reader, b *DeserializationBuffer) (Packet,
 		return nil, n + 4, err
 	}
 
-	var pbuf = util.PacketBuffer{Bytes: b.Buffer[:size]}
+	return b.Buffer[:size], size, nil
+}
+
+// DeserializePacketWithBuffer reads exactly one packet from r and returns it in the proper (deserialized) packet type.
+func DeserializePacketWithBuffer(r io.Reader, b *DeserializationBuffer) (Packet, int, error) {
+	var bytes, n, err = ReadPacketWithBuffer(r, b)
+	if err != nil {
+		return nil, n, err
+	}
+
+	var pbuf = protocol.Buffer{Bytes: bytes}
 
 	var pkt Packet
-	var err error
 
 	// Explicitly call deserialize on type instead of interface for compiler optimizations
 	switch b.Buffer[1] {
@@ -235,10 +244,15 @@ func DeserializePacketWithBuffer(r io.Reader, b *DeserializationBuffer) (Packet,
 	}
 
 	if err != nil {
-		return nil, size, err
+		return nil, n, err
 	}
 
-	return pkt, size, nil
+	return pkt, n, nil
+}
+
+// ReadPacket reads exactly one packet from r and returns it in the proper (deserialized) packet type.
+func ReadPacket(r io.Reader, b *DeserializationBuffer) ([]byte, int, error) {
+	return ReadPacketWithBuffer(r, &DeserializationBuffer{})
 }
 
 // DeserializePacket reads exactly one packet from r and returns it in the proper (deserialized) packet type.

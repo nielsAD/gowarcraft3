@@ -6,8 +6,8 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/nielsAD/noot/pkg/util"
-	"github.com/nielsAD/noot/pkg/w3gs"
+	"github.com/nielsAD/gowarcraft3/protocol"
+	"github.com/nielsAD/gowarcraft3/protocol/w3gs"
 )
 
 var sd = []w3gs.SlotData{
@@ -67,7 +67,7 @@ func TestPackets(t *testing.T) {
 			ListenPort:  3,
 			JoinCounter: 4,
 			PlayerName:  "Grubby",
-			InternalAddr: util.SockAddr{
+			InternalAddr: protocol.SockAddr{
 				Port: 6,
 				IP:   net.IP{7, 8, 9, 10},
 			},
@@ -85,7 +85,7 @@ func TestPackets(t *testing.T) {
 				NumPlayers: 12,
 			},
 			PlayerID: 13,
-			ExternalAddr: util.SockAddr{
+			ExternalAddr: protocol.SockAddr{
 				Port: 14,
 				IP:   net.IP{15, 16, 17, 18},
 			},
@@ -99,11 +99,11 @@ func TestPackets(t *testing.T) {
 			JoinCounter: 1,
 			PlayerID:    2,
 			PlayerName:  "Moon",
-			ExternalAddr: util.SockAddr{
+			ExternalAddr: protocol.SockAddr{
 				Port: 4,
 				IP:   net.IP{5, 6, 7, 8},
 			},
-			InternalAddr: util.SockAddr{
+			InternalAddr: protocol.SockAddr{
 				Port: 9,
 				IP:   net.IP{10, 11, 12, 13},
 			},
@@ -312,14 +312,14 @@ func TestPackets(t *testing.T) {
 
 	for _, pkt := range types {
 		var err error
-		var buf = util.PacketBuffer{Bytes: make([]byte, 0, 2048)}
+		var buf = protocol.Buffer{Bytes: make([]byte, 0, 2048)}
 
 		if err = pkt.Serialize(&buf); err != nil {
 			t.Log(reflect.TypeOf(pkt))
 			t.Fatal(err)
 		}
 
-		var buf2 = util.PacketBuffer{Bytes: make([]byte, 0, 2048)}
+		var buf2 = protocol.Buffer{Bytes: make([]byte, 0, 2048)}
 		if _, err = w3gs.SerializePacket(&buf2, pkt); err != nil {
 			t.Log(reflect.TypeOf(pkt))
 			t.Fatal(err)
@@ -346,12 +346,12 @@ func TestPackets(t *testing.T) {
 			t.Errorf("DeserializePacket value mismatch for %v", reflect.TypeOf(pkt))
 		}
 
-		err = pkt.Deserialize(&util.PacketBuffer{Bytes: make([]byte, 0)})
+		err = pkt.Deserialize(&protocol.Buffer{Bytes: make([]byte, 0)})
 		if err != w3gs.ErrInvalidPacketSize {
 			t.Fatalf("ErrInvalidPacketSize expected for %v", reflect.TypeOf(pkt))
 		}
 
-		err = pkt.Deserialize(&util.PacketBuffer{Bytes: make([]byte, 2048)})
+		err = pkt.Deserialize(&protocol.Buffer{Bytes: make([]byte, 2048)})
 		if err != w3gs.ErrInvalidPacketSize && err != w3gs.ErrInvalidChecksum {
 			switch pkt.(type) {
 			case *w3gs.UnknownPacket:
@@ -369,7 +369,7 @@ func BenchmarkSerialize(b *testing.B) {
 		Slots: sd,
 	}
 
-	var buf = util.PacketBuffer{Bytes: make([]byte, 0, 2048)}
+	var buf = protocol.Buffer{Bytes: make([]byte, 0, 2048)}
 	pkt.Serialize(&buf)
 
 	b.SetBytes(int64(buf.Size()))
@@ -386,19 +386,19 @@ func BenchmarkDeserialize(b *testing.B) {
 	}
 
 	var res w3gs.SlotInfo
-	var buf = util.PacketBuffer{Bytes: make([]byte, 0, 2048)}
+	var buf = protocol.Buffer{Bytes: make([]byte, 0, 2048)}
 	pkt.Serialize(&buf)
 
 	b.SetBytes(int64(buf.Size()))
 	b.ResetTimer()
 	for n := 0; n < b.N; n++ {
-		res.Deserialize(&util.PacketBuffer{Bytes: buf.Bytes})
+		res.Deserialize(&protocol.Buffer{Bytes: buf.Bytes})
 	}
 }
 
 func BenchmarkCreateAndSerialize(b *testing.B) {
 	var size = 0
-	var buf = util.PacketBuffer{Bytes: make([]byte, 0, 2048)}
+	var buf = protocol.Buffer{Bytes: make([]byte, 0, 2048)}
 
 	b.ResetTimer()
 	for n := 0; n < b.N; n++ {
@@ -417,13 +417,13 @@ func BenchmarkCreateAndDeserialize(b *testing.B) {
 	var pkt = w3gs.SlotInfo{
 		Slots: sd,
 	}
-	var buf = util.PacketBuffer{Bytes: make([]byte, 0, 2048)}
+	var buf = protocol.Buffer{Bytes: make([]byte, 0, 2048)}
 	pkt.Serialize(&buf)
 
 	b.SetBytes(int64(buf.Size()))
 	b.ResetTimer()
 	for n := 0; n < b.N; n++ {
 		var res w3gs.SlotInfo
-		res.Deserialize(&util.PacketBuffer{Bytes: buf.Bytes})
+		res.Deserialize(&protocol.Buffer{Bytes: buf.Bytes})
 	}
 }

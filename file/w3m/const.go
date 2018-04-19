@@ -1,4 +1,4 @@
-package maps
+package w3m
 
 import (
 	"errors"
@@ -7,7 +7,7 @@ import (
 
 // Errors
 var (
-	ErrBadFormat = errors.New("maps: Invalid file format")
+	ErrBadFormat = errors.New("w3m: Invalid file format")
 )
 
 // Size enum

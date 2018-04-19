@@ -17,8 +17,8 @@ import (
 	"github.com/google/gopacket/tcpassembly"
 	"github.com/google/gopacket/tcpassembly/tcpreader"
 
-	"github.com/nielsAD/noot/pkg/util"
-	"github.com/nielsAD/noot/pkg/w3gs"
+	"github.com/nielsAD/gowarcraft3/protocol"
+	"github.com/nielsAD/gowarcraft3/protocol/w3gs"
 )
 
 var (
@@ -187,7 +187,7 @@ func main() {
 			case *layers.TCP:
 				asm.Assemble(packet.NetworkLayer().NetworkFlow(), trans)
 			case *layers.UDP:
-				var buf = util.PacketBuffer{Bytes: packet.ApplicationLayer().Payload()}
+				var buf = protocol.Buffer{Bytes: packet.ApplicationLayer().Payload()}
 				dumpPackets("UDP", packet.NetworkLayer().NetworkFlow(), trans.TransportFlow(), &buf)
 			}
 		}

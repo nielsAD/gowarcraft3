@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/nielsAD/noot/pkg/mpq"
+	"github.com/nielsAD/gowarcraft3/file/mpq"
 )
 
 func TestMPQ(t *testing.T) {

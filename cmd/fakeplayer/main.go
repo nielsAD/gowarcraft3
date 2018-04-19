@@ -11,8 +11,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/nielsAD/noot/pkg/fakeplayer"
-	"github.com/nielsAD/noot/pkg/w3gs"
+	"github.com/nielsAD/gowarcraft3/fakeplayer"
+	"github.com/nielsAD/gowarcraft3/protocol/w3gs"
 )
 
 var (

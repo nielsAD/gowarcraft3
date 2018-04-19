@@ -1,4 +1,4 @@
-package util
+package protocol
 
 // DWordString is a string of size dword (4 bytes / characters)
 type DWordString [4]byte

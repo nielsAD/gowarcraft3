@@ -16,10 +16,10 @@
 //
 package w3gs
 
-import "github.com/nielsAD/noot/pkg/util"
+import "github.com/nielsAD/gowarcraft3/protocol"
 
 // Packet interface.
 type Packet interface {
-	Serialize(buf *util.PacketBuffer) error
-	Deserialize(buf *util.PacketBuffer) error
+	Serialize(buf *protocol.Buffer) error
+	Deserialize(buf *protocol.Buffer) error
 }
