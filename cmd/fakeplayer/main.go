@@ -1,3 +1,7 @@
+// Author:  Niels A.D.
+// Project: gowarcraft3 (https://github.com/nielsAD/gowarcraft3)
+// License: Mozilla Public License, v2.0
+
 // fakeplayer is a mocked Warcraft 3 game client that can be used to add dummy players to games.
 package main
 

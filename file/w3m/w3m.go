@@ -1,3 +1,7 @@
+// Author:  Niels A.D.
+// Project: gowarcraft3 (https://github.com/nielsAD/gowarcraft3)
+// License: Mozilla Public License, v2.0
+
 // Package w3m implements basic information extraction functions for w3m/w3x files.
 package w3m
 
