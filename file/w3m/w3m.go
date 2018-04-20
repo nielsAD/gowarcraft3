@@ -17,7 +17,7 @@ import (
 	"github.com/nielsAD/gowarcraft3/protocol"
 )
 
-// Map information for Warcraft III maps
+// Map information for Warcraft III maps (.w3i file)
 type Map struct {
 	FileName string
 	Signed   bool
@@ -36,7 +36,7 @@ type Map struct {
 
 	Width  uint32
 	Height uint32
-	Flags  Flags
+	Flags  MapFlags
 
 	Tileset      Tileset
 	LsBackground uint32
@@ -62,28 +62,44 @@ type Map struct {
 	LightEnv   Tileset
 	WaterColor uint32
 
-	Slots []SlotData
-	Teams []TeamData
+	Players                     []Player
+	Forces                      []Force
+	CustomUpgradeAvailabilities []CustomUpgradeAvailability
+	CustomTechAvailabilities    []CustomTechAvailability
 }
 
-// SlotData for a single map slot
-type SlotData struct {
+// Player structure in .w3i file
+type Player struct {
 	ID           uint32
-	Type         SlotType
+	Type         PlayerType
 	Race         Race
-	StartPos     uint32
+	Flags        PlayerFlags
 	Name         string
 	StartPosX    float32
 	StartPosY    float32
-	AllyPrioLow  uint32
-	AllyPrioHigh uint32
+	AllyPrioLow  protocol.BitSet32
+	AllyPrioHigh protocol.BitSet32
 }
 
-// TeamData for a single map team
-type TeamData struct {
-	Flags     TeamFlags
+// Force structure in .w3i file
+type Force struct {
+	Flags     ForceFlags
 	PlayerSet protocol.BitSet32
 	Name      string
+}
+
+// CustomUpgradeAvailability in .w3i file
+type CustomUpgradeAvailability struct {
+	PlayerSet    protocol.BitSet32
+	UpgradeID    protocol.DWordString
+	Level        uint32
+	Availability UpgradeAvailability
+}
+
+// CustomTechAvailability in .w3i file
+type CustomTechAvailability struct {
+	PlayerSet protocol.BitSet32
+	TechID    protocol.DWordString
 }
 
 // TriggerString recognition
@@ -172,7 +188,7 @@ func Load(fileName string) (*Map, error) {
 	}
 	defer f.Close()
 
-	if f.Size() < 96 {
+	if f.Size() < 108 {
 		return nil, ErrBadFormat
 	}
 
@@ -222,7 +238,7 @@ func Load(fileName string) (*Map, error) {
 	m.SuggestedPlayers, err = readTS()
 	if err != nil {
 		return nil, err
-	} else if b.Size() < 80 {
+	} else if b.Size() < 92 {
 		return nil, ErrBadFormat
 	}
 
@@ -235,7 +251,7 @@ func Load(fileName string) (*Map, error) {
 
 	m.Width = b.ReadUInt32()
 	m.Height = b.ReadUInt32()
-	m.Flags = Flags(b.ReadUInt32())
+	m.Flags = MapFlags(b.ReadUInt32())
 
 	m.Tileset = Tileset(b.ReadUInt8())
 	m.LsBackground = b.ReadUInt32()
@@ -248,7 +264,7 @@ func Load(fileName string) (*Map, error) {
 	m.LsSubTitle, err = readTS()
 	if err != nil {
 		return nil, err
-	} else if b.Size() < 12 {
+	} else if b.Size() < 25 {
 		return nil, ErrBadFormat
 	}
 
@@ -265,7 +281,7 @@ func Load(fileName string) (*Map, error) {
 	}
 
 	if m.FileFormat == 25 {
-		if b.Size() < 54 {
+		if b.Size() < 66 {
 			return nil, ErrBadFormat
 		}
 		m.Fog = b.ReadUInt32()
@@ -277,54 +293,80 @@ func Load(fileName string) (*Map, error) {
 		m.SoundEnv, err = readTS()
 		if err != nil {
 			return nil, err
-		} else if b.Size() < 13 {
+		} else if b.Size() < 24 {
 			return nil, ErrBadFormat
 		}
 		m.LightEnv = Tileset(b.ReadUInt8())
 		m.WaterColor = b.ReadUInt32()
 	}
 
-	if b.Size() < 8 {
+	if b.Size() < 20 {
 		return nil, ErrBadFormat
 	}
 
-	var numSlots = b.ReadUInt32()
-	m.Slots = make([]SlotData, numSlots)
+	var numPlayers = b.ReadUInt32()
+	m.Players = make([]Player, numPlayers)
 
-	for p := uint32(0); p < numSlots; p++ {
-		if b.Size() < 37 {
+	for p := uint32(0); p < numPlayers; p++ {
+		if b.Size() < 49 {
 			return nil, ErrBadFormat
 		}
-		m.Slots[p].ID = b.ReadUInt32()
-		m.Slots[p].Type = SlotType(b.ReadUInt32())
-		m.Slots[p].Race = Race(b.ReadUInt32())
-		m.Slots[p].StartPos = b.ReadUInt32()
-		m.Slots[p].Name, err = readTS()
+		m.Players[p].ID = b.ReadUInt32()
+		m.Players[p].Type = PlayerType(b.ReadUInt32())
+		m.Players[p].Race = Race(b.ReadUInt32())
+		m.Players[p].Flags = PlayerFlags(b.ReadUInt32())
+		m.Players[p].Name, err = readTS()
 		if err != nil {
 			return nil, err
-		} else if b.Size() < 20 {
+		} else if b.Size() < 32 {
 			return nil, ErrBadFormat
 		}
-		m.Slots[p].StartPosX = b.ReadFloat32()
-		m.Slots[p].StartPosY = b.ReadFloat32()
-		m.Slots[p].AllyPrioLow = b.ReadUInt32()
-		m.Slots[p].AllyPrioHigh = b.ReadUInt32()
+		m.Players[p].StartPosX = b.ReadFloat32()
+		m.Players[p].StartPosY = b.ReadFloat32()
+		m.Players[p].AllyPrioLow = protocol.BitSet32(b.ReadUInt32())
+		m.Players[p].AllyPrioHigh = protocol.BitSet32(b.ReadUInt32())
 	}
 
-	var numTeams = b.ReadUInt32()
-	m.Teams = make([]TeamData, numTeams)
+	var numForces = b.ReadUInt32()
+	m.Forces = make([]Force, numForces)
 
-	for p := uint32(0); p < numTeams; p++ {
-		if b.Size() < 9 {
+	for f := uint32(0); f < numForces; f++ {
+		if b.Size() < 21 {
 			return nil, ErrBadFormat
 		}
-		m.Teams[p].Flags = TeamFlags(b.ReadUInt32())
-		m.Teams[p].PlayerSet = protocol.BitSet32(b.ReadUInt32())
-		m.Teams[p].Name, err = readTS()
+		m.Forces[f].Flags = ForceFlags(b.ReadUInt32())
+		m.Forces[f].PlayerSet = protocol.BitSet32(b.ReadUInt32())
+		m.Forces[f].Name, err = readTS()
 		if err != nil {
 			return nil, err
 		}
 	}
+
+	var numUpgrades = b.ReadUInt32()
+	m.CustomUpgradeAvailabilities = make([]CustomUpgradeAvailability, numUpgrades)
+
+	for u := uint32(0); u < numUpgrades; u++ {
+		if b.Size() < 24 {
+			return nil, ErrBadFormat
+		}
+		m.CustomUpgradeAvailabilities[u].UpgradeID = b.ReadDString()
+		m.CustomUpgradeAvailabilities[u].PlayerSet = protocol.BitSet32(b.ReadUInt32())
+		m.CustomUpgradeAvailabilities[u].Level = b.ReadUInt32()
+		m.CustomUpgradeAvailabilities[u].Availability = UpgradeAvailability(b.ReadUInt32())
+	}
+
+	var numTechs = b.ReadUInt32()
+	m.CustomTechAvailabilities = make([]CustomTechAvailability, numTechs)
+
+	for u := uint32(0); u < numTechs; u++ {
+		if b.Size() < 12 {
+			return nil, ErrBadFormat
+		}
+		m.CustomTechAvailabilities[u].PlayerSet = protocol.BitSet32(b.ReadUInt32())
+		m.CustomTechAvailabilities[u].TechID = b.ReadDString()
+	}
+
+	// TODO: RandomUnitTable and RandomItemTable
 
 	return &m, nil
 }

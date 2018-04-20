@@ -120,69 +120,69 @@ func (t Tileset) String() string {
 	}
 }
 
-// Flags enum
-type Flags uint32
+// MapFlags enum
+type MapFlags uint32
 
 // Map Flags
 const (
-	FlagHideMinimap             Flags = 0x0001
-	FlagModifyAllyPriorities    Flags = 0x0002
-	FlagMelee                   Flags = 0x0004
-	FlagRevealTerrain           Flags = 0x0010
-	FlagFixedPlayerSettings     Flags = 0x0020
-	FlagCustomForces            Flags = 0x0040
-	FlagCustomTechTree          Flags = 0x0080
-	FlagCustomAbilities         Flags = 0x0100
-	FlagCustomUpgrades          Flags = 0x0200
-	FlagWaterWavesOnCliffShoes  Flags = 0x0800
-	FlagWaterWavesOnSlopeShores Flags = 0x1000
+	MapFlagHideMinimap             MapFlags = 0x0001
+	MapFlagModifyAllyPriorities    MapFlags = 0x0002
+	MapFlagMelee                   MapFlags = 0x0004
+	MapFlagRevealTerrain           MapFlags = 0x0010
+	MapFlagFixedPlayerSettings     MapFlags = 0x0020
+	MapFlagCustomForces            MapFlags = 0x0040
+	MapFlagCustomTechTree          MapFlags = 0x0080
+	MapFlagCustomAbilities         MapFlags = 0x0100
+	MapFlagCustomUpgrades          MapFlags = 0x0200
+	MapFlagWaterWavesOnCliffShoes  MapFlags = 0x0800
+	MapFlagWaterWavesOnSlopeShores MapFlags = 0x1000
 )
 
-func (f Flags) String() string {
+func (f MapFlags) String() string {
 	var res string
-	if f&FlagHideMinimap != 0 {
+	if f&MapFlagHideMinimap != 0 {
 		res += "|HideMinimap"
-		f &= ^FlagHideMinimap
+		f &= ^MapFlagHideMinimap
 	}
-	if f&FlagModifyAllyPriorities != 0 {
+	if f&MapFlagModifyAllyPriorities != 0 {
 		res += "|ModifyAllyPriorities"
-		f &= ^FlagModifyAllyPriorities
+		f &= ^MapFlagModifyAllyPriorities
 	}
-	if f&FlagMelee != 0 {
+	if f&MapFlagMelee != 0 {
 		res += "|Melee"
-		f &= ^FlagMelee
+		f &= ^MapFlagMelee
 	}
-	if f&FlagRevealTerrain != 0 {
+	if f&MapFlagRevealTerrain != 0 {
 		res += "|RevealTerrain"
-		f &= ^FlagRevealTerrain
+		f &= ^MapFlagRevealTerrain
 	}
-	if f&FlagFixedPlayerSettings != 0 {
+	if f&MapFlagFixedPlayerSettings != 0 {
 		res += "|FixedPlayerSettings"
-		f &= ^FlagFixedPlayerSettings
+		f &= ^MapFlagFixedPlayerSettings
 	}
-	if f&FlagCustomForces != 0 {
+	if f&MapFlagCustomForces != 0 {
 		res += "|CustomForces"
-		f &= ^FlagCustomForces
+		f &= ^MapFlagCustomForces
 	}
-	if f&FlagCustomTechTree != 0 {
+	if f&MapFlagCustomTechTree != 0 {
 		res += "|CustomTechTree"
-		f &= ^FlagCustomTechTree
+		f &= ^MapFlagCustomTechTree
 	}
-	if f&FlagCustomAbilities != 0 {
+	if f&MapFlagCustomAbilities != 0 {
 		res += "|CustomAbilities"
-		f &= ^FlagCustomAbilities
+		f &= ^MapFlagCustomAbilities
 	}
-	if f&FlagCustomUpgrades != 0 {
+	if f&MapFlagCustomUpgrades != 0 {
 		res += "|CustomUpgrades"
-		f &= ^FlagCustomUpgrades
+		f &= ^MapFlagCustomUpgrades
 	}
-	if f&FlagWaterWavesOnCliffShoes != 0 {
+	if f&MapFlagWaterWavesOnCliffShoes != 0 {
 		res += "|WaterWavesOnCliffShoes"
-		f &= ^FlagWaterWavesOnCliffShoes
+		f &= ^MapFlagWaterWavesOnCliffShoes
 	}
-	if f&FlagWaterWavesOnSlopeShores != 0 {
+	if f&MapFlagWaterWavesOnSlopeShores != 0 {
 		res += "|WaterWavesOnSlopeShores"
-		f &= ^FlagWaterWavesOnSlopeShores
+		f &= ^MapFlagWaterWavesOnSlopeShores
 	}
 	if f != 0 {
 		res += fmt.Sprintf("|Flags(0x%02X)", uint32(f))
@@ -193,42 +193,22 @@ func (f Flags) String() string {
 	return res
 }
 
-// TeamFlags enum
-type TeamFlags uint32
+// PlayerFlags enum
+type PlayerFlags uint32
 
-// Team Flags
+// Player Flags
 const (
-	TeamFlagAllied           TeamFlags = 0x01
-	TeamFlagAlliedVictory    TeamFlags = 0x02
-	TeamFlagShareVision      TeamFlags = 0x08
-	TeamFlagShareUnitControl TeamFlags = 0x10
-	TeamFlagShareAdvUnit     TeamFlags = 0x20
+	PlayerFlagFixedPos PlayerFlags = 0x01
 )
 
-func (f TeamFlags) String() string {
+func (f PlayerFlags) String() string {
 	var res string
-	if f&TeamFlagAllied != 0 {
-		res += "|Allied"
-		f &= ^TeamFlagAllied
-	}
-	if f&TeamFlagAlliedVictory != 0 {
-		res += "|AlliedVictory"
-		f &= ^TeamFlagAlliedVictory
-	}
-	if f&TeamFlagShareVision != 0 {
-		res += "|ShareVision"
-		f &= ^TeamFlagShareVision
-	}
-	if f&TeamFlagShareUnitControl != 0 {
-		res += "|ShareUnitControl"
-		f &= ^TeamFlagShareUnitControl
-	}
-	if f&TeamFlagShareAdvUnit != 0 {
-		res += "|ShareAdvUnit"
-		f &= ^TeamFlagShareAdvUnit
+	if f&PlayerFlagFixedPos != 0 {
+		res += "|FixedPos"
+		f &= ^PlayerFlagFixedPos
 	}
 	if f != 0 {
-		res += fmt.Sprintf("|TeamFlags(0x%02X)", uint32(f))
+		res += fmt.Sprintf("|PlayerFlags(0x%02X)", uint32(f))
 	}
 	if res != "" {
 		res = res[1:]
@@ -236,29 +216,72 @@ func (f TeamFlags) String() string {
 	return res
 }
 
-// SlotType enum
-type SlotType uint32
+// ForceFlags enum
+type ForceFlags uint32
 
-// Slot types
+// Force Flags
 const (
-	SlotHuman SlotType = iota + 1
-	SlotComputer
-	SlotNeutral
-	SlotRescuable
+	ForceFlagAllied           ForceFlags = 0x01
+	ForceFlagAlliedVictory    ForceFlags = 0x02
+	ForceFlagShareVision      ForceFlags = 0x08
+	ForceFlagShareUnitControl ForceFlags = 0x10
+	ForceFlagShareAdvUnit     ForceFlags = 0x20
 )
 
-func (s SlotType) String() string {
-	switch s {
-	case SlotHuman:
+func (f ForceFlags) String() string {
+	var res string
+	if f&ForceFlagAllied != 0 {
+		res += "|Allied"
+		f &= ^ForceFlagAllied
+	}
+	if f&ForceFlagAlliedVictory != 0 {
+		res += "|AlliedVictory"
+		f &= ^ForceFlagAlliedVictory
+	}
+	if f&ForceFlagShareVision != 0 {
+		res += "|ShareVision"
+		f &= ^ForceFlagShareVision
+	}
+	if f&ForceFlagShareUnitControl != 0 {
+		res += "|ShareUnitControl"
+		f &= ^ForceFlagShareUnitControl
+	}
+	if f&ForceFlagShareAdvUnit != 0 {
+		res += "|ShareAdvUnit"
+		f &= ^ForceFlagShareAdvUnit
+	}
+	if f != 0 {
+		res += fmt.Sprintf("|ForceFlags(0x%02X)", uint32(f))
+	}
+	if res != "" {
+		res = res[1:]
+	}
+	return res
+}
+
+// PlayerType enum
+type PlayerType uint32
+
+// Player types
+const (
+	PlayerHuman PlayerType = iota + 1
+	PlayerComputer
+	PlayerNeutral
+	PlayerRescuable
+)
+
+func (p PlayerType) String() string {
+	switch p {
+	case PlayerHuman:
 		return "Human"
-	case SlotComputer:
+	case PlayerComputer:
 		return "Computer"
-	case SlotNeutral:
+	case PlayerNeutral:
 		return "Neutral"
-	case SlotRescuable:
+	case PlayerRescuable:
 		return "Rescuable"
 	default:
-		return fmt.Sprintf("SlotType(0x%02X)", uint32(s))
+		return fmt.Sprintf("PlayerType(0x%02X)", uint32(p))
 	}
 }
 
@@ -274,8 +297,8 @@ const (
 	RaceNightElf
 )
 
-func (s Race) String() string {
-	switch s {
+func (r Race) String() string {
+	switch r {
 	case RaceSelectable:
 		return "Selectable"
 	case RaceHuman:
@@ -287,6 +310,29 @@ func (s Race) String() string {
 	case RaceNightElf:
 		return "NightElf"
 	default:
-		return fmt.Sprintf("Race(0x%02X)", uint32(s))
+		return fmt.Sprintf("Race(0x%02X)", uint32(r))
+	}
+}
+
+// UpgradeAvailability enum
+type UpgradeAvailability uint32
+
+// Upgrade availabilities
+const (
+	UpgradeUnavailable UpgradeAvailability = iota
+	UpgradeAvailable
+	UpgradeResearched
+)
+
+func (u UpgradeAvailability) String() string {
+	switch u {
+	case UpgradeUnavailable:
+		return "Unavailable"
+	case UpgradeAvailable:
+		return "Available"
+	case UpgradeResearched:
+		return "Researched"
+	default:
+		return fmt.Sprintf("UpgradeAvailability(0x%02X)", uint32(u))
 	}
 }
