@@ -58,7 +58,7 @@ const (
 	PidPingFromOthers    = 0x35
 	PidPongToOthers      = 0x36
 	PidClientInfo        = 0x37
-	PidPeerMask          = 0x3B
+	PidPeerSet           = 0x3B
 	PidMapCheck          = 0x3D
 	PidStartDownload     = 0x3F
 	PidMapSize           = 0x42

@@ -55,7 +55,7 @@ func TestPackets(t *testing.T) {
 		&w3gs.PeerPing{},
 		&w3gs.PeerPing{
 			Payload:   123,
-			PeerMask:  456,
+			PeerSet:   protocol.BS32(true, false, true),
 			GameTicks: 789,
 		},
 		&w3gs.PeerPong{},
@@ -274,11 +274,11 @@ func TestPackets(t *testing.T) {
 			JoinCounter: 1,
 			EntryKey:    2,
 			PlayerID:    3,
-			PeerMask:    4,
+			PeerSet:     protocol.BS32(false, true, false),
 		},
-		&w3gs.PeerMask{},
-		&w3gs.PeerMask{
-			PeerMask: 5,
+		&w3gs.PeerSet{},
+		&w3gs.PeerSet{
+			PeerSet: protocol.BS16(true, false, true),
 		},
 
 		&w3gs.MapCheck{},

@@ -81,9 +81,9 @@ type SlotData struct {
 
 // TeamData for a single map team
 type TeamData struct {
-	Flags      TeamFlags
-	PlayerMask uint32
-	Name       string
+	Flags     TeamFlags
+	PlayerSet protocol.BitSet32
+	Name      string
 }
 
 // TriggerString recognition
@@ -319,7 +319,7 @@ func Load(fileName string) (*Map, error) {
 			return nil, ErrBadFormat
 		}
 		m.Teams[p].Flags = TeamFlags(b.ReadUInt32())
-		m.Teams[p].PlayerMask = b.ReadUInt32()
+		m.Teams[p].PlayerSet = protocol.BitSet32(b.ReadUInt32())
 		m.Teams[p].Name, err = readTS()
 		if err != nil {
 			return nil, err

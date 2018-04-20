@@ -10,6 +10,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/nielsAD/gowarcraft3/protocol"
 	"github.com/nielsAD/gowarcraft3/protocol/w3gs"
 )
 
@@ -24,8 +25,8 @@ type Peer struct {
 	ID          uint8
 	JoinCounter uint32
 
-	RTT      uint32
-	PeerMask uint32
+	RTT     uint32
+	PeerSet protocol.BitSet32
 }
 
 // NextRawPacket waits for the next packet from Peer (with given timeout) and returns its deserialized representation

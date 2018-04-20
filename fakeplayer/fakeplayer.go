@@ -115,16 +115,16 @@ func (f *FakePlayer) Leave(reason w3gs.LeaveReason) error {
 	return err
 }
 
-func (f *FakePlayer) updatePeerMask(id uint8, set bool) error {
-	var old = f.PeerMask
+func (f *FakePlayer) updatePeerSet(id uint8, set bool) error {
+	var old = f.PeerSet
 	if set {
-		f.PeerMask |= (1 << (id - 1))
+		f.PeerSet.Set(uint(id))
 	} else {
-		f.PeerMask &= ^(1 << (id - 1))
+		f.PeerSet.Clear(uint(id))
 	}
 
-	if old != f.PeerMask {
-		if _, err := f.Send(&w3gs.PeerMask{PeerMask: uint16(f.PeerMask)}); err != nil {
+	if old != f.PeerSet {
+		if _, err := f.Send(&w3gs.PeerSet{PeerSet: protocol.BitSet16(f.PeerSet)}); err != nil {
 			return err
 		}
 	}
@@ -148,9 +148,9 @@ func (f *FakePlayer) peerDisconnected(peer *Peer) {
 
 	peer.conn = nil
 	peer.RTT = 0
-	peer.PeerMask = 0
+	peer.PeerSet = 0
 
-	f.updatePeerMask(peer.ID, false)
+	f.updatePeerSet(peer.ID, false)
 }
 
 func (f *FakePlayer) processPeerPacket(peer *Peer, pkt w3gs.Packet) bool {
@@ -193,8 +193,8 @@ func (f *FakePlayer) connectToPeer(conn *net.TCPConn, accepted bool) (*Peer, err
 			return nil, ErrInvalidJoinCounter
 		}
 
-		f.updatePeerMask(peer.ID, true)
-		peer.PeerMask = p.PeerMask
+		f.updatePeerSet(peer.ID, true)
+		peer.PeerSet = p.PeerSet
 		peer.conn = conn
 
 		if accepted {
@@ -202,7 +202,7 @@ func (f *FakePlayer) connectToPeer(conn *net.TCPConn, accepted bool) (*Peer, err
 				JoinCounter: peer.JoinCounter,
 				EntryKey:    f.EntryKey,
 				PlayerID:    f.ID,
-				PeerMask:    f.PeerMask,
+				PeerSet:     f.PeerSet,
 			}); err != nil {
 				return nil, err
 			}
@@ -239,7 +239,7 @@ func (f *FakePlayer) servePeer(conn *net.TCPConn, accepted bool) {
 		for range pingTicker.C {
 			peer.Send(&w3gs.PeerPing{
 				Payload:   uint32(time.Now().Sub(start).Nanoseconds() / 1e6),
-				PeerMask:  f.PeerMask,
+				PeerSet:   f.PeerSet,
 				GameTicks: f.GameTicks,
 			})
 		}
@@ -258,7 +258,7 @@ func (f *FakePlayer) servePeer(conn *net.TCPConn, accepted bool) {
 
 		switch p := pkt.(type) {
 		case *w3gs.PeerPing:
-			peer.PeerMask = p.PeerMask
+			peer.PeerSet = p.PeerSet
 			peer.Send(&w3gs.PeerPong{Ping: w3gs.Ping{Payload: p.Payload}})
 		case *w3gs.PeerPong:
 			peer.RTT = uint32(time.Now().Sub(start).Nanoseconds()/1e6) - p.Payload
@@ -386,7 +386,7 @@ func (f *FakePlayer) NextPacket() (w3gs.Packet, error) {
 					JoinCounter: p.JoinCounter,
 					EntryKey:    f.EntryKey,
 					PlayerID:    f.ID,
-					PeerMask:    f.PeerMask,
+					PeerSet:     f.PeerSet,
 				}); e != nil {
 					conn = nil
 				}

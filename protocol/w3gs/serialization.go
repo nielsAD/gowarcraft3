@@ -63,7 +63,7 @@ type DeserializationBuffer struct {
 	peerPing       PeerPing
 	peerPong       PeerPong
 	peerConnect    PeerConnect
-	peerMask       PeerMask
+	peerSet        PeerSet
 	mapCheck       MapCheck
 	startDownload  StartDownload
 	mapState       MapState
@@ -215,9 +215,9 @@ func DeserializePacketWithBuffer(r io.Reader, b *DeserializationBuffer) (Packet,
 	case PidClientInfo:
 		err = b.peerConnect.Deserialize(&pbuf)
 		pkt = &b.peerConnect
-	case PidPeerMask:
-		err = b.peerMask.Deserialize(&pbuf)
-		pkt = &b.peerMask
+	case PidPeerSet:
+		err = b.peerSet.Deserialize(&pbuf)
+		pkt = &b.peerSet
 	case PidMapCheck:
 		err = b.mapCheck.Deserialize(&pbuf)
 		pkt = &b.mapCheck

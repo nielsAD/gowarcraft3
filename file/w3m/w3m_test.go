@@ -40,8 +40,8 @@ func TestLoadMap(t *testing.T) {
 		},
 		Teams: []w3m.TeamData{
 			w3m.TeamData{
-				PlayerMask: 0xFFFFFFFF,
-				Name:       "Force 1",
+				PlayerSet: 0xFFFFFFFF,
+				Name:      "Force 1",
 			},
 		},
 	}
@@ -86,8 +86,8 @@ func TestLoadMap(t *testing.T) {
 		},
 		Teams: []w3m.TeamData{
 			w3m.TeamData{
-				PlayerMask: 0xFFFFFFFF,
-				Name:       "Force 1",
+				PlayerSet: 0xFFFFFFFF,
+				Name:      "Force 1",
 			},
 		},
 	}
