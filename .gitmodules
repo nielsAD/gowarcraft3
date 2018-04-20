@@ -2,3 +2,6 @@
 	path = vendor/StormLib
 	url = https://github.com/ladislav-zezula/StormLib.git
 	ignore = dirty
+[submodule "vendor/github.com/google/gopacket"]
+	path = vendor/github.com/google/gopacket
+	url = https://github.com/google/gopacket.git
