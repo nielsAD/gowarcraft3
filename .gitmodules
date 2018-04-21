@@ -5,3 +5,6 @@
 [submodule "vendor/github.com/google/gopacket"]
 	path = vendor/github.com/google/gopacket
 	url = https://github.com/google/gopacket.git
+[submodule "vendor/github.com/ftrvxmtrx/tga"]
+	path = vendor/github.com/ftrvxmtrx/tga
+	url = https://github.com/ftrvxmtrx/tga.git
