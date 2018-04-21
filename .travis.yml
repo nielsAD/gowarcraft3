@@ -22,7 +22,7 @@ install:
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]];   then brew install libpcap; fi
 
   # Compile vendor dependencies
-  - cd ./vendor/StormLib; cmake .; make; cd ../..
+  - make -C vendor
 
   # Install test dependencies
   - go get github.com/golang/lint/golint

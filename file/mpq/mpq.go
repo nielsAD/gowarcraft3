@@ -6,7 +6,7 @@
 package mpq
 
 // #cgo CFLAGS: -I${SRCDIR}/../../vendor/StormLib/src
-// #cgo LDFLAGS: -lstorm -lz -lbz2 -lstdc++ -L${SRCDIR}/../../vendor/StormLib
+// #cgo LDFLAGS: -lstorm -lz -lbz2 -lstdc++ -L${SRCDIR}/../../vendor/StormLib/build
 // #include <StormLib.h>
 import "C"
 import (

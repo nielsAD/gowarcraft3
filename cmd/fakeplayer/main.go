@@ -33,7 +33,8 @@ var (
 	dialpeers   = flag.Bool("dial", true, "Dial peers")
 )
 
-var logger = log.New(os.Stdout, "", log.Ltime)
+var logOut = log.New(os.Stdout, "", log.Ltime)
+var logErr = log.New(os.Stderr, "", log.Ltime)
 
 func main() {
 	flag.Parse()
@@ -57,33 +58,33 @@ func main() {
 		addr, err = net.ResolveTCPAddr("tcp4", address)
 	}
 	if err != nil {
-		logger.Fatal(err)
+		logErr.Fatal(err)
 	}
 
 	f, err := fakeplayer.JoinLobby(addr, *playername, hc, ek, *listen)
 	if err != nil {
-		logger.Fatal(err)
+		logErr.Fatal(err)
 	}
 
-	logger.Println("[HOST] Joined lobby")
+	logOut.Println("[HOST] Joined lobby")
 
 	f.DialPeers = *dialpeers
 
 	f.OnPeerConnected = func(peer *fakeplayer.Peer) {
-		logger.Printf("[PEER] Connected to %v\n", peer.Name)
+		logOut.Printf("[PEER] Connected to %v\n", peer.Name)
 	}
 	f.OnPeerDisconnected = func(peer *fakeplayer.Peer) {
-		logger.Printf("[PEER] Connection to %v closed\n", peer.Name)
+		logOut.Printf("[PEER] Connection to %v closed\n", peer.Name)
 	}
 	f.OnPeerPacket = func(peer *fakeplayer.Peer, pkt w3gs.Packet) bool {
 		if *verbose {
-			logger.Printf("[PEER] Packet %v from peer %v: %v\n", reflect.TypeOf(pkt).String()[6:], peer.Name, pkt)
+			logOut.Printf("[PEER] Packet %v from peer %v: %v\n", reflect.TypeOf(pkt).String()[6:], peer.Name, pkt)
 		}
 
 		switch p := pkt.(type) {
 		case *w3gs.PeerMessage:
 			if p.Content != "" {
-				logger.Printf("[PEER] [CHAT] %v: '%v'\n", peer.Name, p.Content)
+				logOut.Printf("[PEER] [CHAT] %v: '%v'\n", peer.Name, p.Content)
 			}
 			return true
 
@@ -93,42 +94,42 @@ func main() {
 	}
 	f.OnPacket = func(pkt w3gs.Packet) bool {
 		if *verbose {
-			logger.Printf("[HOST] Packet %v from host: %v\n", reflect.TypeOf(pkt).String()[6:], pkt)
+			logOut.Printf("[HOST] Packet %v from host: %v\n", reflect.TypeOf(pkt).String()[6:], pkt)
 		}
 
 		switch p := pkt.(type) {
 
 		case *w3gs.PlayerInfo:
-			logger.Printf("[HOST] %v has joined the game\n", p.PlayerName)
+			logOut.Printf("[HOST] %v has joined the game\n", p.PlayerName)
 
 		case *w3gs.PlayerLeft:
-			logger.Printf("[HOST] %v has left the game\n", f.PeerName(p.PlayerID))
+			logOut.Printf("[HOST] %v has left the game\n", f.PeerName(p.PlayerID))
 
 		case *w3gs.PlayerKicked:
-			logger.Println("[HOST] Kicked from lobby")
+			logOut.Println("[HOST] Kicked from lobby")
 
 		case *w3gs.CountDownStart:
-			logger.Println("[HOST] Countdown started")
+			logOut.Println("[HOST] Countdown started")
 
 		case *w3gs.CountDownEnd:
-			logger.Println("[HOST] Countdown ended, loading game")
+			logOut.Println("[HOST] Countdown ended, loading game")
 
 		case *w3gs.StartLag:
 			var laggers []string
 			for _, l := range p.Players {
 				laggers = append(laggers, f.PeerName(l.PlayerID))
 			}
-			logger.Printf("[HOST] Laggers %v\n", laggers)
+			logOut.Printf("[HOST] Laggers %v\n", laggers)
 
 		case *w3gs.StopLag:
-			logger.Printf("[HOST] %v stopped lagging\n", f.PeerName(p.PlayerID))
+			logOut.Printf("[HOST] %v stopped lagging\n", f.PeerName(p.PlayerID))
 
 		case *w3gs.MessageRelay:
 			if p.Content == "" {
 				break
 			}
 
-			logger.Printf("[HOST] [CHAT] %v: '%v'\n", f.PeerName(p.SenderID), p.Content)
+			logOut.Printf("[HOST] [CHAT] %v: '%v'\n", f.PeerName(p.SenderID), p.Content)
 			if p.SenderID != 1 || p.Content[:1] != "!" {
 				break
 			}

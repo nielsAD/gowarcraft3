@@ -115,7 +115,8 @@ func readWTS(archive *mpq.Archive) (map[int]string, error) {
 	defer wts.Close()
 
 	buf := bufio.NewReader(wts)
-	if _, err := buf.Discard(1); err != nil {
+
+	if _, err := buf.Discard(1); err != nil && err != io.EOF {
 		return nil, err
 	}
 
@@ -138,12 +139,16 @@ func readWTS(archive *mpq.Archive) (map[int]string, error) {
 			continue
 		}
 
-		p1, err := buf.ReadString('\n')
-		if err != nil {
-			return nil, err
-		}
-		if strings.TrimSpace(p1) != "{" {
-			return nil, ErrBadFormat
+		for true {
+			p1, err := buf.ReadString('\n')
+			if err != nil {
+				return nil, err
+			}
+			if strings.TrimSpace(p1) == "{" {
+				break
+			} else if !strings.HasPrefix(p1, "//") {
+				return nil, ErrBadFormat
+			}
 		}
 
 		var sb strings.Builder
@@ -170,17 +175,11 @@ func readWTS(archive *mpq.Archive) (map[int]string, error) {
 
 // Load a Warcraft III map file
 func Load(fileName string) (*Map, error) {
-	var m = Map{
-		FileName: fileName,
-	}
-
 	a, err := mpq.OpenArchive(fileName)
 	if err != nil {
 		return nil, err
 	}
 	defer a.Close()
-
-	m.Signed = a.StrongSigned()
 
 	f, err := a.Open("war3map.w3i")
 	if err != nil {
@@ -188,7 +187,7 @@ func Load(fileName string) (*Map, error) {
 	}
 	defer f.Close()
 
-	if f.Size() < 108 {
+	if f.Size() < 96 {
 		return nil, ErrBadFormat
 	}
 
@@ -221,7 +220,12 @@ func Load(fileName string) (*Map, error) {
 		return wts[id], nil
 	}
 
-	m.FileFormat = b.ReadUInt32()
+	var m = Map{
+		FileName:   fileName,
+		FileFormat: b.ReadUInt32(),
+		Signed:     a.StrongSigned(),
+	}
+
 	switch m.FileFormat {
 	case 18: //.w3m
 	case 25: //.w3x
@@ -238,7 +242,7 @@ func Load(fileName string) (*Map, error) {
 	m.SuggestedPlayers, err = readTS()
 	if err != nil {
 		return nil, err
-	} else if b.Size() < 92 {
+	} else if b.Size() < 80 {
 		return nil, ErrBadFormat
 	}
 
@@ -264,7 +268,7 @@ func Load(fileName string) (*Map, error) {
 	m.LsSubTitle, err = readTS()
 	if err != nil {
 		return nil, err
-	} else if b.Size() < 25 {
+	} else if b.Size() < 13 {
 		return nil, ErrBadFormat
 	}
 
@@ -281,7 +285,7 @@ func Load(fileName string) (*Map, error) {
 	}
 
 	if m.FileFormat == 25 {
-		if b.Size() < 66 {
+		if b.Size() < 54 {
 			return nil, ErrBadFormat
 		}
 		m.Fog = b.ReadUInt32()
@@ -293,14 +297,14 @@ func Load(fileName string) (*Map, error) {
 		m.SoundEnv, err = readTS()
 		if err != nil {
 			return nil, err
-		} else if b.Size() < 24 {
+		} else if b.Size() < 12 {
 			return nil, ErrBadFormat
 		}
 		m.LightEnv = Tileset(b.ReadUInt8())
 		m.WaterColor = b.ReadUInt32()
 	}
 
-	if b.Size() < 20 {
+	if b.Size() < 8 {
 		return nil, ErrBadFormat
 	}
 
@@ -308,7 +312,7 @@ func Load(fileName string) (*Map, error) {
 	m.Players = make([]Player, numPlayers)
 
 	for p := uint32(0); p < numPlayers; p++ {
-		if b.Size() < 49 {
+		if b.Size() < 37 {
 			return nil, ErrBadFormat
 		}
 		m.Players[p].ID = b.ReadUInt32()
@@ -318,7 +322,7 @@ func Load(fileName string) (*Map, error) {
 		m.Players[p].Name, err = readTS()
 		if err != nil {
 			return nil, err
-		} else if b.Size() < 32 {
+		} else if b.Size() < 20 {
 			return nil, ErrBadFormat
 		}
 		m.Players[p].StartPosX = b.ReadFloat32()
@@ -331,7 +335,7 @@ func Load(fileName string) (*Map, error) {
 	m.Forces = make([]Force, numForces)
 
 	for f := uint32(0); f < numForces; f++ {
-		if b.Size() < 21 {
+		if b.Size() < 9 {
 			return nil, ErrBadFormat
 		}
 		m.Forces[f].Flags = ForceFlags(b.ReadUInt32())
@@ -342,31 +346,33 @@ func Load(fileName string) (*Map, error) {
 		}
 	}
 
-	var numUpgrades = b.ReadUInt32()
-	m.CustomUpgradeAvailabilities = make([]CustomUpgradeAvailability, numUpgrades)
+	if b.Size() >= 8 {
+		var numUpgrades = b.ReadUInt32()
+		m.CustomUpgradeAvailabilities = make([]CustomUpgradeAvailability, numUpgrades)
 
-	for u := uint32(0); u < numUpgrades; u++ {
-		if b.Size() < 24 {
-			return nil, ErrBadFormat
+		for u := uint32(0); u < numUpgrades; u++ {
+			if b.Size() < 24 {
+				return nil, ErrBadFormat
+			}
+			m.CustomUpgradeAvailabilities[u].PlayerSet = protocol.BitSet32(b.ReadUInt32())
+			m.CustomUpgradeAvailabilities[u].UpgradeID = b.ReadDString()
+			m.CustomUpgradeAvailabilities[u].Level = b.ReadUInt32()
+			m.CustomUpgradeAvailabilities[u].Availability = UpgradeAvailability(b.ReadUInt32())
 		}
-		m.CustomUpgradeAvailabilities[u].UpgradeID = b.ReadDString()
-		m.CustomUpgradeAvailabilities[u].PlayerSet = protocol.BitSet32(b.ReadUInt32())
-		m.CustomUpgradeAvailabilities[u].Level = b.ReadUInt32()
-		m.CustomUpgradeAvailabilities[u].Availability = UpgradeAvailability(b.ReadUInt32())
-	}
 
-	var numTechs = b.ReadUInt32()
-	m.CustomTechAvailabilities = make([]CustomTechAvailability, numTechs)
+		var numTechs = b.ReadUInt32()
+		m.CustomTechAvailabilities = make([]CustomTechAvailability, numTechs)
 
-	for u := uint32(0); u < numTechs; u++ {
-		if b.Size() < 12 {
-			return nil, ErrBadFormat
+		for u := uint32(0); u < numTechs; u++ {
+			if b.Size() < 12 {
+				return nil, ErrBadFormat
+			}
+			m.CustomTechAvailabilities[u].PlayerSet = protocol.BitSet32(b.ReadUInt32())
+			m.CustomTechAvailabilities[u].TechID = b.ReadDString()
 		}
-		m.CustomTechAvailabilities[u].PlayerSet = protocol.BitSet32(b.ReadUInt32())
-		m.CustomTechAvailabilities[u].TechID = b.ReadDString()
-	}
 
-	// TODO: RandomUnitTable and RandomItemTable
+		// TODO: RandomUnitTable and RandomItemTable
+	}
 
 	return &m, nil
 }

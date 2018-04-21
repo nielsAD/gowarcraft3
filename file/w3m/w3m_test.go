@@ -12,7 +12,7 @@ import (
 	"github.com/nielsAD/gowarcraft3/file/w3m"
 )
 
-func TestLoadMap(t *testing.T) {
+func TestLoad(t *testing.T) {
 	var cROC = w3m.Map{
 		FileName:         "./test_roc.w3m",
 		FileFormat:       18,

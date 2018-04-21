@@ -7,7 +7,9 @@ package main
 
 import (
 	"encoding/hex"
+	"encoding/json"
 	"flag"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"log"
@@ -30,10 +32,13 @@ var (
 	iface   = flag.String("i", "", "Interface to read packets from")
 	promisc = flag.Bool("promisc", true, "Set promiscuous mode")
 	snaplen = flag.Int("s", 65536, "Snap length (max number of bytes to read per packet")
+
+	jsonout = flag.Bool("json", false, "Print machine readable format")
 	bloblen = flag.Int("b", 128, "Max number of bytes to print per blob ")
 )
 
-var logger = log.New(os.Stdout, "", log.Ltime)
+var logOut = log.New(os.Stdout, "", log.Ltime)
+var logErr = log.New(os.Stderr, "", log.Ltime)
 
 func dumpPackets(layer string, netFlow, transFlow gopacket.Flow, r io.Reader) error {
 	var buf w3gs.DeserializationBuffer
@@ -46,8 +51,8 @@ func dumpPackets(layer string, netFlow, transFlow gopacket.Flow, r io.Reader) er
 		if err == io.EOF || err == w3gs.ErrNoProtocolSig {
 			return err
 		} else if err != nil {
-			logger.Printf("[%-3v] %21v->%-21v %-14v %v\n", layer, src, dst, "ERROR", err)
-			logger.Printf("Payload:\n%v", hex.Dump(buf.Buffer[:size]))
+			logErr.Printf("[%-3v] %21v->%-21v %-14v %v\n", layer, src, dst, "ERROR", err)
+			logErr.Printf("Payload:\n%v", hex.Dump(buf.Buffer[:size]))
 
 			if err == w3gs.ErrInvalidPacketSize || err == w3gs.ErrInvalidChecksum || err == w3gs.ErrUnexpectedConst {
 				continue
@@ -82,7 +87,14 @@ func dumpPackets(layer string, netFlow, transFlow gopacket.Flow, r io.Reader) er
 			p.Data = p.Data[:*bloblen]
 		}
 
-		logger.Printf("[%-3v] %21v->%-21v %-14v %+v\n", layer, src, dst, reflect.TypeOf(pkt).String()[6:], pkt)
+		var str = fmt.Sprintf("%+v", pkt)
+		if *jsonout {
+			if json, err := json.Marshal(pkt); err == nil {
+				str = string(json)
+			}
+		}
+
+		logOut.Printf("[%-3v] %21v->%-21v %-14v %v\n", layer, src, dst, reflect.TypeOf(pkt).String()[6:], str)
 	}
 }
 
@@ -127,7 +139,7 @@ func addHandle(h *pcap.Handle, c chan<- gopacket.Packet, wg *sync.WaitGroup) {
 			if err == io.EOF {
 				break
 			} else if err != nil {
-				logger.Println("Sniffing error:", err)
+				logErr.Println("Sniffing error:", err)
 			} else {
 				c <- p
 			}
@@ -137,6 +149,9 @@ func addHandle(h *pcap.Handle, c chan<- gopacket.Packet, wg *sync.WaitGroup) {
 
 func main() {
 	flag.Parse()
+	if *jsonout {
+		logOut.SetFlags(0)
+	}
 
 	var wg sync.WaitGroup
 	var packets = make(chan gopacket.Packet)

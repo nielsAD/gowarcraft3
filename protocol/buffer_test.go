@@ -455,7 +455,7 @@ func TestCString(t *testing.T) {
 }
 
 func TestDString(t *testing.T) {
-	var val = protocol.DWordString{'t', 'e', 's', 't'}
+	var val = protocol.DString("test")
 	var buf = protocol.Buffer{Bytes: make([]byte, 0)}
 
 	for i := 1; i <= iterations; i++ {
@@ -466,7 +466,7 @@ func TestDString(t *testing.T) {
 	}
 
 	var alt = val
-	alt[0] = ^alt[0]
+	alt = ^alt
 	buf.WriteDStringAt(4, alt)
 	if buf.Size() != iterations*4 {
 		t.Fatalf("WriteAt: %v != %v", buf.Size(), iterations*4)
@@ -476,10 +476,10 @@ func TestDString(t *testing.T) {
 		var read = buf.ReadDString()
 
 		if i == 1 {
-			read[0] = ^read[0]
+			read = ^read
 		}
-		if read != val {
-			t.Fatalf("read(%v): %v != %v", i, string(read[:]), string(val[:]))
+		if read != val || read.String() != val.String() {
+			t.Fatalf("read(%v): %v != %v", i, read.String(), val.String())
 		}
 
 		if buf.Size() != i*4 {

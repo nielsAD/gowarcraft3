@@ -122,9 +122,8 @@ func (b *Buffer) WriteCString(v string) {
 }
 
 // WriteDString appends dword string v to the buffer
-func (b *Buffer) WriteDString(v DWordString) error {
-	b.Bytes = append(b.Bytes, byte(v[3]), byte(v[2]), byte(v[1]), byte(v[0]))
-	return nil
+func (b *Buffer) WriteDString(v DWordString) {
+	b.WriteUInt32(uint32(v))
 }
 
 // WriteBlobAt overwrites position p in the buffer with blob v
@@ -202,12 +201,8 @@ func (b *Buffer) WriteCStringAt(p int, v string) {
 }
 
 // WriteDStringAt overwrites position p in the buffer with dword string v
-func (b *Buffer) WriteDStringAt(p int, v DWordString) error {
-	b.Bytes[p+3] = byte(v[0])
-	b.Bytes[p+2] = byte(v[1])
-	b.Bytes[p+1] = byte(v[2])
-	b.Bytes[p+0] = byte(v[3])
-	return nil
+func (b *Buffer) WriteDStringAt(p int, v DWordString) {
+	b.WriteUInt32At(p, uint32(v))
 }
 
 // Read implements io.Reader interface
@@ -325,7 +320,5 @@ func (b *Buffer) ReadCString() (string, error) {
 
 // ReadDString consumes a dword string and returns its value
 func (b *Buffer) ReadDString() DWordString {
-	var res = DWordString{b.Bytes[3], b.Bytes[2], b.Bytes[1], b.Bytes[0]}
-	b.Bytes = b.Bytes[4:]
-	return res
+	return DWordString(b.ReadUInt32())
 }

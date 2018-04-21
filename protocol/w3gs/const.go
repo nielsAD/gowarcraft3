@@ -76,9 +76,9 @@ type GameProduct protocol.DWordString
 
 // Game product
 var (
-	ProductDemo = GameProduct(protocol.DString("W3DM")) // Demo
-	ProductROC  = GameProduct(protocol.DString("WAR3")) // ROC
-	ProductTFT  = GameProduct(protocol.DString("W3XP")) // TFT
+	ProductDemo = GameProduct(protocol.DString("MD3W")) // Demo
+	ProductROC  = GameProduct(protocol.DString("RAW3")) // ROC
+	ProductTFT  = GameProduct(protocol.DString("PX3W")) // TFT
 )
 
 // SlotLayout enum
