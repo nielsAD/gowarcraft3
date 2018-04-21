@@ -12,9 +12,8 @@ import (
 	"github.com/nielsAD/gowarcraft3/file/w3m"
 )
 
-func TestLoad(t *testing.T) {
-	var cROC = w3m.Map{
-		FileName:         "./test_roc.w3m",
+func TestInfo(t *testing.T) {
+	var cROC = w3m.Info{
 		FileFormat:       18,
 		SaveCount:        2,
 		EditorVersion:    6059,
@@ -47,8 +46,7 @@ func TestLoad(t *testing.T) {
 		CustomUpgradeAvailabilities: []w3m.CustomUpgradeAvailability{},
 		CustomTechAvailabilities:    []w3m.CustomTechAvailability{},
 	}
-	var cTFT = w3m.Map{
-		FileName:         "./test_tft.w3x",
+	var cTFT = w3m.Info{
 		FileFormat:       25,
 		SaveCount:        14,
 		EditorVersion:    6059,
@@ -96,21 +94,33 @@ func TestLoad(t *testing.T) {
 		CustomTechAvailabilities:    []w3m.CustomTechAvailability{},
 	}
 
-	roc, err := w3m.Load("./test_roc.w3m")
+	mroc, err := w3m.Open("./test_roc.w3m")
+	if err != nil {
+		t.Fatal("test_roc.w3m", err)
+	}
+	defer mroc.Close()
+
+	roc, err := mroc.Info()
 	if err != nil {
 		t.Fatal("test_roc.w3m", err)
 	}
 
 	if !reflect.DeepEqual(&cROC, roc) {
 		t.Log(fmt.Sprintf("%+v\n", *roc))
-		t.Fatal("Load return value not deep equal (ROC)")
+		t.Fatal("Info() return value not deep equal (ROC)")
 	}
 
 	if roc.Size() != w3m.SizeTiny {
 		t.Fatal("SizeTiny expected")
 	}
 
-	tft, err := w3m.Load("./test_tft.w3x")
+	mtft, err := w3m.Open("./test_tft.w3x")
+	if err != nil {
+		t.Fatal("test_tft.w3x", err)
+	}
+	defer mtft.Close()
+
+	tft, err := mtft.Info()
 	if err != nil {
 		t.Fatal("test_tft.w3x", err)
 	}

@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"image/png"
 	"log"
 	"os"
 	"strings"
@@ -17,6 +18,7 @@ import (
 )
 
 var (
+	preview = flag.String("preview", "", "Dump preview image to this file")
 	jsonout = flag.Bool("json", false, "Print machine readable format")
 )
 
@@ -27,17 +29,40 @@ func main() {
 	flag.Parse()
 	var filename = strings.Join(flag.Args(), " ")
 
-	m, err := w3m.Load(filename)
+	m, err := w3m.Open(filename)
 	if err != nil {
 		logErr.Fatal(filename, " ", err)
 	}
 
-	var str = fmt.Sprintf("%+v", *m)
+	info, err := m.Info()
+	if err != nil {
+		logErr.Fatal(filename, " ", err)
+	}
+
+	var str = fmt.Sprintf("%+v", *info)
 	if *jsonout {
-		if json, err := json.MarshalIndent(*m, "", "  "); err == nil {
+		if json, err := json.MarshalIndent(*info, "", "  "); err == nil {
 			str = string(json)
 		}
 	}
 
 	logOut.Println(str)
+
+	if *preview != "" {
+		img, err := m.Preview()
+		if err == os.ErrNotExist {
+			img, err = m.Minimap()
+		}
+		if err != nil {
+			logErr.Fatal(err)
+		}
+
+		out, err := os.Create(*preview)
+		if err != nil {
+			logErr.Fatal(err)
+		}
+		if err := png.Encode(out, img); err != nil {
+			logErr.Fatal(err)
+		}
+	}
 }
