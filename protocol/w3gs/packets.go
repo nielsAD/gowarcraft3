@@ -1124,7 +1124,7 @@ func (pkt *GameAction) Deserialize(buf *protocol.Buffer) error {
 // Format:
 //
 //    (UINT16) Send interval
-//    (UINT16) CRC-16 encryption
+//    (UINT16) CRC-16 checksum
 //
 //    For each action:
 //        (UINT8) Player number
@@ -1872,23 +1872,23 @@ func (pkt *PeerSet) Deserialize(buf *protocol.Buffer) error {
 //
 // This is sent from the game host to a client that just joined to check if the client has the map.
 //
-// The map info is the actual CRC and the other CRC is actually an "xoro" value.
+// Map hash is not only based on map file, as it takes common.j/blizzard.j from current patch into account as well.
 //
 // Format:
 //
 //    (UINT32)     Unknown (0x01)
 //    (STRING)     File Path
 //    (UINT32)     File size
-//    (UINT32)     Map info
-//    (UINT32)     File CRC encryption
-//     (UINT8)[20] File SHA-1 hash
+//    (UINT32)     File CRC hash
+//    (UINT32)     Map XOR/RotateLeft hash
+//     (UINT8)[20] Map SHA-1 hash
 //
 type MapCheck struct {
-	FilePath          string
-	FileSize          uint32
-	MapInfo           uint32
-	FileCrcEncryption uint32
-	FileSha1Hash      [20]byte
+	FilePath string
+	FileSize uint32
+	FileCRC  uint32
+	MapXoro  uint32
+	MapSha1  [20]byte
 }
 
 // Serialize encodes the struct into its binary form.
@@ -1900,9 +1900,9 @@ func (pkt *MapCheck) Serialize(buf *protocol.Buffer) error {
 	buf.WriteUInt32(1)
 	buf.WriteCString(pkt.FilePath)
 	buf.WriteUInt32(pkt.FileSize)
-	buf.WriteUInt32(pkt.MapInfo)
-	buf.WriteUInt32(pkt.FileCrcEncryption)
-	buf.WriteBlob(pkt.FileSha1Hash[:])
+	buf.WriteUInt32(pkt.FileCRC)
+	buf.WriteUInt32(pkt.MapXoro)
+	buf.WriteBlob(pkt.MapSha1[:])
 
 	return nil
 }
@@ -1928,9 +1928,9 @@ func (pkt *MapCheck) Deserialize(buf *protocol.Buffer) error {
 	}
 
 	pkt.FileSize = buf.ReadUInt32()
-	pkt.MapInfo = buf.ReadUInt32()
-	pkt.FileCrcEncryption = buf.ReadUInt32()
-	copy(pkt.FileSha1Hash[:], buf.ReadBlob(20))
+	pkt.FileCRC = buf.ReadUInt32()
+	pkt.MapXoro = buf.ReadUInt32()
+	copy(pkt.MapSha1[:], buf.ReadBlob(20))
 
 	return nil
 }
@@ -2037,7 +2037,7 @@ func (pkt *MapState) Deserialize(buf *protocol.Buffer) error {
 //     (UINT8)       From player number
 //    (UINT32)       Unknown (0x01)
 //    (UINT32)       Chunk position in file
-//    (UINT32)       CRC-32 encryption
+//    (UINT32)       CRC-32 checksum
 //     (UINT8)[1442] Data
 //
 type MapPart struct {
@@ -2139,7 +2139,7 @@ func (pkt *MapPartOK) Deserialize(buf *protocol.Buffer) error {
 
 // MapPartError implements the [0x45] W3GS_MapPartError packet (C -> S).
 //
-// This is sent when downloading a map in reply to 0x43 W3GS_MapPart and a chunk of the map file does not match its CRC encryption.
+// This is sent when downloading a map in reply to 0x43 W3GS_MapPart and a chunk of the map file does not match its CRC checksum.
 //
 // Format:
 //

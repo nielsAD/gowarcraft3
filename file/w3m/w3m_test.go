@@ -39,6 +39,7 @@ func TestInfo(t *testing.T) {
 		info       w3m.Info
 		previewSHA string
 		minimapSHA string
+		checksum   string
 	}{
 		{
 			"test_roc.w3m",
@@ -79,6 +80,7 @@ func TestInfo(t *testing.T) {
 			},
 			"",
 			"eFgUj6ZD1iWaQgZxBfUahFy8szz9lv/j+smSnJg9DrJs998fLOiBHG1WHgDR/mqFCVNof+yg3Kvir3ZezAOLXA",
+			"0x7E125E8B|P5c/izfa1qstJu5zYYVyc2FD2gE",
 		},
 		{
 			"test_tft.w3x",
@@ -133,6 +135,7 @@ func TestInfo(t *testing.T) {
 			},
 			"",
 			"NOrg3TQ0Ii6z5GgGg7pWJpNQSwbW6vB6tzC6hkQsDV9raZpuKkRM/HbIpq9TdJviLURPqGLvntrzIHOopUcRaw",
+			"0x6BC46DB1|/1ndO+WvBCWiQutD9VyCefo3GYM",
 		},
 	}
 
@@ -168,6 +171,14 @@ func TestInfo(t *testing.T) {
 		mmap, _ := m.Minimap()
 		if sha := shaImage(mmap); sha != f.minimapSHA {
 			t.Fatalf("%v minimap mismatch %v != %v\n", f.file, sha, f.minimapSHA)
+		}
+
+		hash, err := m.Checksum(nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if hash.String() != f.checksum {
+			t.Fatalf("%v checksum mismatch %v != %v\n", f.file, hash, f.checksum)
 		}
 
 		if err := m.Close(); err != nil {

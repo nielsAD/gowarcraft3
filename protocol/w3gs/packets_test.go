@@ -283,10 +283,10 @@ func TestPackets(t *testing.T) {
 
 		&w3gs.MapCheck{},
 		&w3gs.MapCheck{
-			FilePath:          "Maps\\BootyBay.w3x",
-			FileSize:          2,
-			MapInfo:           3,
-			FileCrcEncryption: 4,
+			FilePath: "Maps\\BootyBay.w3x",
+			FileSize: 2,
+			FileCRC:  3,
+			MapXoro:  4,
 		},
 		&w3gs.StartDownload{},
 		&w3gs.StartDownload{
