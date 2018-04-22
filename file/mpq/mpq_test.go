@@ -19,6 +19,10 @@ func TestMPQ(t *testing.T) {
 		t.Fatal("test.mpq", err)
 	}
 
+	if archive.WeakSigned() || archive.StrongSigned() {
+		t.Fatal("Expected test.mpq not to be signed")
+	}
+
 	hello, err := archive.Open("hello.txt")
 	if err != nil {
 		t.Fatal("hello.txt", err)
@@ -69,6 +73,10 @@ func TestMPQ(t *testing.T) {
 	// Test non existant
 	if _, err := archive.Open("foobar.txt"); err != os.ErrNotExist {
 		t.Fatal("foobar.txt", err)
+	}
+
+	if _, err := mpq.OpenArchive("foobar.mpq"); err != os.ErrNotExist {
+		t.Fatal("foobar.mpq", err)
 	}
 
 	if err := archive.Close(); err != nil {

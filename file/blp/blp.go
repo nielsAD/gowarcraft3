@@ -24,7 +24,7 @@ var (
 // Header constant for BLP files
 var Header = protocol.DString("BLP1")
 
-// Decode decodes a BLP image
+// Decode a BLP image. Only take the first image if it's a mipmap.
 func Decode(r io.Reader) (image.Image, error) {
 	var b protocol.Buffer
 	if _, err := io.Copy(&b, r); err != nil {
@@ -52,7 +52,7 @@ func Decode(r io.Reader) (image.Image, error) {
 	b.ReadUInt32() //width
 	b.ReadUInt32() //height
 	b.ReadUInt32() //flags
-	b.ReadUInt32() //hasMipmaps
+	b.ReadUInt32() //hasMipmap
 
 	var mmOffset [16]uint32
 	for i := 0; i < len(mmOffset); i++ {
@@ -84,6 +84,8 @@ func Decode(r io.Reader) (image.Image, error) {
 		imgBuf = append(imgBuf, b.ReadBlob(int(mmSize[0]))...)
 
 		img, err := jpeg.Decode(&protocol.Buffer{Bytes: imgBuf})
+
+		// Workaround for CMYK image without APP14 marker
 		if err != nil && strings.Contains(err.Error(), "Adobe APP14") {
 			imgBuf = append([]byte{
 				0xFF, 0xD8, //SOIMAGE

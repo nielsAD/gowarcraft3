@@ -45,13 +45,14 @@ func dumpPackets(layer string, netFlow, transFlow gopacket.Flow, r io.Reader) er
 
 	var src = netFlow.Src().String() + ":" + transFlow.Src().String()
 	var dst = netFlow.Dst().String() + ":" + transFlow.Dst().String()
+	var prf = fmt.Sprintf("[%-3v] %21v->%-21v", layer, src, dst)
 
 	for {
 		var pkt, size, err = w3gs.DeserializePacketWithBuffer(r, &buf)
 		if err == io.EOF || err == w3gs.ErrNoProtocolSig {
 			return err
 		} else if err != nil {
-			logErr.Printf("[%-3v] %21v->%-21v %-14v %v\n", layer, src, dst, "ERROR", err)
+			logErr.Printf("%v %-14v %v\n", prf, "ERROR", err)
 			logErr.Printf("Payload:\n%v", hex.Dump(buf.Buffer[:size]))
 
 			if err == w3gs.ErrInvalidPacketSize || err == w3gs.ErrInvalidChecksum || err == w3gs.ErrUnexpectedConst {
@@ -94,7 +95,7 @@ func dumpPackets(layer string, netFlow, transFlow gopacket.Flow, r io.Reader) er
 			}
 		}
 
-		logOut.Printf("[%-3v] %21v->%-21v %-14v %v\n", layer, src, dst, reflect.TypeOf(pkt).String()[6:], str)
+		logOut.Printf("%v %-14v %v\n", prf, reflect.TypeOf(pkt).String()[6:], str)
 	}
 }
 
