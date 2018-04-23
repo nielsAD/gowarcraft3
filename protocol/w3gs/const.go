@@ -71,14 +71,11 @@ const (
 
 // Failover related: 0x15 0x16 0x2B 0x2C 0x39
 
-// GameProduct identifier
-type GameProduct protocol.DWordString
-
 // Game product
 var (
-	ProductDemo = GameProduct(protocol.DString("MD3W")) // Demo
-	ProductROC  = GameProduct(protocol.DString("RAW3")) // ROC
-	ProductTFT  = GameProduct(protocol.DString("PX3W")) // TFT
+	ProductDemo = protocol.DString("MD3W") // Demo
+	ProductROC  = protocol.DString("RAW3") // ROC
+	ProductTFT  = protocol.DString("PX3W") // TFT
 )
 
 // SlotLayout enum
@@ -229,13 +226,14 @@ type LeaveReason uint32
 
 // PlayerLeft reason
 const (
-	LeaveDisconnect    LeaveReason = 0x01
-	LeaveLost          LeaveReason = 0x07
-	LeaveLostBuildings LeaveReason = 0x08
-	LeaveWon           LeaveReason = 0x09
-	LeaveDraw          LeaveReason = 0x0A
-	LabeObserver       LeaveReason = 0x0B
-	LeaveLobby         LeaveReason = 0x0D
+	LeaveDisconnect      LeaveReason = 0x01
+	LeaveLost            LeaveReason = 0x07
+	LeaveLostBuildings   LeaveReason = 0x08
+	LeaveWon             LeaveReason = 0x09
+	LeaveDraw            LeaveReason = 0x0A
+	LeaveObserver        LeaveReason = 0x0B
+	LeaveInvalidSaveGame LeaveReason = 0x0C // (?)
+	LeaveLobby           LeaveReason = 0x0D
 )
 
 func (l LeaveReason) String() string {
@@ -250,8 +248,10 @@ func (l LeaveReason) String() string {
 		return "Won"
 	case LeaveDraw:
 		return "Draw"
-	case LabeObserver:
+	case LeaveObserver:
 		return "Observer"
+	case LeaveInvalidSaveGame:
+		return "InvalidSaveGame"
 	case LeaveLobby:
 		return "Lobby"
 	default:
@@ -291,102 +291,215 @@ func (m MessageType) String() string {
 	}
 }
 
-// GameType enum
-type GameType uint32
+// GameSettingFlags enum
+type GameSettingFlags uint32
 
-// Game type flags
+// Game setting flags
 const (
-	GameTypeNewGame     GameType = 0x000001
-	GameTypeLadder      GameType = 0x000020
-	GameTypeSavedGame   GameType = 0x000200
-	GameTypePrivateGame GameType = 0x000800
-	GameTypeLoadMask             = GameTypeNewGame | GameTypeLadder | GameTypeSavedGame | GameTypePrivateGame
+	SettingSpeedSlow   GameSettingFlags = 0x00000000
+	SettingSpeedNormal GameSettingFlags = 0x00000001
+	SettingSpeedFast   GameSettingFlags = 0x00000002
+	SettingSpeedMask   GameSettingFlags = 0x0000000F
 
-	GameTypeMapBlizzardSigned GameType = 0x000008
-	GameTypeMapCustom         GameType = 0x002000
-	GameTypeMapBlizzard       GameType = 0x004000
-	GameTypeMapMask                    = GameTypeMapBlizzardSigned | GameTypeMapCustom | GameTypeMapBlizzard
+	SettingTerrainHidden   GameSettingFlags = 0x00000100
+	SettingTerrainExplored GameSettingFlags = 0x00000200
+	SettingTerrainVisible  GameSettingFlags = 0x00000400
+	SettingTerrainDefault  GameSettingFlags = 0x00000800
+	SettingTerrainMask     GameSettingFlags = 0x00000F00
 
-	GameTypeTypeMelee    GameType = 0x008000
-	GameTypeTypeScenario GameType = 0x010000
-	GameTypeTypeMask              = GameTypeTypeMelee | GameTypeTypeScenario
+	SettingObsNone     GameSettingFlags = 0x00000000
+	SettingObsOnDefeat GameSettingFlags = 0x00002000
+	SettingObsFull     GameSettingFlags = 0x00003000
+	SettingObsReferees GameSettingFlags = 0x40000000
+	SettingObsMask     GameSettingFlags = 0x40003000
 
-	GameTypeSizeSmall  GameType = 0x020000
-	GameTypeSizeMedium GameType = 0x040000
-	GameTypeSizeLarge  GameType = 0x080000
-	GameTypeSizeMask            = GameTypeSizeSmall | GameTypeSizeMedium | GameTypeSizeLarge
-
-	GameTypeObsFull     GameType = 0x100000
-	GameTypeObsOnDefeat GameType = 0x200000
-	GameTypeObsNone     GameType = 0x400000
-	GameTypeObsMask              = GameTypeObsFull | GameTypeObsOnDefeat | GameTypeObsNone
+	SettingTeamsTogether GameSettingFlags = 0x00004000
+	SettingTeamsFixed    GameSettingFlags = 0x00060000
+	SettingRandomHero    GameSettingFlags = 0x02000000
+	SettingRandomRace    GameSettingFlags = 0x04000000
 )
 
-func (f GameType) String() string {
-	if f&(GameTypeLoadMask|GameTypeMapMask|GameTypeTypeMask|GameTypeSizeMask|GameTypeObsMask) != f {
-		return fmt.Sprintf("GameType(0x%06X)", uint32(f))
+func (f GameSettingFlags) String() string {
+	var res string
+	switch f & SettingSpeedMask {
+	case SettingSpeedSlow:
+		res = "SpeedSlow"
+	case SettingSpeedNormal:
+		res = "SpeedNormal"
+	case SettingSpeedFast:
+		res = "SpeedFast"
+	default:
+		return fmt.Sprintf("1GameSettingFlags(0x%07X)", uint32(f))
 	}
 
+	switch f & SettingTerrainMask {
+	case SettingTerrainHidden:
+		res += "|TerrainHidden"
+	case SettingTerrainExplored:
+		res += "|TerrainExplored"
+	case SettingTerrainVisible:
+		res += "|TerrainVisible"
+	case SettingTerrainDefault:
+		res += "|TerrainDefault"
+	case 0:
+		// No terrain setting
+	default:
+		return fmt.Sprintf("2GameSettingFlags(0x%07X)", uint32(f))
+	}
+
+	switch f & SettingObsMask {
+	case SettingObsNone:
+		res += "|ObsNone"
+	case SettingObsOnDefeat:
+		res += "|ObsOnDefeat"
+	case SettingObsFull:
+		res += "|ObsFull"
+	case SettingObsReferees:
+		res += "|ObsReferees"
+	default:
+		return fmt.Sprintf("3GameSettingFlags(0x%07X)", uint32(f))
+	}
+
+	f &= ^(SettingSpeedMask | SettingTerrainMask | SettingObsMask)
+
+	if f&SettingTeamsTogether != 0 {
+		res += "|TeamsTogether"
+		f &= ^SettingTeamsTogether
+	}
+	if f&SettingTeamsFixed != 0 {
+		res += "|TeamsFixed"
+		f &= ^SettingTeamsFixed
+	}
+	if f&SettingRandomHero != 0 {
+		res += "|RandomHero"
+		f &= ^SettingRandomHero
+	}
+	if f&SettingRandomRace != 0 {
+		res += "|RandomRace"
+		f &= ^SettingRandomRace
+	}
+
+	if f != 0 {
+		res += fmt.Sprintf("|GameSettingFlags(0x%02X)", uint32(f))
+	}
+
+	return res
+}
+
+// GameFlags enum
+type GameFlags uint32
+
+// Game flags
+const (
+	GameFlagCustomGame   GameFlags = 0x000001
+	GameFlagOfficialGame GameFlags = 0x000009 // Blizzard signed map
+	GameFlagSinglePlayer GameFlags = 0x00001D
+	GameFlagTeamLadder   GameFlags = 0x000020
+	GameFlagTypeMask     GameFlags = 0x0000FF
+
+	GameFlagPublic         GameFlags = 0x000000
+	GameFlagSavedGame      GameFlags = 0x000200 // Implies private
+	GameFlagPrivateGame    GameFlags = 0x000800
+	GameFlagVisibilityMask GameFlags = 0x000F00
+
+	GameFlagMapCustom   GameFlags = 0x002000
+	GameFlagMapBlizzard GameFlags = 0x004000
+	GameFlagMapMask     GameFlags = 0x006000
+
+	GameFlagMelee    GameFlags = 0x008000
+	GameFlagScenario GameFlags = 0x010000
+	GameFlagMask     GameFlags = 0x018000
+
+	GameFlagSizeSmall  GameFlags = 0x020000
+	GameFlagSizeMedium GameFlags = 0x040000
+	GameFlagSizeLarge  GameFlags = 0x080000
+	GameFlagSizeMask   GameFlags = 0x0E0000
+
+	GameFlagObsFull     GameFlags = 0x100000
+	GameFlagObsOnDefeat GameFlags = 0x200000
+	GameFlagObsNone     GameFlags = 0x400000
+	GameFlagObsMask     GameFlags = 0x700000
+)
+
+func (f GameFlags) String() string {
 	var res string
-	switch f & GameTypeMapMask {
-	case GameTypeTypeMelee:
-		res = "CustomMap"
-	case GameTypeMapBlizzardSigned, GameTypeMapBlizzard:
-		res = "BlizzardMap"
+
+	switch f & GameFlagTypeMask {
+	case GameFlagCustomGame:
+		res = "Custom"
+	case GameFlagOfficialGame:
+		res = "Official"
+	case GameFlagSinglePlayer:
+		res = "SinglePlayer"
+	case GameFlagTeamLadder:
+		res = "TeamLadder"
+	default:
+		return fmt.Sprintf("GameFlags(0x%06X)", uint32(f))
+	}
+
+	switch f & GameFlagVisibilityMask {
+	case GameFlagPublic:
+		res += "|Public"
+	case GameFlagSavedGame:
+		res += "|Saved"
+	case GameFlagPrivateGame:
+		res += "|Private"
+	default:
+		return fmt.Sprintf("GameFlags(0x%06X)", uint32(f))
+	}
+
+	switch f & GameFlagMapMask {
+	case GameFlagMapCustom:
+		res += "|MapCustom"
+	case GameFlagMapBlizzard:
+		res += "|MapBlizzard"
 	case 0:
 		// No map maker
 	default:
-		return fmt.Sprintf("GameType(0x%06X)", uint32(f))
+		return fmt.Sprintf("GameFlags(0x%06X)", uint32(f))
 	}
 
-	switch f & GameTypeSizeMask {
-	case GameTypeSizeSmall:
-		res += "|Small"
-	case GameTypeSizeMedium:
-		res += "|Medium"
-	case GameTypeSizeLarge:
-		res += "|Large"
+	switch f & GameFlagSizeMask {
+	case GameFlagSizeSmall:
+		res += "|SizeSmall"
+	case GameFlagSizeMedium:
+		res += "|SizeMedium"
+	case GameFlagSizeLarge:
+		res += "|SizeLarge"
 	case 0:
 		// No map size
 	default:
-		return fmt.Sprintf("GameType(0x%06X)", uint32(f))
+		return fmt.Sprintf("GameFlags(0x%06X)", uint32(f))
 	}
 
-	switch f & GameTypeTypeMask {
-	case GameTypeMapCustom:
+	switch f & GameFlagMask {
+	case GameFlagMelee:
 		res += "|Melee"
-	case GameTypeTypeScenario:
+	case GameFlagScenario:
 		res += "|Scenario"
 	case 0:
 		// No map type
 	default:
-		return fmt.Sprintf("GameType(0x%06X)", uint32(f))
+		return fmt.Sprintf("GameFlags(0x%06X)", uint32(f))
 	}
 
-	switch f & GameTypeObsMask {
-	case GameTypeObsFull:
-		res += "|FullObs"
-	case GameTypeObsOnDefeat:
+	switch f & GameFlagObsMask {
+	case GameFlagObsFull:
+		res += "|ObsFull"
+	case GameFlagObsOnDefeat:
 		res += "|ObsOnDefeat"
-	case GameTypeObsNone:
-		res += "|NoObs"
+	case GameFlagObsNone:
+		res += "|ObsNone"
 	case 0:
 		// No obs info
 	default:
-		return fmt.Sprintf("GameType(0x%06X)", uint32(f))
+		return fmt.Sprintf("GameFlags(0x%06X)", uint32(f))
 	}
 
-	if f&GameTypeNewGame != 0 {
-		res += "|NewGame"
-	}
-	if f&GameTypeSavedGame != 0 {
-		res += "|SavedGame"
-	}
-	if f&GameTypeLadder != 0 {
-		res += "|Ladder"
-	}
-	if f&GameTypePrivateGame != 0 {
-		res += "|Private"
+	f &= ^(GameFlagTypeMask | GameFlagVisibilityMask | GameFlagMapMask | GameFlagMask | GameFlagObsMask)
+
+	if f != 0 {
+		res += fmt.Sprintf("|GameFlags(0x%02X)", uint32(f))
 	}
 
 	return res

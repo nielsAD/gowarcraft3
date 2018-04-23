@@ -6,6 +6,7 @@ package w3gs
 
 import (
 	"hash/crc32"
+	"math"
 
 	"github.com/nielsAD/gowarcraft3/protocol"
 )
@@ -393,7 +394,7 @@ func (pkt *SlotInfoJoin) Deserialize(buf *protocol.Buffer) error {
 //    (UINT16)   Length of Slot data
 //     (UINT8)   Number of slots
 //     (UINT8)[] Slot data
-//    (UINT32)   Random seed
+//    (UINT32)   Random seed (GetTickCount)
 //     (UINT8)   Slots layout
 //     (UINT8)   Number of player slots without observers
 //
@@ -446,6 +447,8 @@ type SlotInfo struct {
 //    0x00 Easy
 //    0x01 Normal / Human
 //    0x02 Hard
+//
+//  Format:
 //
 //    (UINT8) Player number
 //    (UINT8) Download status
@@ -1556,18 +1559,150 @@ func (pkt *SearchGame) Deserialize(buf *protocol.Buffer) error {
 //    (UINT32) Version
 //
 type GameVersion struct {
-	Product GameProduct
+	Product protocol.DWordString
 	Version uint32
 }
 
 func (gv *GameVersion) serialize(buf *protocol.Buffer) {
-	buf.WriteDString(protocol.DWordString(gv.Product))
+	buf.WriteDString(gv.Product)
 	buf.WriteUInt32(gv.Version)
 }
 
 func (gv *GameVersion) deserialize(buf *protocol.Buffer) {
-	gv.Product = GameProduct(buf.ReadDString())
+	gv.Product = buf.ReadDString()
 	gv.Version = buf.ReadUInt32()
+}
+
+// GameSettings stores the settings of a created game.
+//
+// Flags:
+//
+//   Speed: (mask 0x00000003) cannot be combined
+//     0x00000000 - Slow game speed
+//     0x00000001 - Normal game speed
+//     0x00000002 - Fast game speed
+//   Visibility: (mask 0x00000F00) cannot be combined
+//     0x00000100 - Hide terrain
+//     0x00000200 - Map explored
+//     0x00000400 - Always visible (no fog of war)
+//     0x00000800 - Default
+//   Observers/Referees: (mask 0x40003000) cannot be combined
+//     0x00000000 - No Observers
+//     0x00002000 - Observers on Defeat
+//     0x00003000 - Additional players as observer allowed
+//     0x40000000 - Referees
+//   Teams/Units/Hero/Race: (mask 0x07064000) can be combined
+//     0x00004000 - Teams Together (team members are placed at neighbored starting locations)
+//     0x00060000 - Fixed teams
+//     0x01000000 - Unit share
+//     0x02000000 - Random hero
+//     0x04000000 - Random races
+//
+// Format:
+//
+//    (UINT32)     Flags
+//    (UINT16)     Map width
+//    (UINT16)     Map height
+//    (UINT32)     Map xoro
+//    (STRING)     Map path
+//    (STRING)     Host name
+//     (UINT8)[20] Map Sha1 hash
+//
+// Encoded as a null terminated string where every even byte-value was
+// incremented by 1. So all encoded bytes are odd. A control-byte stores
+// the transformations for the next 7 bytes.
+//
+type GameSettings struct {
+	GameSettingFlags GameSettingFlags
+	MapWidth         uint16
+	MapHeight        uint16
+	MapXoro          uint32
+	MapPath          string
+	HostName         string
+	MapSha1          [20]byte
+}
+
+func (gs *GameSettings) serialize() string {
+	var size = 36 + len(gs.MapPath) + len(gs.HostName)
+	var statstring = protocol.Buffer{Bytes: make([]byte, 0, size+size+int(math.Ceil(float64(size)/7)))}
+	statstring.WriteUInt32(uint32(gs.GameSettingFlags))
+	statstring.WriteUInt8(0)
+	statstring.WriteUInt16(gs.MapWidth)
+	statstring.WriteUInt16(gs.MapHeight)
+	statstring.WriteUInt32(gs.MapXoro)
+	statstring.WriteCString(gs.MapPath)
+	statstring.WriteCString(gs.HostName)
+	statstring.WriteUInt8(0)
+	statstring.WriteBlob(gs.MapSha1[:])
+
+	var b = statstring.Bytes[:]
+	for i := uint(0); i < uint(len(b)); i += 7 {
+		var p = statstring.Size()
+		var m = uint8(1)
+		statstring.WriteUInt8(0)
+
+		for j := uint(0); j < 7 && i+j < uint(len(b)); j++ {
+			if (b[i+j] % 2) == 0 {
+				statstring.WriteUInt8(b[i+j] + 1)
+			} else {
+				statstring.WriteUInt8(b[i+j])
+				m |= 1 << (j + 1)
+			}
+		}
+
+		statstring.WriteUInt8At(p, m)
+	}
+
+	return string(statstring.Bytes[size:])
+}
+
+func (gs *GameSettings) deserialize(statstring string) error {
+	if len(statstring) < 42 {
+		return ErrInvalidPacketSize
+	}
+
+	var b = protocol.Buffer{Bytes: make([]byte, 0, len(statstring))}
+	for i := uint(0); i < uint(len(statstring)); i += 8 {
+		var m = uint8(statstring[i])
+
+		for j := uint(1); j <= 7 && i+j < uint(len(statstring)); j++ {
+			if m&(1<<j) == 0 {
+				b.WriteUInt8(uint8(statstring[i+j]) - 1)
+			} else {
+				b.WriteUInt8(uint8(statstring[i+j]))
+			}
+		}
+	}
+
+	var size = b.Size()
+	gs.GameSettingFlags = GameSettingFlags(b.ReadUInt32())
+	b.Skip(1)
+
+	gs.MapWidth = b.ReadUInt16()
+	gs.MapHeight = b.ReadUInt16()
+	gs.MapXoro = b.ReadUInt32()
+
+	var err error
+	gs.MapPath, err = b.ReadCString()
+	if err != nil {
+		return err
+	}
+	if size < 36+len(gs.MapPath) {
+		return ErrInvalidPacketSize
+	}
+
+	gs.HostName, err = b.ReadCString()
+	if err != nil {
+		return err
+	}
+	if size != 36+len(gs.MapPath)+len(gs.HostName) {
+		return ErrInvalidPacketSize
+	}
+
+	b.Skip(1)
+	copy(gs.MapSha1[:], b.ReadBlob(20))
+
+	return nil
 }
 
 // GameInfo implements the [0x30] W3GS_GameInfo packet (S -> C).
@@ -1595,9 +1730,9 @@ type GameInfo struct {
 	HostCounter    uint32
 	EntryKey       uint32
 	GameName       string
-	StatString     string
+	GameSettings   GameSettings
 	SlotsTotal     uint32
-	GameType       GameType
+	GameFlags      GameFlags
 	SlotsUsed      uint32
 	SlotsAvailable uint32
 	UptimeSec      uint32
@@ -1606,18 +1741,20 @@ type GameInfo struct {
 
 // Serialize encodes the struct into its binary form.
 func (pkt *GameInfo) Serialize(buf *protocol.Buffer) error {
+	var statstring = pkt.GameSettings.serialize()
+
 	buf.WriteUInt8(ProtocolSig)
 	buf.WriteUInt8(PidGameInfo)
-	buf.WriteUInt16(uint16(45 + len(pkt.GameName) + len(pkt.StatString)))
+	buf.WriteUInt16(uint16(45 + len(pkt.GameName) + len(statstring)))
 
 	pkt.GameVersion.serialize(buf)
 	buf.WriteUInt32(pkt.HostCounter)
 	buf.WriteUInt32(pkt.EntryKey)
 	buf.WriteCString(pkt.GameName)
 	buf.WriteUInt8(0)
-	buf.WriteCString(pkt.StatString)
+	buf.WriteCString(statstring)
 	buf.WriteUInt32(pkt.SlotsTotal)
-	buf.WriteUInt32(uint32(pkt.GameType))
+	buf.WriteUInt32(uint32(pkt.GameFlags))
 	buf.WriteUInt32(pkt.SlotsUsed)
 	buf.WriteUInt32(pkt.SlotsAvailable)
 	buf.WriteUInt32(pkt.UptimeSec)
@@ -1649,15 +1786,19 @@ func (pkt *GameInfo) Deserialize(buf *protocol.Buffer) error {
 		return ErrUnexpectedConst
 	}
 
-	if pkt.StatString, err = buf.ReadCString(); err != nil {
+	var statstring string
+	if statstring, err = buf.ReadCString(); err != nil {
 		return err
 	}
-	if size < 45+len(pkt.GameName)+len(pkt.StatString) {
+	if size != 45+len(pkt.GameName)+len(statstring) {
 		return ErrInvalidPacketSize
+	}
+	if err = pkt.GameSettings.deserialize(statstring); err != nil {
+		return err
 	}
 
 	pkt.SlotsTotal = buf.ReadUInt32()
-	pkt.GameType = GameType(buf.ReadUInt32())
+	pkt.GameFlags = GameFlags(buf.ReadUInt32())
 	pkt.SlotsUsed = buf.ReadUInt32()
 	pkt.SlotsAvailable = buf.ReadUInt32()
 	pkt.UptimeSec = buf.ReadUInt32()
@@ -1923,7 +2064,7 @@ func (pkt *MapCheck) Deserialize(buf *protocol.Buffer) error {
 		return err
 	}
 
-	if size < 41+len(pkt.FilePath) {
+	if size != 41+len(pkt.FilePath) {
 		return ErrInvalidPacketSize
 	}
 

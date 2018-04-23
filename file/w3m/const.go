@@ -185,7 +185,7 @@ func (f MapFlags) String() string {
 		f &= ^MapFlagWaterWavesOnSlopeShores
 	}
 	if f != 0 {
-		res += fmt.Sprintf("|Flags(0x%02X)", uint32(f))
+		res += fmt.Sprintf("|MapFlags(0x%02X)", uint32(f))
 	}
 	if res != "" {
 		res = res[1:]

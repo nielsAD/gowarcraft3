@@ -88,7 +88,7 @@ func dumpPackets(layer string, netFlow, transFlow gopacket.Flow, r io.Reader) er
 			p.Data = p.Data[:*bloblen]
 		}
 
-		var str = fmt.Sprintf("%+v", pkt)
+		var str = fmt.Sprintf("%+v", pkt)[1:]
 		if *jsonout {
 			if json, err := json.Marshal(pkt); err == nil {
 				str = string(json)

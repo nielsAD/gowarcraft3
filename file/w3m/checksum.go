@@ -19,11 +19,11 @@ import (
 // Hash used to identify a loaded w3m/w3x map
 type Hash struct {
 	Xoro uint32
-	SHA1 [20]byte
+	Sha1 [20]byte
 }
 
 func (h *Hash) String() string {
-	return fmt.Sprintf("0x%02X|%v", h.Xoro, base64.RawStdEncoding.EncodeToString(h.SHA1[:]))
+	return fmt.Sprintf("0x%02X|%v", h.Xoro, base64.RawStdEncoding.EncodeToString(h.Sha1[:]))
 }
 
 // Helper for XOR - ROTL hash function
@@ -130,7 +130,7 @@ func (m *Map) Checksum(defaultFiles map[string]io.Reader) (*Hash, error) {
 	}
 
 	var h = Hash{Xoro: uint32(xor)}
-	copy(h.SHA1[:], sha.Sum(nil))
+	copy(h.Sha1[:], sha.Sum(nil))
 
 	return &h, nil
 }
