@@ -307,39 +307,6 @@ func TestBool32(t *testing.T) {
 	}
 }
 
-func TestPort(t *testing.T) {
-	var val = uint16(6112)
-	var buf = protocol.Buffer{Bytes: make([]byte, 0)}
-
-	for i := 1; i <= iterations; i++ {
-		buf.WritePort(val)
-		if buf.Size() != i*2 {
-			t.Fatalf("Write(%v): %v != %v", i, buf.Size(), i*2)
-		}
-	}
-
-	var alt = ^val
-	buf.WritePortAt(2, alt)
-	if buf.Size() != iterations*2 {
-		t.Fatalf("WriteAt: %v != %v", buf.Size(), iterations*2)
-	}
-
-	for i := iterations - 1; i >= 0; i-- {
-		var read = buf.ReadPort()
-
-		if i == 1 {
-			read = ^read
-		}
-		if read != val {
-			t.Fatalf("read(%v): %v != %v", i, read, val)
-		}
-
-		if buf.Size() != i*2 {
-			t.Fatalf("Leftover(%v): %v != %v", i, buf.Size(), i*2)
-		}
-	}
-}
-
 func TestIP(t *testing.T) {
 	var ip4 = net.IPv4(192, 168, 1, 101).To4()
 	var buf = protocol.Buffer{Bytes: make([]byte, 0)}
@@ -520,12 +487,12 @@ func TestCString(t *testing.T) {
 	}
 }
 
-func TestDString(t *testing.T) {
+func TestLEDString(t *testing.T) {
 	var val = protocol.DString("test")
 	var buf = protocol.Buffer{Bytes: make([]byte, 0)}
 
 	for i := 1; i <= iterations; i++ {
-		buf.WriteDString(val)
+		buf.WriteLEDString(val)
 		if buf.Size() != i*4 {
 			t.Fatalf("Write(%v): %v != %v", i, buf.Size(), i*4)
 		}
@@ -533,13 +500,47 @@ func TestDString(t *testing.T) {
 
 	var alt = val
 	alt = ^alt
-	buf.WriteDStringAt(4, alt)
+	buf.WriteLEDStringAt(4, alt)
 	if buf.Size() != iterations*4 {
 		t.Fatalf("WriteAt: %v != %v", buf.Size(), iterations*4)
 	}
 
 	for i := iterations - 1; i >= 0; i-- {
-		var read = buf.ReadDString()
+		var read = buf.ReadLEDString()
+
+		if i == 1 {
+			read = ^read
+		}
+		if read != val || read.String() != val.String() {
+			t.Fatalf("read(%v): %v != %v", i, read.String(), val.String())
+		}
+
+		if buf.Size() != i*4 {
+			t.Fatalf("Leftover(%v): %v != %v", i, buf.Size(), i*4)
+		}
+	}
+}
+
+func TestBEDString(t *testing.T) {
+	var val = protocol.DString("test")
+	var buf = protocol.Buffer{Bytes: make([]byte, 0)}
+
+	for i := 1; i <= iterations; i++ {
+		buf.WriteBEDString(val)
+		if buf.Size() != i*4 {
+			t.Fatalf("Write(%v): %v != %v", i, buf.Size(), i*4)
+		}
+	}
+
+	var alt = val
+	alt = ^alt
+	buf.WriteBEDStringAt(4, alt)
+	if buf.Size() != iterations*4 {
+		t.Fatalf("WriteAt: %v != %v", buf.Size(), iterations*4)
+	}
+
+	for i := iterations - 1; i >= 0; i-- {
+		var read = buf.ReadBEDString()
 
 		if i == 1 {
 			read = ^read

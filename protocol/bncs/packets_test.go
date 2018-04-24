@@ -42,6 +42,7 @@ func TestClientPackets(t *testing.T) {
 			GameFlags:   w3gs.GameFlagMelee,
 			LadderType:  4,
 			GameName:    "Test",
+			SlotsFree:   5,
 			HostCounter: 6,
 			GameSettings: w3gs.GameSettings{
 				GameSettingFlags: w3gs.SettingSpeedNormal,
@@ -63,12 +64,12 @@ func TestClientPackets(t *testing.T) {
 		},
 		&bncs.AuthInfoReq{},
 		&bncs.AuthInfoReq{
-			PlatformCode: protocol.DString("68xi"),
+			PlatformCode: protocol.DString("ix86"),
 			GameVersion: w3gs.GameVersion{
 				Product: w3gs.ProductROC,
 				Version: 1,
 			},
-			LanguageCode:        protocol.DString("SUne"),
+			LanguageCode:        protocol.DString("enUS"),
 			LocalIP:             net.IP{1, 1, 1, 1},
 			TimeZoneBias:        2,
 			MpqLocaleID:         3,

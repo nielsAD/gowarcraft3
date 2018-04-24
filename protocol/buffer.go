@@ -9,6 +9,7 @@ import (
 	"errors"
 	"io"
 	"math"
+	"math/bits"
 	"net"
 )
 
@@ -96,11 +97,6 @@ func (b *Buffer) WriteBool32(v bool) {
 	b.WriteUInt32(i)
 }
 
-// WritePort appends port v to the buffer
-func (b *Buffer) WritePort(v uint16) {
-	b.Bytes = append(b.Bytes, byte(v>>8), byte(v))
-}
-
 // WriteIP appends ip v to the buffer
 func (b *Buffer) WriteIP(v net.IP) error {
 	if ip4 := v.To4(); ip4 != nil {
@@ -121,7 +117,7 @@ func (b *Buffer) WriteSockAddr(v *SockAddr) error {
 		b.WriteUInt32(0)
 	} else {
 		b.WriteUInt16(connAddressFamily)
-		b.WritePort(v.Port)
+		b.WriteUInt16(bits.Reverse16(v.Port))
 		if err := b.WriteIP(v.IP); err != nil {
 			return err
 		}
@@ -138,9 +134,14 @@ func (b *Buffer) WriteCString(v string) {
 	b.WriteUInt8(0)
 }
 
-// WriteDString appends dword string v to the buffer
-func (b *Buffer) WriteDString(v DWordString) {
+// WriteLEDString appends little-endian dword string v to the buffer
+func (b *Buffer) WriteLEDString(v DWordString) {
 	b.WriteUInt32(uint32(v))
+}
+
+// WriteBEDString appends big-endian dword string v to the buffer
+func (b *Buffer) WriteBEDString(v DWordString) {
+	b.WriteUInt32(bits.Reverse32(uint32(v)))
 }
 
 // WriteBlobAt overwrites position p in the buffer with blob v
@@ -191,11 +192,6 @@ func (b *Buffer) WriteBool32At(p int, v bool) {
 	b.WriteUInt32At(p, i)
 }
 
-// WritePortAt overwrites position p in the buffer with port v
-func (b *Buffer) WritePortAt(p int, v uint16) {
-	b.Bytes[p+1], b.Bytes[p] = byte(v), byte(v>>8)
-}
-
 // WriteIPAt overwrites position p in the buffer with ip v
 func (b *Buffer) WriteIPAt(p int, v net.IP) error {
 	if ip4 := v.To4(); ip4 != nil {
@@ -216,7 +212,7 @@ func (b *Buffer) WriteSockAddrAt(p int, v *SockAddr) error {
 		b.WriteUInt32At(p+4, 0)
 	} else {
 		b.WriteUInt16At(p, connAddressFamily)
-		b.WritePortAt(p+2, v.Port)
+		b.WriteUInt16At(p+2, bits.Reverse16(v.Port))
 		if err := b.WriteIPAt(p+4, v.IP); err != nil {
 			return err
 		}
@@ -234,9 +230,14 @@ func (b *Buffer) WriteCStringAt(p int, v string) {
 	b.WriteUInt8At(p+len(bv), 0)
 }
 
-// WriteDStringAt overwrites position p in the buffer with dword string v
-func (b *Buffer) WriteDStringAt(p int, v DWordString) {
+// WriteLEDStringAt overwrites position p in the buffer with little-endian dword string v
+func (b *Buffer) WriteLEDStringAt(p int, v DWordString) {
 	b.WriteUInt32At(p, uint32(v))
+}
+
+// WriteBEDStringAt overwrites position p in the buffer with big-endian dword string v in
+func (b *Buffer) WriteBEDStringAt(p int, v DWordString) {
+	b.WriteUInt32At(p, bits.Reverse32(uint32(v)))
 }
 
 // Read implements io.Reader interface
@@ -309,13 +310,6 @@ func (b *Buffer) ReadBool32() bool {
 	return b.ReadUInt32() > 0
 }
 
-// ReadPort consumes a port and returns its value
-func (b *Buffer) ReadPort() uint16 {
-	var res = uint16(b.Bytes[1]) | uint16(b.Bytes[0])<<8
-	b.Bytes = b.Bytes[2:]
-	return res
-}
-
 // ReadIP consumes an ip and returns its value
 func (b *Buffer) ReadIP() net.IP {
 	var ip = b.ReadUInt32()
@@ -333,13 +327,13 @@ func (b *Buffer) ReadSockAddr() (SockAddr, error) {
 
 	switch b.ReadUInt16() {
 	case 0:
-		if b.ReadPort() != 0 || b.ReadUInt32() != 0 {
+		if b.ReadUInt16() != 0 || b.ReadUInt32() != 0 {
 			return res, ErrInvalidSockAddr
 		}
 		res.Port = 0
 		res.IP = nil
 	case connAddressFamily:
-		res.Port = b.ReadPort()
+		res.Port = bits.Reverse16(b.ReadUInt16())
 		res.IP = b.ReadIP()
 	default:
 		return res, ErrInvalidSockAddr
@@ -365,7 +359,12 @@ func (b *Buffer) ReadCString() (string, error) {
 	return res, nil
 }
 
-// ReadDString consumes a dword string and returns its value
-func (b *Buffer) ReadDString() DWordString {
+// ReadLEDString consumes a little-endian dword string and returns its value
+func (b *Buffer) ReadLEDString() DWordString {
 	return DWordString(b.ReadUInt32())
+}
+
+// ReadBEDString consumes a big-endian dword string and returns its value
+func (b *Buffer) ReadBEDString() DWordString {
+	return DWordString(bits.Reverse32(b.ReadUInt32()))
 }

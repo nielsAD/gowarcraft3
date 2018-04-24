@@ -633,13 +633,14 @@ type StartAdvex3Req struct {
 	GameFlags    w3gs.GameFlags
 	LadderType   uint32
 	GameName     string
+	SlotsFree    uint8
 	HostCounter  uint32
 	GameSettings w3gs.GameSettings
 }
 
 // Serialize encodes the struct into its binary form.
 func (pkt *StartAdvex3Req) Serialize(buf *protocol.Buffer) error {
-	var statstring = fmt.Sprintf("%08x%s", pkt.HostCounter, pkt.GameSettings.Serialize())
+	var statstring = fmt.Sprintf("%c%08x%s", pkt.SlotsFree+'W', pkt.HostCounter, pkt.GameSettings.Serialize())
 
 	buf.WriteUInt8(ProtocolSig)
 	buf.WriteUInt8(PidStartAdvex3)
@@ -690,15 +691,19 @@ func (pkt *StartAdvex3Req) Deserialize(buf *protocol.Buffer) error {
 	if statstring, err = buf.ReadCString(); err != nil {
 		return err
 	}
-	if len(statstring) < 8 || size != 27+len(pkt.GameName)+len(statstring) {
+	if len(statstring) < 9 || size != 27+len(pkt.GameName)+len(statstring) {
 		return ErrInvalidPacketSize
 	}
 
-	if _, err = fmt.Sscanf(statstring[:8], "%08x", &pkt.HostCounter); err != nil {
+	if _, err = fmt.Sscanf(statstring[:9], "%c%08x", &pkt.SlotsFree, &pkt.HostCounter); err != nil {
 		return err
 	}
 
-	if err = pkt.GameSettings.Deserialize(statstring[8:]); err != nil {
+	if pkt.SlotsFree >= 'W' {
+		pkt.SlotsFree -= 'W'
+	}
+
+	if err = pkt.GameSettings.Deserialize(statstring[9:]); err != nil {
 		return err
 	}
 
@@ -954,9 +959,9 @@ func (pkt *AuthInfoReq) Serialize(buf *protocol.Buffer) error {
 	buf.WriteUInt16(uint16(42 + len(pkt.CountryAbbreviation) + len(pkt.Country)))
 
 	buf.WriteUInt32(0)
-	buf.WriteDString(pkt.PlatformCode)
+	buf.WriteBEDString(pkt.PlatformCode)
 	pkt.GameVersion.Serialize(buf)
-	buf.WriteDString(pkt.LanguageCode)
+	buf.WriteBEDString(pkt.LanguageCode)
 
 	if err := buf.WriteIP(pkt.LocalIP); err != nil {
 		return err
@@ -982,9 +987,9 @@ func (pkt *AuthInfoReq) Deserialize(buf *protocol.Buffer) error {
 		return ErrUnexpectedConst
 	}
 
-	pkt.PlatformCode = buf.ReadDString()
+	pkt.PlatformCode = buf.ReadBEDString()
 	pkt.GameVersion.Deserialize(buf)
-	pkt.LanguageCode = buf.ReadDString()
+	pkt.LanguageCode = buf.ReadBEDString()
 	pkt.LocalIP = buf.ReadIP()
 	pkt.TimeZoneBias = buf.ReadUInt32()
 	pkt.MpqLocaleID = buf.ReadUInt32()

@@ -189,7 +189,7 @@ func (m *Map) Info() (*Info, error) {
 		i.FogEnd = b.ReadFloat32()
 		i.FogDensity = b.ReadFloat32()
 		i.FogColor = b.ReadUInt32()
-		i.WeatherID = b.ReadDString()
+		i.WeatherID = b.ReadLEDString()
 		i.SoundEnv, err = readTS()
 		if err != nil {
 			return nil, err
@@ -251,7 +251,7 @@ func (m *Map) Info() (*Info, error) {
 				return nil, ErrBadFormat
 			}
 			i.CustomUpgradeAvailabilities[u].PlayerSet = protocol.BitSet32(b.ReadUInt32())
-			i.CustomUpgradeAvailabilities[u].UpgradeID = b.ReadDString()
+			i.CustomUpgradeAvailabilities[u].UpgradeID = b.ReadLEDString()
 			i.CustomUpgradeAvailabilities[u].Level = b.ReadUInt32()
 			i.CustomUpgradeAvailabilities[u].Availability = UpgradeAvailability(b.ReadUInt32())
 		}
@@ -264,7 +264,7 @@ func (m *Map) Info() (*Info, error) {
 				return nil, ErrBadFormat
 			}
 			i.CustomTechAvailabilities[u].PlayerSet = protocol.BitSet32(b.ReadUInt32())
-			i.CustomTechAvailabilities[u].TechID = b.ReadDString()
+			i.CustomTechAvailabilities[u].TechID = b.ReadLEDString()
 		}
 
 		// TODO: RandomUnitTable and RandomItemTable

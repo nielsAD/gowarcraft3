@@ -36,7 +36,7 @@ func Decode(r io.Reader) (image.Image, error) {
 		return nil, ErrBadFormat
 	}
 
-	if b.ReadDString() != Header {
+	if b.ReadLEDString() != Header {
 		return nil, ErrBadFormat
 	}
 

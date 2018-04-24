@@ -73,9 +73,9 @@ const (
 
 // Game product
 var (
-	ProductDemo = protocol.DString("MD3W") // Demo
-	ProductROC  = protocol.DString("RAW3") // ROC
-	ProductTFT  = protocol.DString("PX3W") // TFT
+	ProductDemo = protocol.DString("W3DM") // Demo
+	ProductROC  = protocol.DString("WAR3") // ROC
+	ProductTFT  = protocol.DString("W3XP") // TFT
 )
 
 // SlotLayout enum
@@ -315,6 +315,7 @@ const (
 
 	SettingTeamsTogether GameSettingFlags = 0x00004000
 	SettingTeamsFixed    GameSettingFlags = 0x00060000
+	SettingSharedControl GameSettingFlags = 0x01000000
 	SettingRandomHero    GameSettingFlags = 0x02000000
 	SettingRandomRace    GameSettingFlags = 0x04000000
 )
@@ -369,6 +370,10 @@ func (f GameSettingFlags) String() string {
 	if f&SettingTeamsFixed != 0 {
 		res += "|TeamsFixed"
 		f &= ^SettingTeamsFixed
+	}
+	if f&SettingSharedControl != 0 {
+		res += "|SharedControl"
+		f &= ^SettingSharedControl
 	}
 	if f&SettingRandomHero != 0 {
 		res += "|RandomHero"
