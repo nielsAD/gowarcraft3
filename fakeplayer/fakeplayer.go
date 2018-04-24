@@ -44,7 +44,7 @@ func (f *FakePlayer) PeerName(id uint8) string {
 	f.peerMutex.Unlock()
 
 	if peer == nil {
-		return fmt.Sprintf("PID(%v)", id)
+		return fmt.Sprintf("PID(%d)", id)
 	}
 
 	return peer.Name

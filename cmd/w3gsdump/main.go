@@ -53,9 +53,14 @@ func dumpPackets(layer string, netFlow, transFlow gopacket.Flow, r io.Reader) er
 			return err
 		} else if err != nil {
 			logErr.Printf("%v %-14v %v\n", prf, "ERROR", err)
+
+			if size > len(buf.Buffer) {
+				size = len(buf.Buffer)
+			}
+
 			logErr.Printf("Payload:\n%v", hex.Dump(buf.Buffer[:size]))
 
-			if err == w3gs.ErrInvalidPacketSize || err == w3gs.ErrInvalidChecksum || err == w3gs.ErrUnexpectedConst {
+			if err == w3gs.ErrBufferTooSmall || err == w3gs.ErrInvalidPacketSize || err == w3gs.ErrInvalidChecksum || err == w3gs.ErrUnexpectedConst {
 				continue
 			} else {
 				return err

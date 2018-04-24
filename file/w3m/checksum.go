@@ -23,7 +23,7 @@ type Hash struct {
 }
 
 func (h *Hash) String() string {
-	return fmt.Sprintf("0x%02X|%v", h.Xoro, base64.RawStdEncoding.EncodeToString(h.Sha1[:]))
+	return fmt.Sprintf("0x%02X|%s", h.Xoro, base64.RawStdEncoding.EncodeToString(h.Sha1[:]))
 }
 
 // Helper for XOR - ROTL hash function

@@ -17,6 +17,7 @@ var (
 	ErrInvalidPacketSize = errors.New("w3gs: Invalid packet size")
 	ErrInvalidChecksum   = errors.New("w3gs: Checksum invalid")
 	ErrUnexpectedConst   = errors.New("w3gs: Unexpected constant value")
+	ErrBufferTooSmall    = errors.New("w3gs: Packet exceeds buffer size")
 )
 
 // ProtocolSig is the W3GS magic number used in the packet header.
@@ -24,7 +25,6 @@ const ProtocolSig = 0xF7
 
 // W3GS packet type identifiers
 const (
-	PidUnknownPacket     = 0x00
 	PidPingFromHost      = 0x01
 	PidSlotInfoJoin      = 0x04
 	PidRejectJoin        = 0x05

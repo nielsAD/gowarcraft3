@@ -6,6 +6,7 @@ package w3gs
 
 import (
 	"io"
+	"io/ioutil"
 
 	"github.com/nielsAD/gowarcraft3/protocol"
 )
@@ -89,8 +90,13 @@ func ReadPacketWithBuffer(r io.Reader, b *DeserializationBuffer) ([]byte, int, e
 	}
 
 	var size = int(uint16(b.Buffer[3])<<8 | uint16(b.Buffer[2]))
-	if size < 4 || size > len(b.Buffer) {
-		return nil, 4, ErrInvalidPacketSize
+	if size < 4 {
+		return nil, 4, ErrNoProtocolSig
+	} else if size > len(b.Buffer) {
+		if n, err := io.CopyN(ioutil.Discard, r, int64(size-4)); err != nil {
+			return nil, int(n + 4), err
+		}
+		return nil, size, ErrBufferTooSmall
 	}
 
 	if n, err := io.ReadFull(r, b.Buffer[4:size]); err != nil {

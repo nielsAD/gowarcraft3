@@ -68,18 +68,32 @@ func (b *Buffer) WriteUInt32(v uint32) {
 	b.Bytes = append(b.Bytes, byte(v), byte(v>>8), byte(v>>16), byte(v>>24))
 }
 
+// WriteUInt64 appends uint64 v to the buffer
+func (b *Buffer) WriteUInt64(v uint64) {
+	b.Bytes = append(b.Bytes, byte(v), byte(v>>8), byte(v>>16), byte(v>>24), byte(v>>32), byte(v>>40), byte(v>>48), byte(v>>56))
+}
+
 // WriteFloat32 appends float32 v to the buffer
 func (b *Buffer) WriteFloat32(v float32) {
 	b.WriteUInt32(math.Float32bits(v))
 }
 
-// WriteBool appends bool v to the buffer
-func (b *Buffer) WriteBool(v bool) {
+// WriteBool8 appends bool v to the buffer
+func (b *Buffer) WriteBool8(v bool) {
 	var i uint8
 	if v {
 		i = 1
 	}
-	b.Bytes = append(b.Bytes, i)
+	b.WriteUInt8(i)
+}
+
+// WriteBool32 appends bool v to the buffer
+func (b *Buffer) WriteBool32(v bool) {
+	var i uint32
+	if v {
+		i = 1
+	}
+	b.WriteUInt32(i)
 }
 
 // WritePort appends port v to the buffer
@@ -92,9 +106,12 @@ func (b *Buffer) WriteIP(v net.IP) error {
 	if ip4 := v.To4(); ip4 != nil {
 		b.WriteBlob(ip4)
 		return nil
+	} else if v != nil {
+		return ErrInvalidIP4
 	}
 
-	return ErrInvalidIP4
+	b.WriteUInt32(0)
+	return nil
 }
 
 // WriteSockAddr appends SockAddr v to the buffer
@@ -146,18 +163,32 @@ func (b *Buffer) WriteUInt32At(p int, v uint32) {
 	b.Bytes[p+3], b.Bytes[p+2], b.Bytes[p+1], b.Bytes[p] = byte(v>>24), byte(v>>16), byte(v>>8), byte(v)
 }
 
+// WriteUInt64At overwrites position p in the buffer with uint64 v
+func (b *Buffer) WriteUInt64At(p int, v uint64) {
+	b.Bytes[p+7], b.Bytes[p+6], b.Bytes[p+5], b.Bytes[p+4], b.Bytes[p+3], b.Bytes[p+2], b.Bytes[p+1], b.Bytes[p] = byte(v>>56), byte(v>>48), byte(v>>40), byte(v>>32), byte(v>>24), byte(v>>16), byte(v>>8), byte(v)
+}
+
 // WriteFloat32At overwrites position p in the buffer with float32 v
 func (b *Buffer) WriteFloat32At(p int, v float32) {
 	b.WriteUInt32At(p, math.Float32bits(v))
 }
 
-// WriteBoolAt overwrites position p in the buffer with bool v
-func (b *Buffer) WriteBoolAt(p int, v bool) {
+// WriteBool8At overwrites position p in the buffer with bool v
+func (b *Buffer) WriteBool8At(p int, v bool) {
 	var i uint8
 	if v {
 		i = 1
 	}
-	b.Bytes[p] = i
+	b.WriteUInt8At(p, i)
+}
+
+// WriteBool32At overwrites position p in the buffer with bool v
+func (b *Buffer) WriteBool32At(p int, v bool) {
+	var i uint32
+	if v {
+		i = 1
+	}
+	b.WriteUInt32At(p, i)
 }
 
 // WritePortAt overwrites position p in the buffer with port v
@@ -170,9 +201,12 @@ func (b *Buffer) WriteIPAt(p int, v net.IP) error {
 	if ip4 := v.To4(); ip4 != nil {
 		b.WriteBlobAt(p, ip4)
 		return nil
+	} else if v != nil {
+		return ErrInvalidIP4
 	}
 
-	return ErrInvalidIP4
+	b.WriteUInt32At(p, 0)
+	return nil
 }
 
 // WriteSockAddrAt overwrites position p in the buffer with SockAddr v
@@ -253,19 +287,26 @@ func (b *Buffer) ReadUInt32() uint32 {
 	return res
 }
 
+// ReadUInt64 consumes a uint32 and returns its value
+func (b *Buffer) ReadUInt64() uint64 {
+	var res = uint64(b.Bytes[7])<<56 | uint64(b.Bytes[6])<<48 | uint64(b.Bytes[5])<<40 | uint64(b.Bytes[4])<<32 | uint64(b.Bytes[3])<<24 | uint64(b.Bytes[2])<<16 | uint64(b.Bytes[1])<<8 | uint64(b.Bytes[0])
+	b.Bytes = b.Bytes[8:]
+	return res
+}
+
 // ReadFloat32 consumes a float32 and returns its value
 func (b *Buffer) ReadFloat32() float32 {
 	return math.Float32frombits(b.ReadUInt32())
 }
 
-// ReadBool consumes a bool and returns its value
-func (b *Buffer) ReadBool() bool {
-	var res bool
-	if b.Bytes[0] > 0 {
-		res = true
-	}
-	b.Bytes = b.Bytes[1:]
-	return res
+// ReadBool8 consumes a bool and returns its value
+func (b *Buffer) ReadBool8() bool {
+	return b.ReadUInt8() > 0
+}
+
+// ReadBool32 consumes a bool and returns its value
+func (b *Buffer) ReadBool32() bool {
+	return b.ReadUInt32() > 0
 }
 
 // ReadPort consumes a port and returns its value
@@ -277,7 +318,13 @@ func (b *Buffer) ReadPort() uint16 {
 
 // ReadIP consumes an ip and returns its value
 func (b *Buffer) ReadIP() net.IP {
-	return net.IP(b.ReadBlob(net.IPv4len))
+	var ip = b.ReadUInt32()
+	switch ip {
+	case 0:
+		return nil
+	default:
+		return net.IP([]byte{byte(ip), byte(ip >> 8), byte(ip >> 16), byte(ip >> 24)})
+	}
 }
 
 // ReadSockAddr consumes a SockAddr structure and returns its value
