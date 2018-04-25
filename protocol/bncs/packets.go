@@ -248,7 +248,7 @@ func (pkt *EnterChatResp) Deserialize(buf *protocol.Buffer) error {
 //    (STRING) Channel
 //
 type JoinChannel struct {
-	Flags   uint32
+	Flag    JoinChannelFlag
 	Channel string
 }
 
@@ -257,7 +257,7 @@ func (pkt *JoinChannel) Serialize(buf *protocol.Buffer) error {
 	buf.WriteUInt8(ProtocolSig)
 	buf.WriteUInt8(PidJoinChannel)
 	buf.WriteUInt16(uint16(9 + len(pkt.Channel)))
-	buf.WriteUInt32(pkt.Flags)
+	buf.WriteUInt32(uint32(pkt.Flag))
 	buf.WriteCString(pkt.Channel)
 	return nil
 }
@@ -269,7 +269,7 @@ func (pkt *JoinChannel) Deserialize(buf *protocol.Buffer) error {
 		return ErrInvalidPacketSize
 	}
 
-	pkt.Flags = buf.ReadUInt32()
+	pkt.Flag = JoinChannelFlag(buf.ReadUInt32())
 
 	var err error
 	if pkt.Channel, err = buf.ReadCString(); err != nil {
@@ -406,7 +406,7 @@ func (pkt *ChatCommand) Deserialize(buf *protocol.Buffer) error {
 //    (STRING) Text
 //
 type ChatEvent struct {
-	EventID   uint32
+	Type      ChatEventType
 	UserFlags uint32
 	Ping      uint32
 	UserName  string
@@ -418,7 +418,7 @@ func (pkt *ChatEvent) Serialize(buf *protocol.Buffer) error {
 	buf.WriteUInt8(ProtocolSig)
 	buf.WriteUInt8(PidChatEvent)
 	buf.WriteUInt16(uint16(30 + len(pkt.UserName) + len(pkt.Text)))
-	buf.WriteUInt32(pkt.EventID)
+	buf.WriteUInt32(uint32(pkt.Type))
 	buf.WriteUInt32(pkt.UserFlags)
 	buf.WriteUInt32(pkt.Ping)
 	buf.WriteUInt32(0)
@@ -436,7 +436,7 @@ func (pkt *ChatEvent) Deserialize(buf *protocol.Buffer) error {
 		return ErrInvalidPacketSize
 	}
 
-	pkt.EventID = buf.ReadUInt32()
+	pkt.Type = ChatEventType(buf.ReadUInt32())
 	pkt.UserFlags = buf.ReadUInt32()
 	pkt.Ping = buf.ReadUInt32()
 
@@ -609,7 +609,7 @@ func (gs *GameSettings) Size() int {
 
 // Serialize GameSettings into StatString
 func (gs *GameSettings) Serialize(buf *protocol.Buffer) {
-	if gs.SlotsFree > 9 {
+	if gs.SlotsFree >= 10 {
 		buf.WriteUInt8('1' + '0' + gs.SlotsFree - 10)
 	} else {
 		buf.WriteUInt8('0' + gs.SlotsFree)
@@ -628,15 +628,15 @@ func (gs *GameSettings) Serialize(buf *protocol.Buffer) {
 // Deserialize GameSettings from StatString
 func (gs *GameSettings) Deserialize(buf *protocol.Buffer) error {
 	gs.SlotsFree = buf.ReadUInt8()
-	if gs.SlotsFree > '9' {
-		gs.SlotsFree -= '1' + '0'
+	if gs.SlotsFree >= '1'+'0' {
+		gs.SlotsFree -= '1' + '0' - 10
 	} else if gs.SlotsFree >= '0' {
 		gs.SlotsFree -= '0'
 	}
 
 	// Hexadecimal in reverse ordering with 0 padding until 8 bytes
 	var b = string(buf.ReadBlob(8))
-	if c, err := strconv.ParseInt(b, 16, 32); err == nil {
+	if c, err := strconv.ParseUint(b, 16, 32); err == nil {
 		c = c&0x0F0F0F0F<<4 | c&0xF0F0F0F0>>4
 		gs.HostCounter = uint32(bits.ReverseBytes32(uint32(c)))
 	} else {
@@ -721,7 +721,7 @@ func (gs *GameSettings) Deserialize(buf *protocol.Buffer) error {
 //          (STRING) Game statstring
 //
 type GetAdvListResp struct {
-	Status uint32           //If count is 0
+	Result AdvListResult    //If count is 0
 	Games  []GetAdvListGame //Otherwise
 }
 
@@ -742,13 +742,13 @@ type GetAdvListResp struct {
 //    (STRING) Game statstring
 //
 type GetAdvListGame struct {
-	GameFlags    w3gs.GameFlags
-	LanguageID   uint32
-	Addr         protocol.SockAddr
-	GameStatus   uint32
-	UptimeSec    uint32
-	GameName     string
-	GameSettings GameSettings
+	GameFlags      w3gs.GameFlags
+	LanguageID     uint32
+	Addr           protocol.SockAddr
+	GameStateFlags GameStateFlags
+	UptimeSec      uint32
+	GameName       string
+	GameSettings   GameSettings
 }
 
 // Serialize encodes the struct into its binary form.
@@ -762,14 +762,14 @@ func (pkt *GetAdvListResp) Serialize(buf *protocol.Buffer) error {
 
 	if len(pkt.Games) == 0 {
 		buf.WriteUInt32(0)
-		buf.WriteUInt32(pkt.Status)
+		buf.WriteUInt32(uint32(pkt.Result))
 	} else {
 		buf.WriteUInt32(uint32(len(pkt.Games)))
 		for i := 0; i < len(pkt.Games); i++ {
 			buf.WriteUInt32(uint32(pkt.Games[i].GameFlags))
 			buf.WriteUInt32(pkt.Games[i].LanguageID)
 			buf.WriteSockAddr(&pkt.Games[i].Addr)
-			buf.WriteUInt32(pkt.Games[i].GameStatus)
+			buf.WriteUInt32(uint32(pkt.Games[i].GameStateFlags))
 			buf.WriteUInt32(pkt.Games[i].UptimeSec)
 			buf.WriteCString(pkt.Games[i].GameName)
 			buf.WriteUInt8(0)
@@ -800,11 +800,11 @@ func (pkt *GetAdvListResp) Deserialize(buf *protocol.Buffer) error {
 		if size != 12 {
 			return ErrInvalidPacketSize
 		}
-		pkt.Status = buf.ReadUInt32()
+		pkt.Result = AdvListResult(buf.ReadUInt32())
 		return nil
 	}
 
-	pkt.Status = 0
+	pkt.Result = AdvListSuccess
 
 	size -= 8
 	for i := 0; i < len(pkt.Games); i++ {
@@ -820,7 +820,7 @@ func (pkt *GetAdvListResp) Deserialize(buf *protocol.Buffer) error {
 			return err
 		}
 
-		pkt.Games[i].GameStatus = buf.ReadUInt32()
+		pkt.Games[i].GameStateFlags = GameStateFlags(buf.ReadUInt32())
 		pkt.Games[i].UptimeSec = buf.ReadUInt32()
 
 		if pkt.Games[i].GameName, err = buf.ReadCString(); err != nil {
@@ -876,25 +876,24 @@ func (pkt *GetAdvListResp) Deserialize(buf *protocol.Buffer) error {
 //    (STRING) Game Statstring
 //
 type GetAdvListReq struct {
-	Filter         w3gs.GameFlags
-	FilterMask     w3gs.GameFlags
-	NumberOfGames  uint32
-	GameName       string
-	GameStatstring string
+	Filter        w3gs.GameFlags
+	FilterMask    w3gs.GameFlags
+	NumberOfGames uint32
+	GameName      string
 }
 
 // Serialize encodes the struct into its binary form.
 func (pkt *GetAdvListReq) Serialize(buf *protocol.Buffer) error {
 	buf.WriteUInt8(ProtocolSig)
 	buf.WriteUInt8(PidGetAdvListEx)
-	buf.WriteUInt16(uint16(23 + len(pkt.GameName) + len(pkt.GameStatstring)))
+	buf.WriteUInt16(uint16(23 + len(pkt.GameName)))
 	buf.WriteUInt32(uint32(pkt.Filter))
 	buf.WriteUInt32(uint32(pkt.FilterMask))
 	buf.WriteUInt32(0)
 	buf.WriteUInt32(pkt.NumberOfGames)
 	buf.WriteCString(pkt.GameName)
 	buf.WriteUInt8(0)
-	buf.WriteCString(pkt.GameStatstring)
+	buf.WriteUInt8(0)
 	return nil
 }
 
@@ -918,19 +917,12 @@ func (pkt *GetAdvListReq) Deserialize(buf *protocol.Buffer) error {
 	if pkt.GameName, err = buf.ReadCString(); err != nil {
 		return err
 	}
-	if size < 23+len(pkt.GameName) {
+	if size != 23+len(pkt.GameName) {
 		return ErrInvalidPacketSize
 	}
 
-	if buf.ReadUInt8() != 0 {
+	if buf.ReadUInt8() != 0 || buf.ReadUInt8() != 0 {
 		return ErrUnexpectedConst
-	}
-
-	if pkt.GameStatstring, err = buf.ReadCString(); err != nil {
-		return err
-	}
-	if size != 23+len(pkt.GameName)+len(pkt.GameStatstring) {
-		return ErrInvalidPacketSize
 	}
 
 	return nil
@@ -1018,19 +1010,19 @@ func (pkt *StartAdvex3Resp) Deserialize(buf *protocol.Buffer) error {
 //    (UINT32) Game Uptime in seconds
 //    (UINT16) Game Type
 //    (UINT16) Sub Game Type
-//    (UINT32) Provider Version Constant (0xFF)
+//    (UINT32) Provider Version Constant (0x03FF)
 //    (UINT32) Ladder Type
 //    (STRING) Game Name
 //    (STRING) Game Password
 //    (STRING) Game Statstring
 //
 type StartAdvex3Req struct {
-	GameState    uint32
-	UptimeSec    uint32
-	GameFlags    w3gs.GameFlags
-	LadderType   uint32
-	GameName     string
-	GameSettings GameSettings
+	GameStateFlags GameStateFlags
+	UptimeSec      uint32
+	GameFlags      w3gs.GameFlags
+	Ladder         bool
+	GameName       string
+	GameSettings   GameSettings
 }
 
 // Serialize encodes the struct into its binary form.
@@ -1039,11 +1031,11 @@ func (pkt *StartAdvex3Req) Serialize(buf *protocol.Buffer) error {
 	buf.WriteUInt8(PidStartAdvex3)
 	buf.WriteUInt16(uint16(26 + len(pkt.GameName) + pkt.GameSettings.Size()))
 
-	buf.WriteUInt32(pkt.GameState)
+	buf.WriteUInt32(uint32(pkt.GameStateFlags))
 	buf.WriteUInt32(pkt.UptimeSec)
 	buf.WriteUInt32(uint32(pkt.GameFlags))
-	buf.WriteUInt32(0xFF)
-	buf.WriteUInt32(pkt.LadderType)
+	buf.WriteUInt32(0x03FF)
+	buf.WriteBool32(pkt.Ladder)
 	buf.WriteCString(pkt.GameName)
 	buf.WriteUInt8(0)
 	pkt.GameSettings.Serialize(buf)
@@ -1058,15 +1050,15 @@ func (pkt *StartAdvex3Req) Deserialize(buf *protocol.Buffer) error {
 		return ErrInvalidPacketSize
 	}
 
-	pkt.GameState = buf.ReadUInt32()
+	pkt.GameStateFlags = GameStateFlags(buf.ReadUInt32())
 	pkt.UptimeSec = buf.ReadUInt32()
 	pkt.GameFlags = w3gs.GameFlags(buf.ReadUInt32())
 
-	if buf.ReadUInt32() != 0xFF {
+	if buf.ReadUInt32() != 0x03FF {
 		return ErrUnexpectedConst
 	}
 
-	pkt.LadderType = buf.ReadUInt32()
+	pkt.Ladder = buf.ReadBool32()
 
 	var err error
 	if pkt.GameName, err = buf.ReadCString(); err != nil {
@@ -1232,7 +1224,6 @@ func (pkt *NetGamePort) Deserialize(buf *protocol.Buffer) error {
 //       (UINT8)[128] Server signature
 //
 type AuthInfoResp struct {
-	LogonType       uint32
 	ServerToken     uint32
 	Unknown1        uint32
 	MpqFileTime     uint64
@@ -1246,7 +1237,7 @@ func (pkt *AuthInfoResp) Serialize(buf *protocol.Buffer) error {
 	buf.WriteUInt8(ProtocolSig)
 	buf.WriteUInt8(PidAuthInfo)
 	buf.WriteUInt16(uint16(154 + len(pkt.MpqFileName) + len(pkt.ValueString)))
-	buf.WriteUInt32(pkt.LogonType)
+	buf.WriteUInt32(0x02)
 	buf.WriteUInt32(pkt.ServerToken)
 	buf.WriteUInt32(pkt.Unknown1)
 	buf.WriteUInt64(pkt.MpqFileTime)
@@ -1263,7 +1254,10 @@ func (pkt *AuthInfoResp) Deserialize(buf *protocol.Buffer) error {
 		return ErrInvalidPacketSize
 	}
 
-	pkt.LogonType = buf.ReadUInt32()
+	if buf.ReadUInt32() != 0x02 {
+		return ErrUnexpectedConst
+	}
+
 	pkt.ServerToken = buf.ReadUInt32()
 	pkt.Unknown1 = buf.ReadUInt32()
 	pkt.MpqFileTime = buf.ReadUInt64()
@@ -1419,7 +1413,7 @@ func (pkt *AuthInfoReq) Deserialize(buf *protocol.Buffer) error {
 //    (STRING) Additional Information
 //
 type AuthCheckResp struct {
-	Result                uint32
+	Result                AuthResult
 	AdditionalInformation string
 }
 
@@ -1428,7 +1422,7 @@ func (pkt *AuthCheckResp) Serialize(buf *protocol.Buffer) error {
 	buf.WriteUInt8(ProtocolSig)
 	buf.WriteUInt8(PidAuthCheck)
 	buf.WriteUInt16(uint16(9 + len(pkt.AdditionalInformation)))
-	buf.WriteUInt32(pkt.Result)
+	buf.WriteUInt32(uint32(pkt.Result))
 	buf.WriteCString(pkt.AdditionalInformation)
 	return nil
 }
@@ -1440,7 +1434,7 @@ func (pkt *AuthCheckResp) Deserialize(buf *protocol.Buffer) error {
 		return ErrInvalidPacketSize
 	}
 
-	pkt.Result = buf.ReadUInt32()
+	pkt.Result = AuthResult(buf.ReadUInt32())
 
 	var err error
 	if pkt.AdditionalInformation, err = buf.ReadCString(); err != nil {
@@ -1616,8 +1610,6 @@ func (pkt *AuthCheckReq) Deserialize(buf *protocol.Buffer) error {
 //   0x05: Account requires upgrade.
 //   Other: Unknown (failure).
 //
-// See the [NLS/SRP Protocol] document for more information.
-//
 // Format:
 //
 //    (UINT32)     Status
@@ -1625,7 +1617,7 @@ func (pkt *AuthCheckReq) Deserialize(buf *protocol.Buffer) error {
 //     (UINT8)[32] Server Key (B)
 //
 type AuthAccountLogonResp struct {
-	Status    uint32
+	Result    LogonResult
 	Salt      [32]byte
 	ServerKey [32]byte
 }
@@ -1635,7 +1627,7 @@ func (pkt *AuthAccountLogonResp) Serialize(buf *protocol.Buffer) error {
 	buf.WriteUInt8(ProtocolSig)
 	buf.WriteUInt8(PidAuthAccountLogon)
 	buf.WriteUInt16(72)
-	buf.WriteUInt32(pkt.Status)
+	buf.WriteUInt32(uint32(pkt.Result))
 	buf.WriteBlob(pkt.Salt[:])
 	buf.WriteBlob(pkt.ServerKey[:])
 	return nil
@@ -1646,7 +1638,7 @@ func (pkt *AuthAccountLogonResp) Deserialize(buf *protocol.Buffer) error {
 	if readPacketSize(buf) != 72 {
 		return ErrInvalidPacketSize
 	}
-	pkt.Status = buf.ReadUInt32()
+	pkt.Result = LogonResult(buf.ReadUInt32())
 	copy(pkt.Salt[:], buf.ReadBlob(20))
 	copy(pkt.ServerKey[:], buf.ReadBlob(20))
 	return nil
@@ -1656,7 +1648,7 @@ func (pkt *AuthAccountLogonResp) Deserialize(buf *protocol.Buffer) error {
 //
 // This message is sent to the server to initiate a logon. It consists of the client's public key and their UserName.
 //
-// The client's public key is a value calculated by the client and used for a single logon. For more information, see [NLS/SRP Protocol].
+// The client's public key is a value calculated by the client and used for a single logon.
 //
 // Format:
 //
@@ -1707,8 +1699,7 @@ func (pkt *AuthAccountLogonReq) Deserialize(buf *protocol.Buffer) error {
 //   0x0E: An email address should be registered for this account.
 //   0x0F: Custom error. A string at the end of this message contains the error.
 //
-//
-// This message confirms the validity of the client password proof and supplies the server password proof. See [NLS/SRP Protocol] for more information.
+// This message confirms the validity of the client password proof and supplies the server password proof.
 //
 // Format:
 //
@@ -1717,7 +1708,7 @@ func (pkt *AuthAccountLogonReq) Deserialize(buf *protocol.Buffer) error {
 //    (STRING)     Additional information
 //
 type AuthAccountLogonProofResp struct {
-	Status                uint32
+	Result                LogonProofResult
 	ServerPasswordProof   [20]byte
 	AdditionalInformation string
 }
@@ -1727,18 +1718,18 @@ func (pkt *AuthAccountLogonProofResp) Serialize(buf *protocol.Buffer) error {
 	buf.WriteUInt8(ProtocolSig)
 	buf.WriteUInt8(PidAuthAccountLogonProof)
 
-	switch pkt.Status {
-	case 0x0F:
+	switch pkt.Result {
+	case LogonProofCustomError:
 		buf.WriteUInt16(uint16(29 + len(pkt.AdditionalInformation)))
 	default:
 		buf.WriteUInt16(28)
 	}
 
-	buf.WriteUInt32(pkt.Status)
+	buf.WriteUInt32(uint32(pkt.Result))
 	buf.WriteBlob(pkt.ServerPasswordProof[:])
 
-	switch pkt.Status {
-	case 0x0F:
+	switch pkt.Result {
+	case LogonProofCustomError:
 		buf.WriteCString(pkt.AdditionalInformation)
 	}
 
@@ -1752,11 +1743,11 @@ func (pkt *AuthAccountLogonProofResp) Deserialize(buf *protocol.Buffer) error {
 		return ErrInvalidPacketSize
 	}
 
-	pkt.Status = buf.ReadUInt32()
+	pkt.Result = LogonProofResult(buf.ReadUInt32())
 	copy(pkt.ServerPasswordProof[:], buf.ReadBlob(20))
 
-	switch pkt.Status {
-	case 0x0F:
+	switch pkt.Result {
+	case LogonProofCustomError:
 		if size < 29 {
 			return ErrInvalidPacketSize
 		}
@@ -1774,7 +1765,7 @@ func (pkt *AuthAccountLogonProofResp) Deserialize(buf *protocol.Buffer) error {
 
 // AuthAccountLogonProofReq implements the [0x54] SID_AUTH_ACCOUNTLOGONPROOF packet (C -> S).
 //
-// This message is sent to the server after a successful SID_AUTH_ACCOUNTLOGON. It contains the client's password proof. See [NLS/SRP Protocol] for more information.
+// This message is sent to the server after a successful SID_AUTH_ACCOUNTLOGON. It contains the client's password proof.
 //
 // Format:
 //

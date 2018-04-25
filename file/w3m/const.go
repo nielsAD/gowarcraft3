@@ -15,7 +15,7 @@ var (
 )
 
 // Size enum
-type Size byte
+type Size uint8
 
 // Map size categories
 const (

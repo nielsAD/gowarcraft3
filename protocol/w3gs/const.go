@@ -400,11 +400,10 @@ const (
 	GameFlagOfficialGame GameFlags = 0x000009 // Blizzard signed map
 	GameFlagSinglePlayer GameFlags = 0x00001D
 	GameFlagTeamLadder   GameFlags = 0x000020
-	GameFlagTypeMask     GameFlags = 0x0000FF
+	GameFlagSavedGame    GameFlags = 0x000200
+	GameFlagTypeMask     GameFlags = 0x0002FF
 
-	GameFlagSavedGame      GameFlags = 0x000200 // Implies private
-	GameFlagPrivateGame    GameFlags = 0x000800
-	GameFlagVisibilityMask GameFlags = 0x000F00
+	GameFlagPrivateGame GameFlags = 0x000800
 
 	GameFlagCreatorUser     GameFlags = 0x002000
 	GameFlagCreatorBlizzard GameFlags = 0x004000
@@ -423,6 +422,9 @@ const (
 	GameFlagObsOnDefeat GameFlags = 0x200000
 	GameFlagObsNone     GameFlags = 0x400000
 	GameFlagObsMask     GameFlags = 0x700000
+
+	// Used for filtering game list
+	GameFlagFilterMask GameFlags = 0x7FE000
 )
 
 func (f GameFlags) String() string {
@@ -437,21 +439,16 @@ func (f GameFlags) String() string {
 		res = "|SinglePlayer"
 	case GameFlagTeamLadder:
 		res = "|TeamLadder"
+	case GameFlagSavedGame:
+		res += "|SavedGame"
 	case 0:
 		// No game type
 	default:
 		return fmt.Sprintf("GameFlags(0x%06X)", uint32(f))
 	}
 
-	switch f & GameFlagVisibilityMask {
-	case GameFlagSavedGame:
-		res += "|Saved"
-	case GameFlagPrivateGame:
+	if f&GameFlagPrivateGame != 0 {
 		res += "|Private"
-	case 0:
-		// Public
-	default:
-		return fmt.Sprintf("GameFlags(0x%06X)", uint32(f))
 	}
 
 	switch f & GameFlagCreatorMask {
@@ -510,7 +507,7 @@ func (f GameFlags) String() string {
 		return fmt.Sprintf("GameFlags(0x%06X)", uint32(f))
 	}
 
-	f &= ^(GameFlagTypeMask | GameFlagVisibilityMask | GameFlagCreatorMask | GameFlagSizeMask | GameFlagMapTypeMask | GameFlagObsMask)
+	f &= ^(GameFlagTypeMask | GameFlagPrivateGame | GameFlagCreatorMask | GameFlagSizeMask | GameFlagMapTypeMask | GameFlagObsMask)
 
 	if f != 0 {
 		res += fmt.Sprintf("|GameFlags(0x%02X)", uint32(f))

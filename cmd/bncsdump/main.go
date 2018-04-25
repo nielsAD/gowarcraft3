@@ -51,7 +51,10 @@ func dumpPackets(layer string, netFlow, transFlow gopacket.Flow, r io.Reader) er
 
 	// Skip connection initializer
 	if transFlow.Dst().String() == srv {
-		io.CopyN(ioutil.Discard, r, 1)
+		var firstByte = []byte{0}
+		if _, err := r.Read(firstByte); err != nil || firstByte[0] != bncs.ProtocolGreeting {
+			return bncs.ErrNoProtocolSig
+		}
 	}
 
 	for {

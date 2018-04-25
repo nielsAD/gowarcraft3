@@ -28,7 +28,7 @@ func TestClientPackets(t *testing.T) {
 		&bncs.EnterChatReq{},
 		&bncs.JoinChannel{},
 		&bncs.JoinChannel{
-			Flags:   0x01,
+			Flag:    bncs.ChannelJoinFirst,
 			Channel: "The Void",
 		},
 		&bncs.ChatCommand{},
@@ -37,19 +37,18 @@ func TestClientPackets(t *testing.T) {
 		},
 		&bncs.GetAdvListReq{},
 		&bncs.GetAdvListReq{
-			Filter:         w3gs.GameFlagMapTypeMelee,
-			FilterMask:     w3gs.GameFlagMapTypeMask,
-			NumberOfGames:  2,
-			GameName:       "345",
-			GameStatstring: "678",
+			Filter:        w3gs.GameFlagMapTypeMelee,
+			FilterMask:    w3gs.GameFlagMapTypeMask,
+			NumberOfGames: 2,
+			GameName:      "345",
 		},
 		&bncs.StartAdvex3Req{},
 		&bncs.StartAdvex3Req{
-			GameState:  1,
-			UptimeSec:  2,
-			GameFlags:  w3gs.GameFlagSizeLarge,
-			LadderType: 4,
-			GameName:   "Test",
+			GameStateFlags: bncs.GameStateFlagPrivate,
+			UptimeSec:      2,
+			GameFlags:      w3gs.GameFlagSizeLarge,
+			Ladder:         true,
+			GameName:       "Test",
 			GameSettings: bncs.GameSettings{
 				SlotsFree:   5,
 				HostCounter: 6,
@@ -187,7 +186,7 @@ func TestServerPackets(t *testing.T) {
 		},
 		&bncs.ChatEvent{},
 		&bncs.ChatEvent{
-			EventID:   1,
+			Type:      bncs.ChatTalk,
 			UserFlags: 2,
 			Ping:      3,
 			UserName:  "Grubby",
@@ -202,7 +201,7 @@ func TestServerPackets(t *testing.T) {
 		},
 		&bncs.GetAdvListResp{},
 		&bncs.GetAdvListResp{
-			Status: 1,
+			Result: bncs.AdvListFull,
 		},
 		&bncs.GetAdvListResp{
 			Games: []bncs.GetAdvListGame{
@@ -213,9 +212,9 @@ func TestServerPackets(t *testing.T) {
 						Port: 6,
 						IP:   net.IP{7, 8, 9, 10},
 					},
-					GameStatus: 3,
-					UptimeSec:  4,
-					GameName:   "ShortName",
+					GameStateFlags: bncs.GameStateFlagInProgress,
+					UptimeSec:      4,
+					GameName:       "ShortName",
 					GameSettings: bncs.GameSettings{
 						SlotsFree:   5,
 						HostCounter: 6,
@@ -237,7 +236,6 @@ func TestServerPackets(t *testing.T) {
 		},
 		&bncs.AuthInfoResp{},
 		&bncs.AuthInfoResp{
-			LogonType:   1,
 			ServerToken: 2,
 			MpqFileTime: 3,
 			MpqFileName: "456",
@@ -250,14 +248,14 @@ func TestServerPackets(t *testing.T) {
 		},
 		&bncs.AuthAccountLogonResp{},
 		&bncs.AuthAccountLogonResp{
-			Status: 4,
+			Result: bncs.LogonUpgradeRequired,
 		},
 		&bncs.AuthAccountLogonProofResp{},
 		&bncs.AuthAccountLogonProofResp{
-			Status: 0x01,
+			Result: bncs.LogonProofPasswordIncorrect,
 		},
 		&bncs.AuthAccountLogonProofResp{
-			Status:                0x0F,
+			Result:                bncs.LogonProofCustomError,
 			AdditionalInformation: "Foo, bar.",
 		},
 	}
