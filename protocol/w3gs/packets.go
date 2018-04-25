@@ -1625,10 +1625,15 @@ type GameSettings struct {
 	MapSha1          [20]byte
 }
 
-// Serialize GameSettings into StatString
-func (gs *GameSettings) Serialize() string {
+// Size of Serialize()
+func (gs *GameSettings) Size() int {
 	var size = 36 + len(gs.MapPath) + len(gs.HostName)
-	var statstring = protocol.Buffer{Bytes: make([]byte, 0, size+size+int(math.Ceil(float64(size)/7)))}
+	return size + int(math.Ceil(float64(size)/7)) + 1
+}
+
+// Serialize GameSettings into StatString
+func (gs *GameSettings) Serialize(buf *protocol.Buffer) {
+	var statstring = protocol.Buffer{Bytes: make([]byte, 0, 36+len(gs.MapPath)+len(gs.HostName))}
 	statstring.WriteUInt32(uint32(gs.GameSettingFlags))
 	statstring.WriteUInt8(0)
 	statstring.WriteUInt16(gs.MapWidth)
@@ -1641,28 +1646,33 @@ func (gs *GameSettings) Serialize() string {
 
 	var b = statstring.Bytes[:]
 	for i := uint(0); i < uint(len(b)); i += 7 {
-		var p = statstring.Size()
+		var p = buf.Size()
 		var m = uint8(1)
-		statstring.WriteUInt8(0)
+		buf.WriteUInt8(0)
 
 		for j := uint(0); j < 7 && i+j < uint(len(b)); j++ {
 			if (b[i+j] % 2) == 0 {
-				statstring.WriteUInt8(b[i+j] + 1)
+				buf.WriteUInt8(b[i+j] + 1)
 			} else {
-				statstring.WriteUInt8(b[i+j])
+				buf.WriteUInt8(b[i+j])
 				m |= 1 << (j + 1)
 			}
 		}
 
-		statstring.WriteUInt8At(p, m)
+		buf.WriteUInt8At(p, m)
 	}
-
-	return string(statstring.Bytes[size:])
+	buf.WriteUInt8(0)
 }
 
 // Deserialize GameSettings from StatString
-func (gs *GameSettings) Deserialize(statstring string) error {
-	if len(statstring) < 42 {
+func (gs *GameSettings) Deserialize(buf *protocol.Buffer) error {
+	var statstring string
+	var err error
+	if statstring, err = buf.ReadCString(); err != nil {
+		return err
+	}
+
+	if len(statstring) < 36 {
 		return ErrInvalidPacketSize
 	}
 
@@ -1690,7 +1700,6 @@ func (gs *GameSettings) Deserialize(statstring string) error {
 	gs.MapHeight = b.ReadUInt16()
 	gs.MapXoro = b.ReadUInt32()
 
-	var err error
 	gs.MapPath, err = b.ReadCString()
 	if err != nil {
 		return err
@@ -1752,18 +1761,16 @@ type GameInfo struct {
 
 // Serialize encodes the struct into its binary form.
 func (pkt *GameInfo) Serialize(buf *protocol.Buffer) error {
-	var statstring = pkt.GameSettings.Serialize()
-
 	buf.WriteUInt8(ProtocolSig)
 	buf.WriteUInt8(PidGameInfo)
-	buf.WriteUInt16(uint16(45 + len(pkt.GameName) + len(statstring)))
+	buf.WriteUInt16(uint16(44 + len(pkt.GameName) + pkt.GameSettings.Size()))
 
 	pkt.GameVersion.Serialize(buf)
 	buf.WriteUInt32(pkt.HostCounter)
 	buf.WriteUInt32(pkt.EntryKey)
 	buf.WriteCString(pkt.GameName)
 	buf.WriteUInt8(0)
-	buf.WriteCString(statstring)
+	pkt.GameSettings.Serialize(buf)
 	buf.WriteUInt32(pkt.SlotsTotal)
 	buf.WriteUInt32(uint32(pkt.GameFlags))
 	buf.WriteUInt32(pkt.SlotsUsed)
@@ -1797,15 +1804,11 @@ func (pkt *GameInfo) Deserialize(buf *protocol.Buffer) error {
 		return ErrUnexpectedConst
 	}
 
-	var statstring string
-	if statstring, err = buf.ReadCString(); err != nil {
+	if err = pkt.GameSettings.Deserialize(buf); err != nil {
 		return err
 	}
-	if size != 45+len(pkt.GameName)+len(statstring) {
+	if size != 44+len(pkt.GameName)+pkt.GameSettings.Size() {
 		return ErrInvalidPacketSize
-	}
-	if err = pkt.GameSettings.Deserialize(statstring); err != nil {
-		return err
 	}
 
 	pkt.SlotsTotal = buf.ReadUInt32()

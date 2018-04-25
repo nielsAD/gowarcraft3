@@ -5,8 +5,9 @@
 package bncs
 
 import (
-	"fmt"
+	"math/bits"
 	"net"
+	"strconv"
 
 	"github.com/nielsAD/gowarcraft3/protocol"
 	"github.com/nielsAD/gowarcraft3/protocol/w3gs"
@@ -539,6 +540,402 @@ func (pkt *MessageBox) Deserialize(buf *protocol.Buffer) error {
 	return nil
 }
 
+// GameSettings stores the settings of a created game.
+//
+//  This field still conforms to being a null-terminated string by encoding the data such that there are no null characters within.
+//  The first 9 `UINT8`s are characters representing hexadecimal integers (`0` through `9` and `a` through `f`).
+//  After this, the rest of the data is encoded in a manner in order to contain nulls when decoded, but be stored within this null-terminated string.
+//
+//  Format:
+//   (CHAR)    Number of free slots (ex: `7` for 7 free slots)
+//   (CHAR)[8] Host counter (reversed hexadecimal integer, ex: `20000000` for second time this host has hosted during his session)
+//   Encoded data:
+//      (UINT32) Map flags (combine the below settings):
+//         Game speed (mask 0x00000003, unique):
+//             `0x00000000`: Slow
+//             `0x00000001`: Normal
+//             `0x00000002`: Fast
+//         Visibility setting (mask 0x00000F00, unique):
+//             `0x00000100`: Hide Terrain
+//             `0x00000200`: Map Explored
+//             `0x00000400`: Always Visible
+//             `0x00000800`: Default
+//         Observers setting (mask 0x40003000, unique):
+//             `0x00000000`: No Observers
+//             `0x00002000`: Observers on Defeat
+//             `0x00003000`: Full Observers
+//             `0x40000000`: Referees
+//         Other advanced host settings (mask 0x07064000, combinable):
+//             `0x00004000`: Teams Together (team members are placed at neighbored starting locations)
+//             `0x00060000`: Lock Teams
+//             `0x01000000`: Full Shared Unit Control
+//             `0x02000000`: Random Hero
+//             `0x04000000`: Random Races
+//      (UINT8) Map null 1
+//      (UINT8) Map width (playable area)
+//      (UINT8) Map null 2
+//      (UINT8) Map height (playable area)
+//      (UINT8) Map null 3
+//     (UINT32) Map CRC
+//     (STRING) Map path
+//     (STRING) Game host name
+//      (UINT8) Map unknown (possibly a STRING with just the null terminator)
+//      (UINT8)[20] Unknown (probably a SHA1 hash)
+//
+// Format:
+//
+//    (UINT32)     Flags
+//    (UINT16)     Map width
+//    (UINT16)     Map height
+//    (UINT32)     Map xoro
+//    (STRING)     Map path
+//    (STRING)     Host name
+//     (UINT8)[20] Map Sha1 hash
+//
+// Encoded as a null terminated string where every even byte-value was
+// incremented by 1. So all encoded bytes are odd. A control-byte stores
+// the transformations for the next 7 bytes.
+//
+type GameSettings struct {
+	SlotsFree    uint8
+	HostCounter  uint32
+	GameSettings w3gs.GameSettings
+}
+
+// Size of Serialize()
+func (gs *GameSettings) Size() int {
+	return 9 + gs.GameSettings.Size()
+}
+
+// Serialize GameSettings into StatString
+func (gs *GameSettings) Serialize(buf *protocol.Buffer) {
+	if gs.SlotsFree > 9 {
+		buf.WriteUInt8('1' + '0' + gs.SlotsFree - 10)
+	} else {
+		buf.WriteUInt8('0' + gs.SlotsFree)
+	}
+
+	// Hexadecimal in reverse ordering with 0 padding until 8 bytes
+	var b = []byte{'0', '0', '0', '0', '0', '0', '0', '0'}
+	var c = bits.ReverseBytes32(gs.HostCounter)
+	c = c&0x0F0F0F0F<<4 | c&0xF0F0F0F0>>4
+	strconv.AppendInt(b[:0], int64(c), 16)
+	buf.WriteBlob(b)
+
+	gs.GameSettings.Serialize(buf)
+}
+
+// Deserialize GameSettings from StatString
+func (gs *GameSettings) Deserialize(buf *protocol.Buffer) error {
+	gs.SlotsFree = buf.ReadUInt8()
+	if gs.SlotsFree > '9' {
+		gs.SlotsFree -= '1' + '0'
+	} else if gs.SlotsFree >= '0' {
+		gs.SlotsFree -= '0'
+	}
+
+	// Hexadecimal in reverse ordering with 0 padding until 8 bytes
+	var b = string(buf.ReadBlob(8))
+	if c, err := strconv.ParseInt(b, 16, 32); err == nil {
+		c = c&0x0F0F0F0F<<4 | c&0xF0F0F0F0>>4
+		gs.HostCounter = uint32(bits.ReverseBytes32(uint32(c)))
+	} else {
+		return err
+	}
+
+	if err := gs.GameSettings.Deserialize(buf); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// GetAdvListResp implements the [0x09] SID_GetAdvListEx packet (S -> C).
+//
+// Returns a list of available games and their information. Values vary depending on product.
+//
+// The Game settings field is a combination of values.
+//    WarCraft III (WAR3/W3XP): combine the below settings
+//       Game type (mask `0x000000FF`, unique)
+//          `0x00000001`: Custom
+//          `0x00000009`: Ladder
+//       Public/private (mask `0x00000800`, unique)
+//          `0x00000000`: Public game
+//          `0x00000800`: Private game
+//       Map author ID (mask `0x00006000`, combinable)
+//          `0x00002000`: Blizzard
+//          `0x00004000`: Custom
+//       Battle/scenario (mask `0x00018000`, unique)
+//          `0x00000000`: Battle
+//          `0x00010000`: Scenario
+//       Map size (mask `0x000E0000`, combinable)
+//          `0x00020000`: Small
+//          `0x00040000`: Medium
+//          `0x00080000`: Huge
+//       Observers (mask `0x00070000`, unique)
+//          `0x00100000`: Allowed observers ("Full Observers" and "Referees" options)
+//          `0x00200000`: Observers on defeat
+//          `0x00400000`: No observers
+//
+// The Address Family, Port, Host's IP, and sin_zero fields form a sockaddr_in(https://msdn.microsoft.com/en-us/library/zx63b042.aspx) structure.
+//
+// The Game status field varies by product.
+//    WarCraft III (WAR3/W3XP):
+//       `0x00000010`: Public
+//       `0x00000011`: Private
+//      When there are no entries returned, the Status field uses this list of results, as well.
+//       `0x00000000`: OK
+//       `0x00000001`: Game doesn't exist
+//       `0x00000002`: Incorrect password
+//       `0x00000003`: Game full
+//       `0x00000004`: Game already started
+//       `0x00000005`: Spawned CD-Key not allowed
+//       `0x00000006`: Too many server requests
+//
+// The Game name field is UTF-8 encoded.
+//
+// The Game password field is always empty on WarCraft III.
+//
+// The Game statstring field contains more information that is very specific to each product.
+//
+// Format:
+//
+//    (UINT32) Number of games
+//
+//    If count is 0:
+//       (UINT32) Status
+//
+//    Otherwise, games are listed thus:
+//       For each list item:
+//          (UINT32) Game settings
+//          (UINT32) Language ID
+//          (UINT16) Address Family (Always AF_INET)
+//          (UINT16) Port
+//          (UINT32) Host's IP
+//          (UINT32) sin_zero (0)
+//          (UINT32) sin_zero (0)
+//          (UINT32) Game status
+//          (UINT32) Elapsed time (in seconds)
+//          (STRING) Game name
+//          (STRING) Game password
+//          (STRING) Game statstring
+//
+type GetAdvListResp struct {
+	Status uint32           //If count is 0
+	Games  []GetAdvListGame //Otherwise
+}
+
+// GetAdvListGame stores a game in GetAdvList.
+//
+// Format:
+//    (UINT32) Game settings
+//    (UINT32) Language ID
+//    (UINT16) Address Family (Always AF_INET)
+//    (UINT16) Port
+//    (UINT32) Host's IP
+//    (UINT32) sin_zero (0)
+//    (UINT32) sin_zero (0)
+//    (UINT32) Game status
+//    (UINT32) Elapsed time (in seconds)
+//    (STRING) Game name
+//    (STRING) Game password
+//    (STRING) Game statstring
+//
+type GetAdvListGame struct {
+	GameFlags    w3gs.GameFlags
+	LanguageID   uint32
+	Addr         protocol.SockAddr
+	GameStatus   uint32
+	UptimeSec    uint32
+	GameName     string
+	GameSettings GameSettings
+}
+
+// Serialize encodes the struct into its binary form.
+func (pkt *GetAdvListResp) Serialize(buf *protocol.Buffer) error {
+	var start = buf.Size()
+	buf.WriteUInt8(ProtocolSig)
+	buf.WriteUInt8(PidGetAdvListEx)
+
+	// Placeholder for size
+	buf.WriteUInt16(0)
+
+	if len(pkt.Games) == 0 {
+		buf.WriteUInt32(0)
+		buf.WriteUInt32(pkt.Status)
+	} else {
+		buf.WriteUInt32(uint32(len(pkt.Games)))
+		for i := 0; i < len(pkt.Games); i++ {
+			buf.WriteUInt32(uint32(pkt.Games[i].GameFlags))
+			buf.WriteUInt32(pkt.Games[i].LanguageID)
+			buf.WriteSockAddr(&pkt.Games[i].Addr)
+			buf.WriteUInt32(pkt.Games[i].GameStatus)
+			buf.WriteUInt32(pkt.Games[i].UptimeSec)
+			buf.WriteCString(pkt.Games[i].GameName)
+			buf.WriteUInt8(0)
+			pkt.Games[i].GameSettings.Serialize(buf)
+		}
+	}
+
+	// Set size
+	buf.WriteUInt16At(start+2, uint16(buf.Size()-start))
+
+	return nil
+}
+
+// Deserialize decodes the binary data generated by Serialize.
+func (pkt *GetAdvListResp) Deserialize(buf *protocol.Buffer) error {
+	var size = readPacketSize(buf)
+	if size < 12 {
+		return ErrInvalidPacketSize
+	}
+
+	var numGames = int(buf.ReadUInt32())
+	if cap(pkt.Games) < numGames {
+		pkt.Games = make([]GetAdvListGame, 0, numGames)
+	}
+	pkt.Games = pkt.Games[:numGames]
+
+	if numGames == 0 {
+		if size != 12 {
+			return ErrInvalidPacketSize
+		}
+		pkt.Status = buf.ReadUInt32()
+		return nil
+	}
+
+	pkt.Status = 0
+
+	size -= 8
+	for i := 0; i < len(pkt.Games); i++ {
+		if size < 35 {
+			return ErrInvalidPacketSize
+		}
+
+		pkt.Games[i].GameFlags = w3gs.GameFlags(buf.ReadUInt32())
+		pkt.Games[i].LanguageID = buf.ReadUInt32()
+
+		var err error
+		if pkt.Games[i].Addr, err = buf.ReadSockAddr(); err != nil {
+			return err
+		}
+
+		pkt.Games[i].GameStatus = buf.ReadUInt32()
+		pkt.Games[i].UptimeSec = buf.ReadUInt32()
+
+		if pkt.Games[i].GameName, err = buf.ReadCString(); err != nil {
+			return err
+		}
+
+		size -= 33 + len(pkt.Games[i].GameName)
+		if size < 2 {
+			return ErrInvalidPacketSize
+		}
+
+		if buf.ReadUInt8() != 0 {
+			return ErrUnexpectedConst
+		}
+
+		if err = pkt.Games[i].GameSettings.Deserialize(buf); err != nil {
+			return err
+		}
+
+		size -= 1 + pkt.Games[i].GameSettings.Size()
+	}
+
+	if size != 0 {
+		return ErrInvalidPacketSize
+	}
+
+	return nil
+}
+
+// GetAdvListReq implements the [0x09] SID_GetAdvListEx packet (C -> S).
+//
+// Retrieves a list of games.
+//
+// Viewing Filter:
+//   0xFFFF is used to use the combination of values in this packet.
+//   0xFF80 is used to show all games.
+//   For STAR/SEXP/SSHR/JSTR, viewing filter is set to 0x30.
+//   For DRTL/DSHR, viewing filter is set to 0xFFFF by the game, but setting it to 0x00 will disable any viewing limitations, letting you view all games.
+// Reserved (0):
+//   This value is hardcoded to 0x00 by all games.
+// Number of Games:
+//   This is the number of games to list. For a full listing, it's safe to use 0xFF. By default, DRTL/DSHR sets this to 0x19.
+//
+// Format:
+//
+//    (UINT16) Game Type
+//    (UINT16) Sub Game Type
+//    (UINT32) Viewing Filter
+//    (UINT32) Reserved (0)
+//    (UINT32) Number of Games
+//    (STRING) Game Name
+//    (STRING) Game Password
+//    (STRING) Game Statstring
+//
+type GetAdvListReq struct {
+	Filter         w3gs.GameFlags
+	FilterMask     w3gs.GameFlags
+	NumberOfGames  uint32
+	GameName       string
+	GameStatstring string
+}
+
+// Serialize encodes the struct into its binary form.
+func (pkt *GetAdvListReq) Serialize(buf *protocol.Buffer) error {
+	buf.WriteUInt8(ProtocolSig)
+	buf.WriteUInt8(PidGetAdvListEx)
+	buf.WriteUInt16(uint16(23 + len(pkt.GameName) + len(pkt.GameStatstring)))
+	buf.WriteUInt32(uint32(pkt.Filter))
+	buf.WriteUInt32(uint32(pkt.FilterMask))
+	buf.WriteUInt32(0)
+	buf.WriteUInt32(pkt.NumberOfGames)
+	buf.WriteCString(pkt.GameName)
+	buf.WriteUInt8(0)
+	buf.WriteCString(pkt.GameStatstring)
+	return nil
+}
+
+// Deserialize decodes the binary data generated by Serialize.
+func (pkt *GetAdvListReq) Deserialize(buf *protocol.Buffer) error {
+	var size = readPacketSize(buf)
+	if size < 23 {
+		return ErrInvalidPacketSize
+	}
+
+	pkt.Filter = w3gs.GameFlags(buf.ReadUInt32())
+	pkt.FilterMask = w3gs.GameFlags(buf.ReadUInt32())
+
+	if buf.ReadUInt32() != 0 {
+		return ErrUnexpectedConst
+	}
+
+	pkt.NumberOfGames = buf.ReadUInt32()
+
+	var err error
+	if pkt.GameName, err = buf.ReadCString(); err != nil {
+		return err
+	}
+	if size < 23+len(pkt.GameName) {
+		return ErrInvalidPacketSize
+	}
+
+	if buf.ReadUInt8() != 0 {
+		return ErrUnexpectedConst
+	}
+
+	if pkt.GameStatstring, err = buf.ReadCString(); err != nil {
+		return err
+	}
+	if size != 23+len(pkt.GameName)+len(pkt.GameStatstring) {
+		return ErrInvalidPacketSize
+	}
+
+	return nil
+}
+
 // StartAdvex3Resp implements the [0x1C] SID_StartAdvex3 packet (S -> C).
 //
 // Possible values for Status:
@@ -633,18 +1030,14 @@ type StartAdvex3Req struct {
 	GameFlags    w3gs.GameFlags
 	LadderType   uint32
 	GameName     string
-	SlotsFree    uint8
-	HostCounter  uint32
-	GameSettings w3gs.GameSettings
+	GameSettings GameSettings
 }
 
 // Serialize encodes the struct into its binary form.
 func (pkt *StartAdvex3Req) Serialize(buf *protocol.Buffer) error {
-	var statstring = fmt.Sprintf("%c%08x%s", pkt.SlotsFree+'W', pkt.HostCounter, pkt.GameSettings.Serialize())
-
 	buf.WriteUInt8(ProtocolSig)
 	buf.WriteUInt8(PidStartAdvex3)
-	buf.WriteUInt16(uint16(27 + len(pkt.GameName) + len(statstring)))
+	buf.WriteUInt16(uint16(26 + len(pkt.GameName) + pkt.GameSettings.Size()))
 
 	buf.WriteUInt32(pkt.GameState)
 	buf.WriteUInt32(pkt.UptimeSec)
@@ -653,7 +1046,7 @@ func (pkt *StartAdvex3Req) Serialize(buf *protocol.Buffer) error {
 	buf.WriteUInt32(pkt.LadderType)
 	buf.WriteCString(pkt.GameName)
 	buf.WriteUInt8(0)
-	buf.WriteCString(statstring)
+	pkt.GameSettings.Serialize(buf)
 
 	return nil
 }
@@ -687,24 +1080,11 @@ func (pkt *StartAdvex3Req) Deserialize(buf *protocol.Buffer) error {
 		return ErrUnexpectedConst
 	}
 
-	var statstring string
-	if statstring, err = buf.ReadCString(); err != nil {
+	if err = pkt.GameSettings.Deserialize(buf); err != nil {
 		return err
 	}
-	if len(statstring) < 9 || size != 27+len(pkt.GameName)+len(statstring) {
+	if size != 26+len(pkt.GameName)+pkt.GameSettings.Size() {
 		return ErrInvalidPacketSize
-	}
-
-	if _, err = fmt.Sscanf(statstring[:9], "%c%08x", &pkt.SlotsFree, &pkt.HostCounter); err != nil {
-		return err
-	}
-
-	if pkt.SlotsFree >= 'W' {
-		pkt.SlotsFree -= 'W'
-	}
-
-	if err = pkt.GameSettings.Deserialize(statstring[9:]); err != nil {
-		return err
 	}
 
 	return nil
@@ -1075,7 +1455,7 @@ func (pkt *AuthCheckResp) Deserialize(buf *protocol.Buffer) error {
 
 // AuthCheckReq implements the [0x51] SID_AUTH_CHECK packet (C -> S).
 //
-// Contains the EXE Version and Hash as reported by `CheckRevision()` and CDKey values.
+// Contains the EXE Version and Hash as reported by `CheckRevision() and CDKey values.
 //
 // The data that should be hashed for `Hashed Key Data` is:
 //
@@ -1130,6 +1510,22 @@ type AuthCheckReq struct {
 	CDKeys         []CDKey
 	ExeInformation string
 	KeyOwnerName   string
+}
+
+// CDKey stores the CD key information.
+//
+//  Format:
+//    (UINT32)     Key length
+//    (UINT32)     Key Product value
+//    (UINT32)     Key Public value
+//    (UINT32)     Unknown (0)
+//     (UINT8)[20] Hashed Key Data
+//
+type CDKey struct {
+	KeyLength       uint32
+	KeyProductValue uint32
+	KeyPublicValue  uint32
+	HashedKeyData   [20]byte
 }
 
 // Serialize encodes the struct into its binary form.
@@ -1208,22 +1604,6 @@ func (pkt *AuthCheckReq) Deserialize(buf *protocol.Buffer) error {
 	}
 
 	return nil
-}
-
-// CDKey stores the CD key information.
-//
-//  Format
-//    (UINT32)     Key length
-//    (UINT32)     Key Product value
-//    (UINT32)     Key Public value
-//    (UINT32)     Unknown (0)
-//     (UINT8)[20] Hashed Key Data
-//
-type CDKey struct {
-	KeyLength       uint32
-	KeyProductValue uint32
-	KeyPublicValue  uint32
-	HashedKeyData   [20]byte
 }
 
 // AuthAccountLogonResp implements the [0x53] SID_AUTH_ACCOUNTLOGON packet (S -> C).

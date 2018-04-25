@@ -117,7 +117,7 @@ func (b *Buffer) WriteSockAddr(v *SockAddr) error {
 		b.WriteUInt32(0)
 	} else {
 		b.WriteUInt16(connAddressFamily)
-		b.WriteUInt16(bits.Reverse16(v.Port))
+		b.WriteUInt16(bits.ReverseBytes16(v.Port))
 		if err := b.WriteIP(v.IP); err != nil {
 			return err
 		}
@@ -141,7 +141,7 @@ func (b *Buffer) WriteLEDString(v DWordString) {
 
 // WriteBEDString appends big-endian dword string v to the buffer
 func (b *Buffer) WriteBEDString(v DWordString) {
-	b.WriteUInt32(bits.Reverse32(uint32(v)))
+	b.WriteUInt32(bits.ReverseBytes32(uint32(v)))
 }
 
 // WriteBlobAt overwrites position p in the buffer with blob v
@@ -212,7 +212,7 @@ func (b *Buffer) WriteSockAddrAt(p int, v *SockAddr) error {
 		b.WriteUInt32At(p+4, 0)
 	} else {
 		b.WriteUInt16At(p, connAddressFamily)
-		b.WriteUInt16At(p+2, bits.Reverse16(v.Port))
+		b.WriteUInt16At(p+2, bits.ReverseBytes16(v.Port))
 		if err := b.WriteIPAt(p+4, v.IP); err != nil {
 			return err
 		}
@@ -237,7 +237,7 @@ func (b *Buffer) WriteLEDStringAt(p int, v DWordString) {
 
 // WriteBEDStringAt overwrites position p in the buffer with big-endian dword string v in
 func (b *Buffer) WriteBEDStringAt(p int, v DWordString) {
-	b.WriteUInt32At(p, bits.Reverse32(uint32(v)))
+	b.WriteUInt32At(p, bits.ReverseBytes32(uint32(v)))
 }
 
 // Read implements io.Reader interface
@@ -333,7 +333,7 @@ func (b *Buffer) ReadSockAddr() (SockAddr, error) {
 		res.Port = 0
 		res.IP = nil
 	case connAddressFamily:
-		res.Port = bits.Reverse16(b.ReadUInt16())
+		res.Port = bits.ReverseBytes16(b.ReadUInt16())
 		res.IP = b.ReadIP()
 	default:
 		return res, ErrInvalidSockAddr
@@ -366,5 +366,5 @@ func (b *Buffer) ReadLEDString() DWordString {
 
 // ReadBEDString consumes a big-endian dword string and returns its value
 func (b *Buffer) ReadBEDString() DWordString {
-	return DWordString(bits.Reverse32(b.ReadUInt32()))
+	return DWordString(bits.ReverseBytes32(b.ReadUInt32()))
 }

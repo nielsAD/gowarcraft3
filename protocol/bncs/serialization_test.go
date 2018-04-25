@@ -44,7 +44,7 @@ func TestDeserializeClientPacket(t *testing.T) {
 
 	buf.WriteUInt8At(0, bncs.ProtocolSig)
 	buf.WriteUInt8At(1, bncs.PidAuthAccountLogon)
-	buf.WriteUInt16At(2, 4096)
+	buf.WriteUInt16At(2, 6144)
 	if _, _, e := bncs.DeserializeClientPacket(&buf); e != bncs.ErrBufferTooSmall {
 		t.Fatal("ErrBufferTooSmall expected if packet size exceeds buffer")
 	}
@@ -74,7 +74,7 @@ func TestDeserializeServerPacket(t *testing.T) {
 
 	buf.WriteUInt8At(0, bncs.ProtocolSig)
 	buf.WriteUInt8At(1, bncs.PidAuthAccountLogon)
-	buf.WriteUInt16At(2, 4096)
+	buf.WriteUInt16At(2, 6144)
 	if _, _, e := bncs.DeserializeServerPacket(&buf); e != bncs.ErrBufferTooSmall {
 		t.Fatal("ErrBufferTooSmall expected if packet size exceeds buffer")
 	}

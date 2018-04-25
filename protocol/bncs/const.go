@@ -22,6 +22,7 @@ const ProtocolSig = 0xFF
 const (
 	PidNull                  = 0x00 // C -> S | S -> C
 	PidStopAdv               = 0x02 // C -> S |
+	PidGetAdvListEx          = 0x09 // C -> S | S -> C
 	PidEnterChat             = 0x0A // C -> S | S -> C
 	PidJoinChannel           = 0x0C // C -> S |
 	PidChatCommand           = 0x0E // C -> S |

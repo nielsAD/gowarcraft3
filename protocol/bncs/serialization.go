@@ -30,7 +30,7 @@ func SerializePacket(w io.Writer, p Packet) (int, error) {
 
 // DeserializationBuffer is used by DeserializePacketWithBuffer to bring amortized allocs to 0 for repeated calls
 type DeserializationBuffer struct {
-	Buffer                    [2048]byte
+	Buffer                    [4096]byte
 	keepAlive                 KeepAlive
 	ping                      Ping
 	enterChatReq              EnterChatReq
@@ -40,6 +40,8 @@ type DeserializationBuffer struct {
 	chatEvent                 ChatEvent
 	floodDetected             FloodDetected
 	messageBox                MessageBox
+	getAdvListResp            GetAdvListResp
+	getAdvListReq             GetAdvListReq
 	startAdvex3Resp           StartAdvex3Resp
 	startAdvex3Req            StartAdvex3Req
 	stopAdv                   StopAdv
@@ -109,6 +111,9 @@ func DeserializeClientPacketWithBuffer(r io.Reader, b *DeserializationBuffer) (P
 	case PidStopAdv:
 		err = b.stopAdv.Deserialize(&pbuf)
 		pkt = &b.stopAdv
+	case PidGetAdvListEx:
+		err = b.getAdvListReq.Deserialize(&pbuf)
+		pkt = &b.getAdvListReq
 	case PidEnterChat:
 		err = b.enterChatReq.Deserialize(&pbuf)
 		pkt = &b.enterChatReq
@@ -170,6 +175,9 @@ func DeserializeServerPacketWithBuffer(r io.Reader, b *DeserializationBuffer) (P
 	case PidNull:
 		err = b.keepAlive.Deserialize(&pbuf)
 		pkt = &b.keepAlive
+	case PidGetAdvListEx:
+		err = b.getAdvListResp.Deserialize(&pbuf)
+		pkt = &b.getAdvListResp
 	case PidEnterChat:
 		err = b.enterChatResp.Deserialize(&pbuf)
 		pkt = &b.enterChatResp

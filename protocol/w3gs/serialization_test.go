@@ -44,7 +44,7 @@ func TestDeserializePacket(t *testing.T) {
 
 	buf.WriteUInt8At(0, w3gs.ProtocolSig)
 	buf.WriteUInt8At(1, w3gs.PidSlotInfoJoin)
-	buf.WriteUInt16At(2, 4096)
+	buf.WriteUInt16At(2, 6144)
 	if _, _, e := w3gs.DeserializePacket(&buf); e != w3gs.ErrBufferTooSmall {
 		t.Fatal("ErrBufferTooSmall expected if packet size exceeds buffer")
 	}

@@ -402,18 +402,17 @@ const (
 	GameFlagTeamLadder   GameFlags = 0x000020
 	GameFlagTypeMask     GameFlags = 0x0000FF
 
-	GameFlagPublic         GameFlags = 0x000000
 	GameFlagSavedGame      GameFlags = 0x000200 // Implies private
 	GameFlagPrivateGame    GameFlags = 0x000800
 	GameFlagVisibilityMask GameFlags = 0x000F00
 
-	GameFlagMapCustom   GameFlags = 0x002000
-	GameFlagMapBlizzard GameFlags = 0x004000
-	GameFlagMapMask     GameFlags = 0x006000
+	GameFlagCreatorUser     GameFlags = 0x002000
+	GameFlagCreatorBlizzard GameFlags = 0x004000
+	GameFlagCreatorMask     GameFlags = 0x006000
 
-	GameFlagMelee    GameFlags = 0x008000
-	GameFlagScenario GameFlags = 0x010000
-	GameFlagMask     GameFlags = 0x018000
+	GameFlagMapTypeMelee    GameFlags = 0x008000
+	GameFlagMapTypeScenario GameFlags = 0x010000
+	GameFlagMapTypeMask     GameFlags = 0x018000
 
 	GameFlagSizeSmall  GameFlags = 0x020000
 	GameFlagSizeMedium GameFlags = 0x040000
@@ -431,33 +430,37 @@ func (f GameFlags) String() string {
 
 	switch f & GameFlagTypeMask {
 	case GameFlagCustomGame:
-		res = "Custom"
+		res = "|Custom"
 	case GameFlagOfficialGame:
-		res = "Official"
+		res = "|Official"
 	case GameFlagSinglePlayer:
-		res = "SinglePlayer"
+		res = "|SinglePlayer"
 	case GameFlagTeamLadder:
-		res = "TeamLadder"
+		res = "|TeamLadder"
+	case 0:
+		// No game type
 	default:
 		return fmt.Sprintf("GameFlags(0x%06X)", uint32(f))
 	}
 
 	switch f & GameFlagVisibilityMask {
-	case GameFlagPublic:
-		res += "|Public"
 	case GameFlagSavedGame:
 		res += "|Saved"
 	case GameFlagPrivateGame:
 		res += "|Private"
+	case 0:
+		// Public
 	default:
 		return fmt.Sprintf("GameFlags(0x%06X)", uint32(f))
 	}
 
-	switch f & GameFlagMapMask {
-	case GameFlagMapCustom:
-		res += "|MapCustom"
-	case GameFlagMapBlizzard:
-		res += "|MapBlizzard"
+	switch f & GameFlagCreatorMask {
+	case GameFlagCreatorUser:
+		res += "|CreatorUser"
+	case GameFlagCreatorBlizzard:
+		res += "|CreatorBlizzard"
+	case GameFlagCreatorMask:
+		res += "|CreatorAny"
 	case 0:
 		// No map maker
 	default:
@@ -471,17 +474,21 @@ func (f GameFlags) String() string {
 		res += "|SizeMedium"
 	case GameFlagSizeLarge:
 		res += "|SizeLarge"
+	case GameFlagSizeMask:
+		res += "|SizeAny"
 	case 0:
 		// No map size
 	default:
 		return fmt.Sprintf("GameFlags(0x%06X)", uint32(f))
 	}
 
-	switch f & GameFlagMask {
-	case GameFlagMelee:
-		res += "|Melee"
-	case GameFlagScenario:
-		res += "|Scenario"
+	switch f & GameFlagMapTypeMask {
+	case GameFlagMapTypeMelee:
+		res += "|MapTypeMelee"
+	case GameFlagMapTypeScenario:
+		res += "|MapTypeScenario"
+	case GameFlagMapTypeMask:
+		res += "|MapTypeAny"
 	case 0:
 		// No map type
 	default:
@@ -495,16 +502,21 @@ func (f GameFlags) String() string {
 		res += "|ObsOnDefeat"
 	case GameFlagObsNone:
 		res += "|ObsNone"
+	case GameFlagObsMask:
+		res += "|ObsAny"
 	case 0:
 		// No obs info
 	default:
 		return fmt.Sprintf("GameFlags(0x%06X)", uint32(f))
 	}
 
-	f &= ^(GameFlagTypeMask | GameFlagVisibilityMask | GameFlagMapMask | GameFlagMask | GameFlagObsMask)
+	f &= ^(GameFlagTypeMask | GameFlagVisibilityMask | GameFlagCreatorMask | GameFlagSizeMask | GameFlagMapTypeMask | GameFlagObsMask)
 
 	if f != 0 {
 		res += fmt.Sprintf("|GameFlags(0x%02X)", uint32(f))
+	}
+	if res != "" {
+		res = res[1:]
 	}
 
 	return res
