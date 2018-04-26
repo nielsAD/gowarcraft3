@@ -39,10 +39,10 @@ func (v *xoro) Write32(b uint32) {
 
 func (v *xoro) Write(b []byte) (int, error) {
 	var buf = protocol.Buffer{Bytes: b}
-	for buf.Size() > 4 {
+	for buf.Size() >= 4 {
 		v.Write32(buf.ReadUInt32())
 	}
-	for buf.Size() > 1 {
+	for buf.Size() >= 1 {
 		v.Write8(buf.ReadUInt8())
 	}
 	return len(b), nil

@@ -10,6 +10,7 @@ import (
 	"flag"
 	"fmt"
 	"image/png"
+	"io"
 	"log"
 	"os"
 	"strings"
@@ -39,9 +40,34 @@ func main() {
 		logErr.Fatal(filename, " ", err)
 	}
 
-	var str = fmt.Sprintf("%+v", *info)
+	var defaultFiles = make(map[string]io.Reader)
+
+	if f, err := os.Open("common.j"); err == nil {
+		defaultFiles["scripts\\common.j"] = f
+		defer f.Close()
+	}
+
+	if f, err := os.Open("blizzard.j"); err == nil {
+		defaultFiles["scripts\\blizzard.j"] = f
+		defer f.Close()
+	}
+
+	hash, err := m.Checksum(defaultFiles)
+	if err != nil {
+		logErr.Fatal(filename, " ", err)
+	}
+
+	var print = struct {
+		Info     w3m.Info
+		Checksum w3m.Hash
+	}{
+		*info,
+		*hash,
+	}
+
+	var str = fmt.Sprintf("%+v", print)
 	if *jsonout {
-		if json, err := json.MarshalIndent(*info, "", "  "); err == nil {
+		if json, err := json.MarshalIndent(print, "", "  "); err == nil {
 			str = string(json)
 		}
 	}

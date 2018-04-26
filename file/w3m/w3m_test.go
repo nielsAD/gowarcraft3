@@ -80,7 +80,7 @@ func TestInfo(t *testing.T) {
 			},
 			"",
 			"eFgUj6ZD1iWaQgZxBfUahFy8szz9lv/j+smSnJg9DrJs998fLOiBHG1WHgDR/mqFCVNof+yg3Kvir3ZezAOLXA",
-			"0x7E125E8B|P5c/izfa1qstJu5zYYVyc2FD2gE",
+			"0xDD4E3EBE|P5c/izfa1qstJu5zYYVyc2FD2gE",
 		},
 		{
 			"test_tft.w3x",
@@ -135,7 +135,7 @@ func TestInfo(t *testing.T) {
 			},
 			"",
 			"NOrg3TQ0Ii6z5GgGg7pWJpNQSwbW6vB6tzC6hkQsDV9raZpuKkRM/HbIpq9TdJviLURPqGLvntrzIHOopUcRaw",
-			"0x6BC46DB1|/1ndO+WvBCWiQutD9VyCefo3GYM",
+			"0x7F321A74|/1ndO+WvBCWiQutD9VyCefo3GYM",
 		},
 	}
 
