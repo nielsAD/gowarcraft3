@@ -231,7 +231,7 @@ func TestPackets(t *testing.T) {
 				Product: w3gs.ProductDemo,
 				Version: 666,
 			},
-			Counter: 1,
+			HostCounter: 1,
 		},
 		&w3gs.GameInfo{},
 		&w3gs.GameInfo{

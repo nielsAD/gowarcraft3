@@ -7,6 +7,7 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"log"
 	"net"
 	"os"
@@ -39,17 +40,20 @@ var logErr = log.New(os.Stderr, "", log.Ltime)
 func main() {
 	flag.Parse()
 
+	logOut.SetPrefix(fmt.Sprintf("[%v] ", *playername))
+	logErr.SetPrefix(fmt.Sprintf("[%v] ", *playername))
+
 	var err error
 	var addr *net.TCPAddr
 	var hc = uint32(*hostcounter)
 	var ek = uint32(*entrykey)
 
 	if *lan {
-		var gv = w3gs.ProductTFT
+		var p = w3gs.ProductTFT
 		if !*gametft {
-			gv = w3gs.ProductROC
+			p = w3gs.ProductROC
 		}
-		addr, hc, ek, err = fakeplayer.FindGameOnLAN(&w3gs.GameVersion{Product: gv, Version: uint32(*gamevers)})
+		addr, hc, ek, err = fakeplayer.FindGameOnLAN(&w3gs.GameVersion{Product: p, Version: uint32(*gamevers)})
 	} else {
 		var address = strings.Join(flag.Args(), " ")
 		if address == "" {
@@ -63,34 +67,50 @@ func main() {
 
 	f, err := fakeplayer.JoinLobby(addr, *playername, hc, ek, *listen)
 	if err != nil {
-		logErr.Fatal(err)
+		logErr.Fatal("JoinLobby error: ", err)
 	}
 
 	logOut.Println("[HOST] Joined lobby")
 
 	f.DialPeers = *dialpeers
 
-	f.OnPeerConnected = func(peer *fakeplayer.Peer) {
+	f.OnError = func(err error) {
+		logErr.Printf("[HOST] [ERROR] Packet: %v\n", err)
+	}
+	f.OnPeerError = func(err error) {
+		logErr.Printf("[PEER] [ERROR] Accept: %v\n", err)
+	}
+	f.OnPeerAccept = func(conn *net.TCPConn) bool {
+		logOut.Printf("[PEER] Accepting connection from %v\n", conn.RemoteAddr())
+		return true
+	}
+	f.OnPeerConnect = func(peer *fakeplayer.Peer) bool {
 		logOut.Printf("[PEER] Connected to %v\n", peer.Name)
-	}
-	f.OnPeerDisconnected = func(peer *fakeplayer.Peer) {
-		logOut.Printf("[PEER] Connection to %v closed\n", peer.Name)
-	}
-	f.OnPeerPacket = func(peer *fakeplayer.Peer, pkt w3gs.Packet) bool {
-		if *verbose {
-			logOut.Printf("[PEER] Packet %v from peer %v: %v\n", reflect.TypeOf(pkt).String()[6:], peer.Name, pkt)
-		}
 
-		switch p := pkt.(type) {
-		case *w3gs.PeerMessage:
-			if p.Content != "" {
-				logOut.Printf("[PEER] [CHAT] %v: '%v'\n", peer.Name, p.Content)
+		peer.OnPacket = func(pkt w3gs.Packet) bool {
+			if *verbose {
+				logOut.Printf("[PEER] Packet %v from peer %v: %v\n", reflect.TypeOf(pkt).String()[6:], peer.Name, pkt)
 			}
-			return true
 
-		default:
-			return false
+			switch p := pkt.(type) {
+			case *w3gs.PeerMessage:
+				if p.Content != "" {
+					logOut.Printf("[PEER] [CHAT] %v: '%v'\n", peer.Name, p.Content)
+				}
+				return true
+
+			default:
+				return false
+			}
 		}
+		peer.OnError = func(err error) {
+			logErr.Printf("[PEER] [ERROR] Packet: %v\n", err)
+		}
+
+		return true
+	}
+	f.OnPeerDisconnect = func(peer *fakeplayer.Peer) {
+		logOut.Printf("[PEER] Connection to %v closed\n", peer.Name)
 	}
 	f.OnPacket = func(pkt w3gs.Packet) bool {
 		if *verbose {
@@ -147,7 +167,7 @@ func main() {
 				}
 
 				switch strings.ToLower(cmd[1]) {
-				case "h", "hu", "human":
+				case "h", "hu", "hum", "human":
 					f.ChangeRace(w3gs.RaceHuman)
 				case "o", "orc":
 					f.ChangeRace(w3gs.RaceOrc)

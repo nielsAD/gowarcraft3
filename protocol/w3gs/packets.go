@@ -1514,7 +1514,7 @@ func (pkt *PeerMessage) Serialize(buf *protocol.Buffer) error {
 //
 // This is broadcasted to the entire local area network to detect games during initial
 // search of local games. After that, it is sent directly to clients that broadcasted
-// [0x31] W3GS_CreateGame (counter is increased for every direct message).
+// [0x31] W3GS_CreateGame.
 //
 // Product is either WAR3 or W3XP.
 //
@@ -1522,11 +1522,11 @@ func (pkt *PeerMessage) Serialize(buf *protocol.Buffer) error {
 //
 //    (UINT32) Product
 //    (UINT32) Version
-//    (UINT32) Counter
+//    (UINT32) Host Counter
 //
 type SearchGame struct {
 	GameVersion
-	Counter uint32
+	HostCounter uint32
 }
 
 // Serialize encodes the struct into its binary form.
@@ -1536,7 +1536,7 @@ func (pkt *SearchGame) Serialize(buf *protocol.Buffer) error {
 	buf.WriteUInt16(16)
 
 	pkt.GameVersion.Serialize(buf)
-	buf.WriteUInt32(pkt.Counter)
+	buf.WriteUInt32(pkt.HostCounter)
 
 	return nil
 }
@@ -1548,7 +1548,7 @@ func (pkt *SearchGame) Deserialize(buf *protocol.Buffer) error {
 	}
 
 	pkt.GameVersion.Deserialize(buf)
-	pkt.Counter = buf.ReadUInt32()
+	pkt.HostCounter = buf.ReadUInt32()
 
 	return nil
 }

@@ -25,23 +25,29 @@ type Peer struct {
 	ID          uint8
 	JoinCounter uint32
 
-	RTT     uint32
-	PeerSet protocol.BitSet32
+	StartTime time.Time
+	RTT       uint32
+	PeerSet   protocol.BitSet32
+
+	//goroutine event handlers
+	OnError  func(err error)
+	OnPacket func(pkt w3gs.Packet) bool
 }
 
-// NextRawPacket waits for the next packet from Peer (with given timeout) and returns its deserialized representation
-func (p *Peer) NextRawPacket(timeout time.Duration) (w3gs.Packet, error) {
-	if p.conn == nil {
+// NextPacket waits for the next packet from Peer (with given timeout) and returns its deserialized representation
+func (p *Peer) NextPacket(timeout time.Duration) (w3gs.Packet, error) {
+	var c = p.conn
+	if c == nil {
 		return nil, io.EOF
 	}
 
 	if timeout != 0 {
-		if err := p.conn.SetReadDeadline(time.Now().Add(timeout)); err != nil {
+		if err := c.SetReadDeadline(time.Now().Add(timeout)); err != nil {
 			return nil, err
 		}
 	}
 
-	pkt, _, err := w3gs.DeserializePacketWithBuffer(p.conn, &p.rbuf)
+	pkt, _, err := w3gs.DeserializePacketWithBuffer(c, &p.rbuf)
 	return pkt, err
 }
 
@@ -50,12 +56,27 @@ func (p *Peer) Send(pkt w3gs.Packet) (int, error) {
 	p.smutex.Lock()
 	defer p.smutex.Unlock()
 
-	if p.conn == nil {
+	var c = p.conn
+	if c == nil {
 		return 0, io.EOF
 	}
-	if err := p.conn.SetWriteDeadline(time.Now().Add(5 * time.Millisecond)); err != nil {
+	if err := c.SetWriteDeadline(time.Now().Add(5 * time.Millisecond)); err != nil {
 		return 0, err
 	}
 
-	return w3gs.SerializePacketWithBuffer(p.conn, &p.sbuf, pkt)
+	return w3gs.SerializePacketWithBuffer(c, &p.sbuf, pkt)
+}
+
+func (p *Peer) onError(err error) {
+	if p.OnError != nil {
+		p.OnError(err)
+	}
+}
+
+// onPacket must return true if packet is handled, false to continue with default handler
+func (p *Peer) onPacket(pkt w3gs.Packet) bool {
+	if p.OnPacket == nil {
+		return false
+	}
+	return p.OnPacket(pkt)
 }

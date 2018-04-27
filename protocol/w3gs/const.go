@@ -330,7 +330,7 @@ func (f GameSettingFlags) String() string {
 	case SettingSpeedFast:
 		res = "SpeedFast"
 	default:
-		return fmt.Sprintf("1GameSettingFlags(0x%07X)", uint32(f))
+		return fmt.Sprintf("GameSettingFlags(0x%07X)", uint32(f))
 	}
 
 	switch f & SettingTerrainMask {
@@ -345,7 +345,7 @@ func (f GameSettingFlags) String() string {
 	case 0:
 		// No terrain setting
 	default:
-		return fmt.Sprintf("2GameSettingFlags(0x%07X)", uint32(f))
+		return fmt.Sprintf("GameSettingFlags(0x%07X)", uint32(f))
 	}
 
 	switch f & SettingObsMask {
@@ -358,7 +358,7 @@ func (f GameSettingFlags) String() string {
 	case SettingObsReferees:
 		res += "|ObsReferees"
 	default:
-		return fmt.Sprintf("3GameSettingFlags(0x%07X)", uint32(f))
+		return fmt.Sprintf("GameSettingFlags(0x%07X)", uint32(f))
 	}
 
 	f &= ^(SettingSpeedMask | SettingTerrainMask | SettingObsMask)

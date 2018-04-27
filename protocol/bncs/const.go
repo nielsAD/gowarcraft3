@@ -152,7 +152,7 @@ func (s AdvListResult) String() string {
 	case AdvListSuccess:
 		return "Success"
 	case AdvListNotFound:
-		return "Game does not exist"
+		return "No game found"
 	case AdvListIncorrectPassword:
 		return "Incorrect password"
 	case AdvListFull:
@@ -229,18 +229,19 @@ type AuthResult uint32
 
 // AuthCheck result
 const (
-	AuthSuccess           AuthResult = 0x000 // Passed challenge
-	AuthUpgradeRequired   AuthResult = 0x100 // Old game version (Additional info field supplies patch MPQ filename)
-	AuthInvalidVersion    AuthResult = 0x101 // Invalid version
-	AuthDowngradeRequired AuthResult = 0x102 // Game version must be downgraded (Additional info field supplies patch MPQ filename)
-	AuthCDKeyInvalid      AuthResult = 0x200 // Invalid CD key (If you receive this status, official Battle.net servers will IP ban you for 1 to 14 days. Before June 15, 2011, this used to exclusively be 14 days)
-	AuthCDKeyInUse        AuthResult = 0x201 // CD key in use (Additional info field supplies name of user)
-	AuthCDKeyBanned       AuthResult = 0x202 // Banned key
-	AuthWrongProduct      AuthResult = 0x203 // Wrong product
+	AuthSuccess            AuthResult = 0x000 // Passed challenge
+	AuthUpgradeRequired    AuthResult = 0x100 // Old game version (Additional info field supplies patch MPQ filename)
+	AuthInvalidVersion     AuthResult = 0x101 // Invalid version
+	AuthInvalidVersionMask AuthResult = 0x0FF // Invalid version (error code correlates to exact version)
+	AuthDowngradeRequired  AuthResult = 0x102 // Game version must be downgraded (Additional info field supplies patch MPQ filename)
+	AuthCDKeyInvalid       AuthResult = 0x200 // Invalid CD key (If you receive this status, official Battle.net servers will IP ban you for 1 to 14 days. Before June 15, 2011, this used to exclusively be 14 days)
+	AuthCDKeyInUse         AuthResult = 0x201 // CD key in use (Additional info field supplies name of user)
+	AuthCDKeyBanned        AuthResult = 0x202 // Banned key
+	AuthWrongProduct       AuthResult = 0x203 // Wrong product
 )
 
 func (r AuthResult) String() string {
-	var invalidVersion = r & 0xFF
+	var invalidVersion = r & AuthInvalidVersionMask
 	switch r {
 	case AuthSuccess:
 		return "Success"
@@ -309,7 +310,7 @@ func (r LogonProofResult) String() string {
 	case LogonProofRequireEmail:
 		return "An email address should be registered for this account"
 	case LogonProofCustomError:
-		return " Custom error"
+		return "Custom error"
 	default:
 		return fmt.Sprintf("LogonProofResult(0x%02X)", uint32(r))
 	}

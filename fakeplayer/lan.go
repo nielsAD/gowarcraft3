@@ -6,6 +6,7 @@ package fakeplayer
 
 import (
 	"net"
+	"time"
 
 	"github.com/nielsAD/gowarcraft3/protocol"
 	"github.com/nielsAD/gowarcraft3/protocol/w3gs"
@@ -24,18 +25,23 @@ func sendUDP(conn *net.UDPConn, addr *net.UDPAddr, pkt w3gs.Packet) (int, error)
 func FindGameOnLAN(gameVersion *w3gs.GameVersion) (*net.TCPAddr, uint32, uint32, error) {
 	conn, err := net.ListenUDP("udp4", &net.UDPAddr{Port: 6112})
 	if err != nil {
+		conn, err = net.ListenUDP("udp4", &net.UDPAddr{})
+	}
+	if err != nil {
 		return nil, 0, 0, err
 	}
 	defer conn.Close()
 
-	if _, err := sendUDP(conn, &net.UDPAddr{IP: net.IPv4bcast, Port: 6112}, &w3gs.SearchGame{GameVersion: *gameVersion, Counter: 0}); err != nil {
-		return nil, 0, 0, err
-	}
-
-	var counter = make(map[string]uint32)
+	var lastSeen = make(map[string]uint32)
 
 	buf := make([]byte, 2048)
 	for {
+		if _, err := sendUDP(conn, &net.UDPAddr{IP: net.IPv4bcast, Port: 6112}, &w3gs.SearchGame{GameVersion: *gameVersion, HostCounter: 0}); err != nil {
+			return nil, 0, 0, err
+		}
+
+		conn.SetReadDeadline(time.Now().Add(5 * time.Second))
+
 		size, addr, err := conn.ReadFromUDP(buf)
 		if err != nil {
 			return nil, 0, 0, err
@@ -48,16 +54,16 @@ func FindGameOnLAN(gameVersion *w3gs.GameVersion) (*net.TCPAddr, uint32, uint32,
 
 		switch p := pkt.(type) {
 		case *w3gs.RefreshGame:
-			if counter[addr.IP.String()] == 0 {
-				counter[addr.IP.String()]++
-				if _, err := sendUDP(conn, addr, &w3gs.SearchGame{GameVersion: *gameVersion, Counter: counter[addr.IP.String()]}); err != nil {
+			if lastSeen[addr.IP.String()] != p.HostCounter {
+				lastSeen[addr.IP.String()] = p.HostCounter
+				if _, err := sendUDP(conn, addr, &w3gs.SearchGame{GameVersion: *gameVersion, HostCounter: p.HostCounter}); err != nil {
 					return nil, 0, 0, err
 				}
 			}
 		case *w3gs.CreateGame:
 			if p.GameVersion == *gameVersion {
-				counter[addr.IP.String()]++
-				if _, err := sendUDP(conn, addr, &w3gs.SearchGame{GameVersion: *gameVersion, Counter: counter[addr.IP.String()]}); err != nil {
+				lastSeen[addr.IP.String()] = p.HostCounter
+				if _, err := sendUDP(conn, addr, &w3gs.SearchGame{GameVersion: *gameVersion, HostCounter: p.HostCounter}); err != nil {
 					return nil, 0, 0, err
 				}
 			}

@@ -30,11 +30,10 @@ type FakePlayer struct {
 	HostCounter uint32
 	EntryKey    uint32
 
-	OnPeerConnected    func(peer *Peer)
-	OnPeerDisconnected func(peer *Peer)
-	OnPeerPacket       func(peer *Peer, pkt w3gs.Packet) bool
-
-	OnPacket func(pkt w3gs.Packet) bool
+	OnPeerError      func(err error)
+	OnPeerAccept     func(conn *net.TCPConn) bool
+	OnPeerConnect    func(peer *Peer) bool
+	OnPeerDisconnect func(peer *Peer)
 }
 
 // PeerName returns the name for given player ID
@@ -132,18 +131,34 @@ func (f *FakePlayer) updatePeerSet(id uint8, set bool) error {
 	return nil
 }
 
-func (f *FakePlayer) peerConnected(peer *Peer) {
-	if f.OnPeerConnected != nil {
-		f.OnPeerConnected(peer)
+func (f *FakePlayer) onPeerError(err error) {
+	if f.OnPeerError != nil {
+		f.OnPeerError(err)
 	}
 }
 
-func (f *FakePlayer) peerDisconnected(peer *Peer) {
+// onPeerAccept must return true if peer is allowed to connect
+func (f *FakePlayer) onPeerAccept(conn *net.TCPConn) bool {
+	if f.OnPeerAccept == nil {
+		return true
+	}
+	return f.OnPeerAccept(conn)
+}
+
+// onPeerConnect must return true if peer is allowed to connect
+func (f *FakePlayer) onPeerConnect(peer *Peer) bool {
+	if f.OnPeerConnect == nil {
+		return true
+	}
+	return f.OnPeerConnect(peer)
+}
+
+func (f *FakePlayer) onPeerDisconnect(peer *Peer) {
 	f.peerMutex.Lock()
 	defer f.peerMutex.Unlock()
 
-	if f.OnPeerDisconnected != nil {
-		f.OnPeerDisconnected(peer)
+	if f.OnPeerDisconnect != nil {
+		f.OnPeerDisconnect(peer)
 	}
 
 	peer.conn = nil
@@ -151,13 +166,6 @@ func (f *FakePlayer) peerDisconnected(peer *Peer) {
 	peer.PeerSet = 0
 
 	f.updatePeerSet(peer.ID, false)
-}
-
-func (f *FakePlayer) processPeerPacket(peer *Peer, pkt w3gs.Packet) bool {
-	if f.OnPeerPacket != nil {
-		return f.OnPeerPacket(peer, pkt)
-	}
-	return false
 }
 
 func (f *FakePlayer) connectToPeer(conn *net.TCPConn, accepted bool) (*Peer, error) {
@@ -208,11 +216,24 @@ func (f *FakePlayer) connectToPeer(conn *net.TCPConn, accepted bool) (*Peer, err
 			}
 		}
 
+		peer.StartTime = time.Now()
 		return peer, nil
 
 	default:
 		return nil, ErrInvalidFirstPacket
 	}
+}
+
+func (f *FakePlayer) processPeerPacket(peer *Peer, pkt w3gs.Packet) error {
+	switch p := pkt.(type) {
+	case *w3gs.PeerPing:
+		peer.PeerSet = p.PeerSet
+		peer.Send(&w3gs.PeerPong{Ping: w3gs.Ping{Payload: p.Payload}})
+	case *w3gs.PeerPong:
+		peer.RTT = uint32(time.Now().Sub(peer.StartTime).Nanoseconds()/1e6) - p.Payload
+	}
+
+	return nil
 }
 
 func (f *FakePlayer) servePeer(conn *net.TCPConn, accepted bool) {
@@ -225,43 +246,45 @@ func (f *FakePlayer) servePeer(conn *net.TCPConn, accepted bool) {
 	var peer *Peer
 	var err error
 	if peer, err = f.connectToPeer(conn, accepted); err != nil {
+		f.onPeerError(err)
 		return
 	}
 
-	f.peerConnected(peer)
-	defer f.peerDisconnected(peer)
+	defer f.onPeerDisconnect(peer)
+	if !f.onPeerConnect(peer) {
+		return
+	}
 
-	var start = time.Now()
 	var pingTicker = time.NewTicker(10 * time.Second)
 	defer pingTicker.Stop()
 
 	go func() {
 		for range pingTicker.C {
-			peer.Send(&w3gs.PeerPing{
-				Payload:   uint32(time.Now().Sub(start).Nanoseconds() / 1e6),
+			if _, err := peer.Send(&w3gs.PeerPing{
+				Payload:   uint32(time.Now().Sub(peer.StartTime).Nanoseconds() / 1e6),
 				PeerSet:   f.PeerSet,
 				GameTicks: f.GameTicks,
-			})
+			}); err != nil {
+				peer.onError(err)
+			}
 		}
 	}()
 
 	for {
 		// Expecting a ping every 10 seconds
-		pkt, err := peer.NextRawPacket(13 * time.Second)
+		pkt, err := peer.NextPacket(30 * time.Second)
 		if err != nil {
+			peer.onError(err)
 			break
 		}
 
-		if f.processPeerPacket(peer, pkt) {
+		if peer.onPacket(pkt) {
 			continue
 		}
 
-		switch p := pkt.(type) {
-		case *w3gs.PeerPing:
-			peer.PeerSet = p.PeerSet
-			peer.Send(&w3gs.PeerPong{Ping: w3gs.Ping{Payload: p.Payload}})
-		case *w3gs.PeerPong:
-			peer.RTT = uint32(time.Now().Sub(start).Nanoseconds()/1e6) - p.Payload
+		if err := f.processPeerPacket(peer, pkt); err != nil {
+			peer.onError(err)
+			break
 		}
 	}
 }
@@ -276,11 +299,17 @@ func (f *FakePlayer) acceptPeers() {
 	for {
 		conn, err := f.listener.Accept()
 		if err != nil {
+			f.onPeerError(err)
 			break
 		}
 
+		tcpconn := conn.(*net.TCPConn)
+		if !f.onPeerAccept(tcpconn) {
+			continue
+		}
+
 		f.wg.Add(1)
-		go f.servePeer(conn.(*net.TCPConn), true)
+		go f.servePeer(tcpconn, true)
 	}
 }
 
@@ -331,7 +360,7 @@ func (f *FakePlayer) connectToHost(addr *net.TCPAddr) error {
 		return err
 	}
 
-	pkt, err := f.NextRawPacket(5 * time.Second)
+	pkt, err := f.NextPacket(5 * time.Second)
 	if err != nil {
 		return err
 	}
@@ -345,26 +374,20 @@ func (f *FakePlayer) connectToHost(addr *net.TCPAddr) error {
 		return ErrInvalidFirstPacket
 	}
 
+	f.StartTime = time.Now()
 	return nil
 }
 
-// NextPacket waits for the next packet from host and processes it
-func (f *FakePlayer) NextPacket() (w3gs.Packet, error) {
-	pkt, err := f.NextRawPacket(33 * time.Second)
-	if err != nil {
-		return nil, err
-	}
-
-	if f.OnPacket != nil && f.OnPacket(pkt) {
-		return pkt, nil
-	}
-
+// ProcessPacket processes a w3gs packet from host
+func (f *FakePlayer) ProcessPacket(pkt w3gs.Packet) error {
 	switch p := pkt.(type) {
 	case *w3gs.Ping:
-		_, err = f.Send(&w3gs.Pong{Ping: w3gs.Ping{Payload: p.Payload}})
+		_, err := f.Send(&w3gs.Pong{Ping: w3gs.Ping{Payload: p.Payload}})
+		return err
 
 	case *w3gs.MapCheck:
-		_, err = f.Send(&w3gs.MapState{Ready: true, FileSize: p.FileSize})
+		_, err := f.Send(&w3gs.MapState{Ready: true, FileSize: p.FileSize})
+		return err
 
 	case *w3gs.PlayerInfo:
 		var peer = Peer{
@@ -427,7 +450,7 @@ func (f *FakePlayer) NextPacket() (w3gs.Packet, error) {
 
 	}
 
-	return pkt, nil
+	return nil
 }
 
 // Wait for all goroutines to finish
@@ -444,7 +467,18 @@ func (f *FakePlayer) Run() {
 		defer f.wg.Done()
 
 		for {
-			if _, err := f.NextPacket(); err != nil {
+			pkt, err := f.NextPacket(60 * time.Second)
+			if err != nil {
+				f.onError(err)
+				break
+			}
+
+			if f.onPacket(pkt) {
+				continue
+			}
+
+			if err := f.ProcessPacket(pkt); err != nil {
+				f.onError(err)
 				break
 			}
 		}
