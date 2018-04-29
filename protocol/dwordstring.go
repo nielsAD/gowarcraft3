@@ -4,10 +4,6 @@
 
 package protocol
 
-import (
-	"strings"
-)
-
 // DWordString is a string of size dword (4 bytes / characters)
 type DWordString uint32
 
@@ -26,16 +22,15 @@ func (s DWordString) String() string {
 		return ""
 	}
 
-	var b strings.Builder
-	b.WriteByte(byte(s))
-	if s&0xFFFFFF00 != 0 {
-		b.WriteByte(byte(uint32(s) >> 8))
-	}
-	if s&0xFFFF0000 != 0 {
-		b.WriteByte(byte(uint32(s) >> 16))
-	}
+	var r = string([]byte{byte(uint32(s)), byte(uint32(s) >> 8), byte(uint32(s) >> 16), byte(uint32(s) >> 24)})
 	if s&0xFF000000 != 0 {
-		b.WriteByte(byte(uint32(s) >> 24))
+		return string(r)
 	}
-	return b.String()
+	if s&0x00FF0000 != 0 {
+		return string(r[:3])
+	}
+	if s&0x0000FF00 != 0 {
+		return string(r[:2])
+	}
+	return string(r[:1])
 }

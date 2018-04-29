@@ -6,7 +6,8 @@
 package mpq
 
 // #cgo CFLAGS: -I${SRCDIR}/../../vendor/StormLib/src
-// #cgo LDFLAGS: -lstorm -lz -lbz2 -L${SRCDIR}/../../vendor/StormLib/build
+// #cgo !windows LDFLAGS: -lstorm -lz -lbz2           -L${SRCDIR}/../../vendor/StormLib/build
+// #cgo  windows LDFLAGS: -lstorm -lz -lbz2 -lwininet -L${SRCDIR}/../../vendor/StormLib/build
 // #include <StormLib.h>
 import "C"
 import (
@@ -66,7 +67,7 @@ type File struct {
 func OpenArchive(fileName string) (*Archive, error) {
 	var res Archive
 
-	var cstr = C.CString(fileName)
+	var cstr = (*C.TCHAR)(C.CString(fileName))
 	defer C.free(unsafe.Pointer(cstr))
 
 	//bool SFileOpenArchive(const TCHAR * szMpqName, DWORD dwPriority, DWORD dwFlags, HANDLE * phMpq)
