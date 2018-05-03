@@ -2,7 +2,7 @@
 // Project: gowarcraft3 (https://github.com/nielsAD/gowarcraft3)
 // License: Mozilla Public License, v2.0
 
-package fakeplayer
+package player
 
 import (
 	"io"
@@ -53,18 +53,16 @@ func (p *Peer) NextPacket(timeout time.Duration) (w3gs.Packet, error) {
 
 // Send serializes packet and sends it to Peer
 func (p *Peer) Send(pkt w3gs.Packet) (int, error) {
-	p.smutex.Lock()
-	defer p.smutex.Unlock()
-
 	var c = p.conn
 	if c == nil {
 		return 0, io.EOF
 	}
-	if err := c.SetWriteDeadline(time.Now().Add(5 * time.Millisecond)); err != nil {
-		return 0, err
-	}
 
-	return w3gs.SerializePacketWithBuffer(c, &p.sbuf, pkt)
+	p.smutex.Lock()
+	var n, err = w3gs.SerializePacketWithBuffer(c, &p.sbuf, pkt)
+	p.smutex.Unlock()
+
+	return n, err
 }
 
 func (p *Peer) onError(err error) {

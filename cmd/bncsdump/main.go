@@ -129,7 +129,7 @@ func (s *stream) run() {
 
 func addHandle(h *pcap.Handle, c chan<- gopacket.Packet, wg *sync.WaitGroup) {
 	if err := h.SetBPFFilter(fmt.Sprintf("tcp and port %d", *port)); err != nil {
-		log.Fatal("BPF filter error:", err)
+		logErr.Fatal("BPF filter error:", err)
 	}
 
 	var src = gopacket.NewPacketSource(h, h.LinkType())
@@ -164,29 +164,29 @@ func main() {
 	if *fname != "" {
 		var handle, err = pcap.OpenOffline(*fname)
 		if err != nil {
-			log.Fatal("Could not open pcap file:", err)
+			logErr.Fatal("Could not open pcap file:", err)
 		}
 		addHandle(handle, packets, &wg)
 	} else if *iface != "" {
 		var handle, err = pcap.OpenLive(*iface, int32(*snaplen), *promisc, pcap.BlockForever)
 		if err != nil {
 			if devs, e := pcap.FindAllDevs(); e == nil {
-				log.Print("Following interfaces are available:")
+				logErr.Print("Following interfaces are available:")
 				for _, d := range devs {
-					log.Printf("%v\t%v\n", d.Name, d.Description)
+					logErr.Printf("%v\t%v\n", d.Name, d.Description)
 					for _, a := range d.Addresses {
-						log.Printf("\t%v\n", a.IP)
+						logErr.Printf("\t%v\n", a.IP)
 					}
 				}
 
-				log.Fatalf("Could not create pcap handle: %v", err)
+				logErr.Fatalf("Could not create pcap handle: %v", err)
 			}
 		}
 		addHandle(handle, packets, &wg)
 	} else {
 		var devs, err = pcap.FindAllDevs()
 		if err != nil {
-			log.Fatalf("Could not iterate interfaces: %v", err)
+			logErr.Fatalf("Could not iterate interfaces: %v", err)
 		}
 
 		for _, d := range devs {
@@ -196,10 +196,10 @@ func main() {
 
 			var handle, err = pcap.OpenLive(d.Name, int32(*snaplen), *promisc, pcap.BlockForever)
 			if err != nil {
-				log.Fatalf("Could not create pcap handle: %v", err)
+				logErr.Fatalf("Could not create pcap handle: %v", err)
 			}
 			addHandle(handle, packets, &wg)
-			log.Printf("Sniffing %v\n", d.Name)
+			logErr.Printf("Sniffing %v\n", d.Name)
 		}
 	}
 

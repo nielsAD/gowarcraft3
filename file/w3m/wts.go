@@ -33,7 +33,7 @@ func (m *Map) TriggerStrings() (map[int]string, error) {
 		}
 
 		var ts = make(map[int]string)
-		for true {
+		for {
 			l, err := buf.ReadString('\n')
 			if err == io.EOF {
 				break
@@ -51,7 +51,7 @@ func (m *Map) TriggerStrings() (map[int]string, error) {
 				continue
 			}
 
-			for true {
+			for {
 				p1, err := buf.ReadString('\n')
 				if err != nil {
 					return nil, err
@@ -64,7 +64,7 @@ func (m *Map) TriggerStrings() (map[int]string, error) {
 			}
 
 			var sb strings.Builder
-			for true {
+			for {
 				l, err := buf.ReadString('\n')
 				if err != nil {
 					return nil, err

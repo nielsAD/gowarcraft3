@@ -2,8 +2,8 @@
 // Project: gowarcraft3 (https://github.com/nielsAD/gowarcraft3)
 // License: Mozilla Public License, v2.0
 
-// Package fakeplayer implements a mocked Warcraft 3 game client that can be used to add dummy players to games.
-package fakeplayer
+// Package player implements a mocked Warcraft 3 game client that can be used to add dummy players to games.
+package player
 
 import (
 	"fmt"
@@ -297,19 +297,18 @@ func (f *FakePlayer) acceptPeers() {
 
 	defer f.listener.Close()
 	for {
-		conn, err := f.listener.Accept()
+		conn, err := f.listener.AcceptTCP()
 		if err != nil {
 			f.onPeerError(err)
 			break
 		}
 
-		tcpconn := conn.(*net.TCPConn)
-		if !f.onPeerAccept(tcpconn) {
+		if !f.onPeerAccept(conn) {
 			continue
 		}
 
 		f.wg.Add(1)
-		go f.servePeer(tcpconn, true)
+		go f.servePeer(conn, true)
 	}
 }
 

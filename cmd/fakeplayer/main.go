@@ -6,6 +6,7 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"log"
@@ -16,14 +17,15 @@ import (
 	"strings"
 	"time"
 
-	"github.com/nielsAD/gowarcraft3/fakeplayer"
+	"github.com/nielsAD/gowarcraft3/mock/lan"
+	"github.com/nielsAD/gowarcraft3/mock/player"
 	"github.com/nielsAD/gowarcraft3/protocol/w3gs"
 )
 
 var (
 	verbose = flag.Bool("verbose", false, "Print contents of all packets")
 
-	lan      = flag.Bool("lan", false, "Find a game on LAN")
+	findlan  = flag.Bool("lan", false, "Find a game on LAN")
 	gametft  = flag.Bool("tft", true, "Search for TFT or ROC games (only used when searching local)")
 	gamevers = flag.Int("v", 29, "Game version (only used when searching local)")
 	entrykey = flag.Uint("e", 0, "Entry key (only used when entering local game)")
@@ -48,12 +50,22 @@ func main() {
 	var hc = uint32(*hostcounter)
 	var ek = uint32(*entrykey)
 
-	if *lan {
+	if *findlan {
+		// Search local game for 3 seconds
+		var ctx, cancel = context.WithTimeout(context.Background(), 20*time.Second)
+
 		var p = w3gs.ProductTFT
 		if !*gametft {
 			p = w3gs.ProductROC
 		}
-		addr, hc, ek, err = fakeplayer.FindGameOnLAN(&w3gs.GameVersion{Product: p, Version: uint32(*gamevers)})
+
+		var address string
+		address, hc, ek, err = lan.FindGame(ctx, w3gs.GameVersion{Product: p, Version: uint32(*gamevers)})
+		cancel()
+
+		if err == nil {
+			addr, err = net.ResolveTCPAddr("tcp4", address)
+		}
 	} else {
 		var address = strings.Join(flag.Args(), " ")
 		if address == "" {
@@ -65,7 +77,7 @@ func main() {
 		logErr.Fatal(err)
 	}
 
-	f, err := fakeplayer.JoinLobby(addr, *playername, hc, ek, *listen)
+	f, err := player.JoinLobby(addr, *playername, hc, ek, *listen)
 	if err != nil {
 		logErr.Fatal("JoinLobby error: ", err)
 	}
@@ -84,7 +96,7 @@ func main() {
 		logOut.Printf("[PEER] Accepting connection from %v\n", conn.RemoteAddr())
 		return true
 	}
-	f.OnPeerConnect = func(peer *fakeplayer.Peer) bool {
+	f.OnPeerConnect = func(peer *player.Peer) bool {
 		logOut.Printf("[PEER] Connected to %v\n", peer.Name)
 
 		peer.OnPacket = func(pkt w3gs.Packet) bool {
@@ -109,7 +121,7 @@ func main() {
 
 		return true
 	}
-	f.OnPeerDisconnect = func(peer *fakeplayer.Peer) {
+	f.OnPeerDisconnect = func(peer *player.Peer) {
 		logOut.Printf("[PEER] Connection to %v closed\n", peer.Name)
 	}
 	f.OnPacket = func(pkt w3gs.Packet) bool {

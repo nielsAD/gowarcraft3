@@ -2,7 +2,6 @@
 // Project: gowarcraft3 (https://github.com/nielsAD/gowarcraft3)
 // License: Mozilla Public License, v2.0
 
-// Package blp is a BLIzzard Picture image format decoder.
 package blp_test
 
 import (
