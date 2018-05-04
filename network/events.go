@@ -2,7 +2,7 @@
 // Project: gowarcraft3 (https://github.com/nielsAD/gowarcraft3)
 // License: Mozilla Public License, v2.0
 
-package mock
+package network
 
 import (
 	"math/bits"
@@ -42,10 +42,10 @@ type eventHandler = struct {
 	fun  EventHandler
 }
 
-// Emitter is an event emitter based on argument types
+// EventEmitter is an event emitter based on argument types
 // For every type, a listener can register callbacks. Callbacks will be fired in reverse order of registration.
 // The structure is thread-safe and functions can be called from multiple goroutines at the same time.
-type Emitter struct {
+type EventEmitter struct {
 	id       uint32
 	hanmutex sync.RWMutex
 	handlers map[string][]eventHandler
@@ -53,7 +53,12 @@ type Emitter struct {
 	epool    [16]Event
 }
 
-func (e *Emitter) addHandler(a EventArg, h EventHandler, once bool) EventID {
+// Firer is the interface that wraps the basic Fire method
+type Firer interface {
+	Fire(a EventArg, o ...EventArg)
+}
+
+func (e *EventEmitter) addHandler(a EventArg, h EventHandler, once bool) EventID {
 	var ht = reflect.TypeOf(a).String()
 
 	e.hanmutex.Lock()
@@ -77,17 +82,17 @@ func (e *Emitter) addHandler(a EventArg, h EventHandler, once bool) EventID {
 }
 
 // On an event of type a is, call handler h
-func (e *Emitter) On(a EventArg, h EventHandler) EventID {
+func (e *EventEmitter) On(a EventArg, h EventHandler) EventID {
 	return e.addHandler(a, h, false)
 }
 
 // Once an event of type a is fired, call handler h once
-func (e *Emitter) Once(a EventArg, h EventHandler) EventID {
+func (e *EventEmitter) Once(a EventArg, h EventHandler) EventID {
 	return e.addHandler(a, h, true)
 }
 
 // Off stops id from listening to future events
-func (e *Emitter) Off(id EventID) {
+func (e *EventEmitter) Off(id EventID) {
 	e.hanmutex.Lock()
 	var end = 0
 	var arr = append([]eventHandler(nil), e.handlers[id.ht]...)
@@ -104,7 +109,7 @@ func (e *Emitter) Off(id EventID) {
 }
 
 // OffAll clears the current listeners for events of type a
-func (e *Emitter) OffAll(a EventArg) {
+func (e *EventEmitter) OffAll(a EventArg) {
 	var ht = reflect.TypeOf(a).String()
 
 	e.hanmutex.Lock()
@@ -112,16 +117,13 @@ func (e *Emitter) OffAll(a EventArg) {
 	e.hanmutex.Unlock()
 }
 
-func (e *Emitter) offOnce(ht string, minID uint32) {
+func (e *EventEmitter) offOnce(ht string, minID uint32, maxID uint32) {
 	e.hanmutex.Lock()
 	var end = 0
 	var arr = append([]eventHandler(nil), e.handlers[ht]...)
 
 	for i := 0; i < len(arr); i++ {
-		if arr[i].id < minID {
-			break
-		}
-		if !arr[i].once {
+		if arr[i].id > maxID || arr[i].id < minID || !arr[i].once {
 			arr[end] = arr[i]
 			end++
 		}
@@ -132,8 +134,8 @@ func (e *Emitter) offOnce(ht string, minID uint32) {
 }
 
 // Maintain a simple free list
-func (e *Emitter) newEvent() (*Event, uint32) {
-	var m = e.emask
+func (e *EventEmitter) newEvent() (*Event, uint32) {
+	var m = atomic.LoadUint32(&e.emask)
 	var b = uint32(bits.TrailingZeros16(uint16(^m)))
 
 	if b < uint32(len(e.epool)) && atomic.CompareAndSwapUint32(&e.emask, m, m|(1<<b)) {
@@ -143,7 +145,7 @@ func (e *Emitter) newEvent() (*Event, uint32) {
 	return &Event{}, 0xFF
 }
 
-func (e *Emitter) freeEvent(b uint32) {
+func (e *EventEmitter) freeEvent(b uint32) {
 	if b >= uint32(len(e.epool)) {
 		return
 	}
@@ -152,7 +154,7 @@ func (e *Emitter) freeEvent(b uint32) {
 	e.epool[b] = Event{}
 
 	for {
-		var m = e.emask
+		var m = atomic.LoadUint32(&e.emask)
 		if atomic.CompareAndSwapUint32(&e.emask, m, m&^(1<<b)) {
 			break
 		}
@@ -160,7 +162,7 @@ func (e *Emitter) freeEvent(b uint32) {
 }
 
 // Fire new event of type a
-func (e *Emitter) Fire(a EventArg, o ...EventArg) {
+func (e *EventEmitter) Fire(a EventArg, o ...EventArg) {
 	var ht = reflect.TypeOf(a).String()
 
 	e.hanmutex.RLock()
@@ -194,6 +196,6 @@ func (e *Emitter) Fire(a EventArg, o ...EventArg) {
 	e.freeEvent(eid)
 
 	if once {
-		e.offOnce(ht, minID)
+		e.offOnce(ht, minID, arr[0].id)
 	}
 }

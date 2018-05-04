@@ -2,7 +2,7 @@
 // Project: gowarcraft3 (https://github.com/nielsAD/gowarcraft3)
 // License: Mozilla Public License, v2.0
 
-package player
+package dummy
 
 import (
 	"errors"
@@ -12,15 +12,10 @@ import (
 
 // Errors
 var (
-	ErrJoinRejected = errors.New("fp: Join rejected")
-	ErrGameFull     = errors.New("fp: Join rejected (game full)")
-	ErrGameStarted  = errors.New("fp: Join rejected (game started)")
-
-	ErrInvalidFirstPacket = errors.New("fp: Invalid first packet")
-	ErrUnknownPeerID      = errors.New("fp: Unknown peer ID")
-	ErrAlreadyConnected   = errors.New("fp: Already connected")
-	ErrInvalidEntryKey    = errors.New("fp: Wrong entry key")
-	ErrInvalidJoinCounter = errors.New("fp: Wrong join counter")
+	ErrJoinRejected       = errors.New("dummy: Join rejected")
+	ErrGameFull           = errors.New("dummy: Join rejected (game full)")
+	ErrGameStarted        = errors.New("dummy: Join rejected (game started)")
+	ErrInvalidFirstPacket = errors.New("dummy: Invalid first packet")
 )
 
 // RejectReasonToError converts w3gs.RejectReason to an appropriate error

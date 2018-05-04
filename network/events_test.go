@@ -2,22 +2,24 @@
 // Project: gowarcraft3 (https://github.com/nielsAD/gowarcraft3)
 // License: Mozilla Public License, v2.0
 
-package mock_test
+package network_test
 
 import (
+	"sync"
+	"sync/atomic"
 	"testing"
 
-	"github.com/nielsAD/gowarcraft3/mock"
+	"github.com/nielsAD/gowarcraft3/network"
 )
 
 func TestEmitterSingle(t *testing.T) {
-	var e mock.Emitter
+	var e network.EventEmitter
 
 	// Empty
 	e.Fire("Hello")
 
 	var fired bool
-	var id = e.On("", func(ev *mock.Event) {
+	var id = e.On("", func(ev *network.Event) {
 		s, ok := ev.Arg.(string)
 		if !ok {
 			t.Fatal("Expected string")
@@ -41,7 +43,7 @@ func TestEmitterSingle(t *testing.T) {
 	}
 
 	// Add second handler
-	e.Once(false, func(ev *mock.Event) {
+	e.Once(false, func(ev *network.Event) {
 		b, ok := ev.Arg.(bool)
 		if !ok {
 			t.Fatal("Expected bool")
@@ -79,14 +81,14 @@ func TestEmitterSingle(t *testing.T) {
 }
 
 func TestEmitterMulti(t *testing.T) {
-	var e mock.Emitter
+	var e network.EventEmitter
 	var fired int
 
-	e.On(42, func(ev *mock.Event) {
+	e.On(42, func(ev *network.Event) {
 		t.Fatal("Should never be called")
 	})
 
-	e.On(42, func(ev *mock.Event) {
+	e.On(42, func(ev *network.Event) {
 		fired++
 		ev.PreventNext()
 	})
@@ -96,7 +98,7 @@ func TestEmitterMulti(t *testing.T) {
 		t.Fatal("Expected 1 callback, got", fired)
 	}
 
-	var h = func(ev *mock.Event) {
+	var h = func(ev *network.Event) {
 		fired++
 	}
 
@@ -135,11 +137,11 @@ func TestEmitterMulti(t *testing.T) {
 }
 
 func TestEmitterRecursive(t *testing.T) {
-	var e mock.Emitter
+	var e network.EventEmitter
 	var fired bool
 
-	e.On("", func(ev *mock.Event) {
-		e.Once("", func(ev *mock.Event) {
+	e.On("", func(ev *network.Event) {
+		e.Once("", func(ev *network.Event) {
 			fired = true
 			ev.PreventNext()
 		})
@@ -152,10 +154,36 @@ func TestEmitterRecursive(t *testing.T) {
 	}
 }
 
+func TestGoroutines(t *testing.T) {
+	var c uint32
+
+	var e network.EventEmitter
+	e.On(uint32(0), func(ev *network.Event) {
+		atomic.AddUint32(&c, ev.Arg.(uint32))
+	})
+
+	var wg sync.WaitGroup
+	for i := 0; i < 32; i++ {
+		wg.Add(1)
+		go func() {
+			for i := 0; i < 1000; i++ {
+				e.Fire(uint32(1))
+			}
+			wg.Done()
+		}()
+	}
+
+	wg.Wait()
+
+	if atomic.LoadUint32(&c) != 32*1000 {
+		t.Fatal("Result invalid")
+	}
+}
+
 func benchmarkEmitter(b *testing.B, numListeners int) {
-	var e mock.Emitter
+	var e network.EventEmitter
 	for i := 0; i < numListeners; i++ {
-		e.On("", func(ev *mock.Event) {})
+		e.On("", func(ev *network.Event) {})
 	}
 	for n := 0; n < b.N; n++ {
 		e.Fire("")

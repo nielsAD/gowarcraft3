@@ -10,33 +10,26 @@ import (
 	"sync"
 	"time"
 
-	"github.com/nielsAD/gowarcraft3/mock"
-	"github.com/nielsAD/gowarcraft3/protocol"
+	"github.com/nielsAD/gowarcraft3/network"
 	"github.com/nielsAD/gowarcraft3/protocol/w3gs"
 )
 
 // Update event
 type Update struct{}
 
-// Stop event
-type Stop struct{}
-
 // GameList keeps track of all the hosted games in the Local Area Network
-// Emits events for every received packet, Update{} when the output of Games() changes, and Stop{} on shutdown
+// Emits events for every received packet and Update{} when the output of Games() changes
 // Public methods/fields are thread-safe unless explicitly stated otherwise
 type GameList struct {
-	mock.Emitter
-
-	smut sync.Mutex
-	sbuf protocol.Buffer
+	network.EventEmitter
+	network.W3GSPacketConn
 
 	gmut  sync.Mutex
 	games map[string]w3gs.GameInfo
 
-	// Set these once before Run(), read-only after that
-	Conn        net.PacketConn
-	ReadTimeout time.Duration
-	GameVersion w3gs.GameVersion
+	// Set once before Run(), read-only after that
+	GameVersion       w3gs.GameVersion
+	BroadcastInterval time.Duration
 }
 
 // NewGameList opens a new UDP socket to listen for LAN GameList updates
@@ -47,12 +40,12 @@ func NewGameList(gv w3gs.GameVersion, port int) (*GameList, error) {
 	}
 
 	var g = GameList{
-		Conn:        conn,
-		ReadTimeout: 30 * time.Second,
-		GameVersion: gv,
+		GameVersion:       gv,
+		BroadcastInterval: 30 * time.Second,
 	}
 
 	g.InitDefaultHandlers()
+	g.SetConn(conn)
 	return &g, nil
 }
 
@@ -60,13 +53,13 @@ func NewGameList(gv w3gs.GameVersion, port int) (*GameList, error) {
 func (g *GameList) Games() map[string]w3gs.GameInfo {
 	var res = make(map[string]w3gs.GameInfo)
 
-	g.smut.Lock()
+	g.gmut.Lock()
 	for k, v := range g.games {
 		if v.GameVersion == g.GameVersion {
 			res[k] = v
 		}
 	}
-	g.smut.Unlock()
+	g.gmut.Unlock()
 
 	return res
 }
@@ -87,74 +80,31 @@ func (g *GameList) InitDefaultHandlers() {
 	g.On(&w3gs.GameInfo{}, g.onGameInfo)
 }
 
-// Close Conn and stop updating the GameList
-func (g *GameList) Close() error {
-	return g.Conn.Close()
-}
-
-// Send pkt to addr over Conn
-func (g *GameList) Send(addr net.Addr, pkt w3gs.Packet) (int, error) {
-	var n int
-	var e error
-
-	g.smut.Lock()
-	if e = pkt.Serialize(&g.sbuf); e == nil {
-		n, e = g.Conn.WriteTo(g.sbuf.Bytes, addr)
-	}
-	g.sbuf.Truncate()
-	g.smut.Unlock()
-
-	return n, e
-}
-
-// Broadcast a packet over LAN
-func (g *GameList) Broadcast(pkt w3gs.Packet) (int, error) {
-	return g.Send(&BroadcastAddr, pkt)
-}
-
 // Run reads packets from Conn and emits an event for each received packet
-func (g *GameList) Run() {
-	defer g.Fire(Stop{})
-	if g.Conn == nil {
-		return
-	}
-
+// Not safe for concurrent invocation
+func (g *GameList) Run() error {
 	var sg = w3gs.SearchGame{
 		GameVersion: g.GameVersion,
 	}
 
-	var buf [2048]byte
 	for {
-		g.Broadcast(&sg)
-
-		if g.ReadTimeout > 0 {
-			g.Conn.SetReadDeadline(time.Now().Add(g.ReadTimeout))
+		if _, err := g.Broadcast(&sg); err != nil {
+			g.Fire(&network.AsyncError{Src: "Run[Broadcast]", Err: err})
 		}
 
-		for {
-			size, addr, err := g.Conn.ReadFrom(buf[:])
-			if err != nil {
-				if os.IsTimeout(err) {
-					break
-				}
-				if !mock.IsConnClosedError(err) {
-					g.Fire(&mock.AsyncError{Src: "ReadAndFire[Read]", Err: err})
-				}
-				return
-			}
-
-			pkt, _, err := w3gs.DeserializePacket(&protocol.Buffer{Bytes: buf[:size]})
-			if err != nil {
-				g.Fire(&mock.AsyncError{Src: "ReadAndFire[Deserialize]", Err: err})
+		if err := g.W3GSPacketConn.Run(&g.EventEmitter, g.BroadcastInterval); err != nil {
+			if os.IsTimeout(err) {
 				continue
 			}
-
-			g.Fire(pkt, addr)
+			if !network.IsConnClosedError(err) {
+				g.Fire(&network.AsyncError{Src: "Run[W3GSUConn]", Err: err})
+			}
+			return err
 		}
 	}
 }
 
-func (g *GameList) onRefreshGame(ev *mock.Event) {
+func (g *GameList) onRefreshGame(ev *network.Event) {
 	var pkt = ev.Arg.(*w3gs.RefreshGame)
 	var adr = ev.Opt[0].(net.Addr)
 	var idx = adr.String()
@@ -178,11 +128,11 @@ func (g *GameList) onRefreshGame(ev *mock.Event) {
 	}
 
 	if _, err := g.Send(adr, &sg); err != nil {
-		g.Fire(&mock.AsyncError{Src: "onRefreshGame[Respond]", Err: err})
+		g.Fire(&network.AsyncError{Src: "onRefreshGame[Send]", Err: err})
 	}
 }
 
-func (g *GameList) onCreateGame(ev *mock.Event) {
+func (g *GameList) onCreateGame(ev *network.Event) {
 	var pkt = ev.Arg.(*w3gs.CreateGame)
 	var adr = ev.Opt[0].(net.Addr)
 	var idx = adr.String()
@@ -204,11 +154,11 @@ func (g *GameList) onCreateGame(ev *mock.Event) {
 	}
 
 	if _, err := g.Send(adr, &sg); err != nil {
-		g.Fire(&mock.AsyncError{Src: "onCreateGame[Respond]", Err: err})
+		g.Fire(&network.AsyncError{Src: "onCreateGame[Send]", Err: err})
 	}
 }
 
-func (g *GameList) onDecreateGame(ev *mock.Event) {
+func (g *GameList) onDecreateGame(ev *network.Event) {
 	var pkt = ev.Arg.(*w3gs.RefreshGame)
 	var adr = ev.Opt[0].(net.Addr)
 	var idx = adr.String()
@@ -226,10 +176,11 @@ func (g *GameList) onDecreateGame(ev *mock.Event) {
 	}
 }
 
-func (g *GameList) onGameInfo(ev *mock.Event) {
+func (g *GameList) onGameInfo(ev *network.Event) {
 	var pkt = ev.Arg.(*w3gs.GameInfo)
 	var adr = ev.Opt[0].(net.Addr)
 	var idx = adr.String()
+
 	var update = pkt.GameVersion == g.GameVersion
 
 	g.gmut.Lock()

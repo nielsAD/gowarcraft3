@@ -2,7 +2,7 @@
 // Project: gowarcraft3 (https://github.com/nielsAD/gowarcraft3)
 // License: Mozilla Public License, v2.0
 
-package mock
+package network
 
 import (
 	"io"
@@ -25,15 +25,15 @@ func (e *AsyncError) Error() string {
 func UnnestError(err error) error {
 	switch e := err.(type) {
 	case *AsyncError:
-		return e.Err
+		return UnnestError(e.Err)
 	case *net.OpError:
-		return e.Err
+		return UnnestError(e.Err)
 	case *os.SyscallError:
-		return e.Err
+		return UnnestError(e.Err)
 	case *os.PathError:
-		return e.Err
+		return UnnestError(e.Err)
 	case *os.LinkError:
-		return e.Err
+		return UnnestError(e.Err)
 	default:
 		return err
 	}
@@ -53,5 +53,6 @@ func IsSysCallError(err error, errno syscall.Errno) bool {
 
 // IsConnClosedError checks if net.error is a "connection closed" error
 func IsConnClosedError(err error) bool {
-	return err == io.EOF || IsUseClosedNetworkError(err) || IsSysCallError(err, syscall.ECONNRESET)
+	err = UnnestError(err)
+	return err == io.EOF || IsUseClosedNetworkError(err) || IsSysCallError(err, syscall.ECONNRESET) || IsSysCallError(err, syscall.EPIPE)
 }
