@@ -23,6 +23,7 @@ type EventID struct {
 // Event structure passed to event handlers
 type Event struct {
 	Arg         EventArg
+	Opt         []EventArg
 	preventNext bool
 }
 
@@ -159,7 +160,7 @@ func (e *Emitter) freeEvent(b uint32) {
 }
 
 // Fire new event of type a
-func (e *Emitter) Fire(a EventArg) {
+func (e *Emitter) Fire(a EventArg, o ...EventArg) {
 	var ht = reflect.TypeOf(a).String()
 
 	e.hanmutex.RLock()
@@ -175,6 +176,7 @@ func (e *Emitter) Fire(a EventArg) {
 
 	var ev, eid = e.newEvent()
 	ev.Arg = a
+	ev.Opt = o
 
 	for i := 0; i < len(arr); i++ {
 		var eh = arr[i]

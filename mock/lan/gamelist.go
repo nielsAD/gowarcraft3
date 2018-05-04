@@ -37,9 +37,6 @@ type GameList struct {
 	Conn        net.PacketConn
 	ReadTimeout time.Duration
 	GameVersion w3gs.GameVersion
-
-	// This is only safe to access during packet handling events
-	LastAddr net.Addr
 }
 
 // NewGameList opens a new UDP socket to listen for LAN GameList updates
@@ -95,7 +92,8 @@ func (g *GameList) Close() error {
 	return g.Conn.Close()
 }
 
-func (g *GameList) send(addr net.Addr, pkt w3gs.Packet) (int, error) {
+// Send pkt to addr over Conn
+func (g *GameList) Send(addr net.Addr, pkt w3gs.Packet) (int, error) {
 	var n int
 	var e error
 
@@ -111,13 +109,7 @@ func (g *GameList) send(addr net.Addr, pkt w3gs.Packet) (int, error) {
 
 // Broadcast a packet over LAN
 func (g *GameList) Broadcast(pkt w3gs.Packet) (int, error) {
-	return g.send(&BroadcastAddr, pkt)
-}
-
-// Respond to the sender of the last received packet
-// Only to be called during packet handling events
-func (g *GameList) Respond(pkt w3gs.Packet) (int, error) {
-	return g.send(g.LastAddr, pkt)
+	return g.Send(&BroadcastAddr, pkt)
 }
 
 // Run reads packets from Conn and emits an event for each received packet
@@ -140,8 +132,6 @@ func (g *GameList) Run() {
 		}
 
 		for {
-			g.LastAddr = nil
-
 			size, addr, err := g.Conn.ReadFrom(buf[:])
 			if err != nil {
 				if os.IsTimeout(err) {
@@ -153,22 +143,21 @@ func (g *GameList) Run() {
 				return
 			}
 
-			g.LastAddr = addr
-
 			pkt, _, err := w3gs.DeserializePacket(&protocol.Buffer{Bytes: buf[:size]})
 			if err != nil {
 				g.Fire(&mock.AsyncError{Src: "ReadAndFire[Deserialize]", Err: err})
 				continue
 			}
 
-			g.Fire(pkt)
+			g.Fire(pkt, addr)
 		}
 	}
 }
 
 func (g *GameList) onRefreshGame(ev *mock.Event) {
 	var pkt = ev.Arg.(*w3gs.RefreshGame)
-	var idx = g.LastAddr.String()
+	var adr = ev.Opt[0].(net.Addr)
+	var idx = adr.String()
 
 	g.gmut.Lock()
 	if g.games[idx].HostCounter == pkt.HostCounter {
@@ -188,14 +177,15 @@ func (g *GameList) onRefreshGame(ev *mock.Event) {
 		HostCounter: pkt.HostCounter,
 	}
 
-	if _, err := g.Respond(&sg); err != nil {
+	if _, err := g.Send(adr, &sg); err != nil {
 		g.Fire(&mock.AsyncError{Src: "onRefreshGame[Respond]", Err: err})
 	}
 }
 
 func (g *GameList) onCreateGame(ev *mock.Event) {
 	var pkt = ev.Arg.(*w3gs.CreateGame)
-	var idx = g.LastAddr.String()
+	var adr = ev.Opt[0].(net.Addr)
+	var idx = adr.String()
 
 	g.gmut.Lock()
 	g.initMap()
@@ -213,14 +203,15 @@ func (g *GameList) onCreateGame(ev *mock.Event) {
 		HostCounter: pkt.HostCounter,
 	}
 
-	if _, err := g.Respond(&sg); err != nil {
+	if _, err := g.Send(adr, &sg); err != nil {
 		g.Fire(&mock.AsyncError{Src: "onCreateGame[Respond]", Err: err})
 	}
 }
 
 func (g *GameList) onDecreateGame(ev *mock.Event) {
 	var pkt = ev.Arg.(*w3gs.RefreshGame)
-	var idx = g.LastAddr.String()
+	var adr = ev.Opt[0].(net.Addr)
+	var idx = adr.String()
 
 	g.gmut.Lock()
 	var update = g.games[idx].HostCounter == pkt.HostCounter
@@ -237,7 +228,8 @@ func (g *GameList) onDecreateGame(ev *mock.Event) {
 
 func (g *GameList) onGameInfo(ev *mock.Event) {
 	var pkt = ev.Arg.(*w3gs.GameInfo)
-	var idx = g.LastAddr.String()
+	var adr = ev.Opt[0].(net.Addr)
+	var idx = adr.String()
 	var update = pkt.GameVersion == g.GameVersion
 
 	g.gmut.Lock()
