@@ -397,10 +397,10 @@ func (h *Host) disconnectPlayer(conn net.Conn, peer *Player) {
 
 func (h *Host) serve(peer *Player) error {
 	if h.PingInterval != 0 {
-		var peerPing w3gs.PeerPing
 		var pingTicker = time.NewTicker(h.PingInterval)
 		defer pingTicker.Stop()
 
+		var peerPing w3gs.PeerPing
 		go func() {
 			for range pingTicker.C {
 				peerPing.Payload = uint32(time.Now().Sub(peer.StartTime).Nanoseconds() / 1e6)

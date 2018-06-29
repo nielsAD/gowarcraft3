@@ -70,11 +70,11 @@ func (p *Player) Join() error {
 
 	conn.SetNoDelay(true)
 	conn.SetLinger(3)
-	p.SetConn(conn)
+
+	c := network.NewW3GSConn(conn)
 
 	p.PlayerInfo.JoinCounter++
-
-	if _, err := p.Send(&w3gs.Join{
+	if _, err := c.Send(&w3gs.Join{
 		HostCounter:  p.HostCounter,
 		EntryKey:     p.EntryKey,
 		ListenPort:   p.PlayerInfo.InternalAddr.Port,
@@ -82,10 +82,11 @@ func (p *Player) Join() error {
 		PlayerName:   p.PlayerInfo.PlayerName,
 		InternalAddr: p.PlayerInfo.InternalAddr,
 	}); err != nil {
+		c.Close()
 		return err
 	}
 
-	pkt, err := p.NextPacket(5 * time.Second)
+	pkt, err := c.NextPacket(5 * time.Second)
 	if err != nil {
 		return err
 	}
@@ -94,11 +95,14 @@ func (p *Player) Join() error {
 	case *w3gs.SlotInfoJoin:
 		p.PlayerInfo.PlayerID = pkt.PlayerID
 	case *w3gs.RejectJoin:
+		c.Close()
 		return RejectReasonToError(pkt.Reason)
 	default:
+		c.Close()
 		return ErrInvalidFirstPacket
 	}
 
+	p.SetConn(conn)
 	return nil
 }
 
