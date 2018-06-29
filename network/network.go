@@ -7,6 +7,7 @@ package network
 
 import (
 	"io"
+	"math"
 	"net"
 	"sync"
 	"time"
@@ -279,6 +280,9 @@ type BNCSonn struct {
 	smut sync.Mutex
 	sbuf bncs.SerializationBuffer
 	rbuf bncs.DeserializationBuffer
+
+	lmut sync.Mutex
+	lnxt time.Time
 }
 
 // NewBNCSonn returns conn wrapped in W3GSPacketConn
@@ -318,17 +322,33 @@ func (c *BNCSonn) Close() error {
 
 // Send pkt to addr over net.Conn
 func (c *BNCSonn) Send(pkt bncs.Packet) (int, error) {
-	c.cmut.RLock()
-
-	if c.conn == nil {
-		c.cmut.RUnlock()
-		return 0, io.EOF
-	}
-
 	c.smut.Lock()
 	var n, err = bncs.SerializePacketWithBuffer(c.conn, &c.sbuf, pkt)
 	c.smut.Unlock()
-	c.cmut.RUnlock()
+
+	return n, err
+}
+
+// SendRL pkt to addr over net.Conn with rate limit
+func (c *BNCSonn) SendRL(pkt bncs.Packet) (int, error) {
+	c.lmut.Lock()
+
+	var t = time.Now()
+	if t.Before(c.lnxt) {
+		time.Sleep(c.lnxt.Sub(t))
+	}
+
+	var n, err = c.Send(pkt)
+	if n > 0 {
+		// log(packet_size,4)^1.5 × 1300ms
+		// ~1.3s for packet size 4
+		// ~2.8s for packet size 10
+		// ~4.6s for packet size 25
+		// ~6.2s for packet size 50
+		// ~9.7s for packet size 200
+		c.lnxt = time.Now().Add(time.Duration(math.Pow(math.Log(float64(n))/math.Log(4), 1.5)) * (1300 * time.Millisecond))
+	}
+	c.lmut.Unlock()
 
 	return n, err
 }
@@ -390,7 +410,7 @@ func (c *BNCSonn) RunServer(f Firer, timeout time.Duration) error {
 			switch err {
 			// Connection is still valid after these errors, only deserialization failed
 			case bncs.ErrInvalidPacketSize, bncs.ErrInvalidChecksum, bncs.ErrUnexpectedConst, bncs.ErrBufferTooSmall:
-				f.Fire(&AsyncError{Src: "Run[Deserialize]", Err: err})
+				f.Fire(&AsyncError{Src: "RunServer[Deserialize]", Err: err})
 				continue
 			default:
 				f.Fire(RunStop{})
@@ -415,7 +435,7 @@ func (c *BNCSonn) RunClient(f Firer, timeout time.Duration) error {
 			switch err {
 			// Connection is still valid after these errors, only deserialization failed
 			case bncs.ErrInvalidPacketSize, bncs.ErrInvalidChecksum, bncs.ErrUnexpectedConst, bncs.ErrBufferTooSmall:
-				f.Fire(&AsyncError{Src: "Run[Deserialize]", Err: err})
+				f.Fire(&AsyncError{Src: "RunClient[Deserialize]", Err: err})
 				continue
 			default:
 				f.Fire(RunStop{})

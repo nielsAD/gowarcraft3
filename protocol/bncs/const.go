@@ -296,7 +296,7 @@ const (
 	LogonProofPasswordIncorrect LogonProofResult = 0x02 // Incorrect password.
 	LogonProofAccountClosed     LogonProofResult = 0x06 // Account closed.
 	LogonProofRequireEmail      LogonProofResult = 0x0E // An email address should be registered for this account.
-	LogonProofCustomError       LogonProofResult = 0x0F //  Custom error. A string at the end of this message contains the error.
+	LogonProofCustomError       LogonProofResult = 0x0F // Custom error. A string at the end of this message contains the error.
 )
 
 func (r LogonProofResult) String() string {

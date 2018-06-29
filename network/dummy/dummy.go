@@ -71,10 +71,10 @@ func (p *Player) Join() error {
 	conn.SetNoDelay(true)
 	conn.SetLinger(3)
 
-	c := network.NewW3GSConn(conn)
+	w3gsconn := network.NewW3GSConn(conn)
 
 	p.PlayerInfo.JoinCounter++
-	if _, err := c.Send(&w3gs.Join{
+	if _, err := w3gsconn.Send(&w3gs.Join{
 		HostCounter:  p.HostCounter,
 		EntryKey:     p.EntryKey,
 		ListenPort:   p.PlayerInfo.InternalAddr.Port,
@@ -82,23 +82,24 @@ func (p *Player) Join() error {
 		PlayerName:   p.PlayerInfo.PlayerName,
 		InternalAddr: p.PlayerInfo.InternalAddr,
 	}); err != nil {
-		c.Close()
+		w3gsconn.Close()
 		return err
 	}
 
-	pkt, err := c.NextPacket(5 * time.Second)
+	pkt, err := w3gsconn.NextPacket(5 * time.Second)
 	if err != nil {
+		w3gsconn.Close()
 		return err
 	}
 
-	switch pkt := pkt.(type) {
+	switch r := pkt.(type) {
 	case *w3gs.SlotInfoJoin:
-		p.PlayerInfo.PlayerID = pkt.PlayerID
+		p.PlayerInfo.PlayerID = r.PlayerID
 	case *w3gs.RejectJoin:
-		c.Close()
-		return RejectReasonToError(pkt.Reason)
+		w3gsconn.Close()
+		return RejectReasonToError(r.Reason)
 	default:
-		c.Close()
+		w3gsconn.Close()
 		return ErrInvalidFirstPacket
 	}
 
@@ -238,7 +239,7 @@ func (p *Player) onPlayerInfo(ev *network.Event) {
 		return
 	}
 
-	if !p.DialPeers || (p.PlayerInfo.InternalAddr.IP.Equal(net.IPv4zero) && p.PlayerInfo.ExternalAddr.IP.Equal(net.IPv4zero)) {
+	if !p.DialPeers || (peer.PlayerInfo.InternalAddr.IP == nil && peer.PlayerInfo.ExternalAddr.IP == nil) {
 		return
 	}
 

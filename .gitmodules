@@ -5,6 +5,11 @@
 [submodule "vendor/github.com/google/gopacket"]
 	path = vendor/github.com/google/gopacket
 	url = https://github.com/google/gopacket.git
+	ignore = dirty
 [submodule "vendor/github.com/ftrvxmtrx/tga"]
 	path = vendor/github.com/ftrvxmtrx/tga
 	url = https://github.com/ftrvxmtrx/tga.git
+[submodule "vendor/bncsutil"]
+	path = vendor/bncsutil
+	url = https://github.com/BNETDocs/bncsutil.git
+	ignore = dirty
