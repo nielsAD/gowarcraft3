@@ -164,8 +164,8 @@ func TestMass(t *testing.T) {
 	var chat int32
 	var wg sync.WaitGroup
 
-	// test 16 * 15 / 2 = 120 simultaneous connections
-	var hosts = makeHosts(t, 16)
+	// test 12 * 11 / 2 = 56 simultaneous connections
+	var hosts = makeHosts(t, 12)
 	for i := 0; i < len(hosts); i++ {
 		var h = hosts[i]
 		if err := h.ListenAndServe(); err != nil {

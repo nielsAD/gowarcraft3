@@ -35,6 +35,6 @@ before_script:
 script:
   - gofmt -l "${DIR[@]}"
   - go build "${PKG[@]}"
-  - go test -v -race -cover -cpu=1,2,4 -timeout=2m "${PKG[@]}"
+  - go test -race -cover -cpu=1,2,4 -timeout=2m "${PKG[@]}"
   - go vet "${PKG[@]}"
   - golint -set_exit_status "${PKG[@]}"
