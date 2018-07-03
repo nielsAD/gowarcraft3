@@ -2,7 +2,7 @@
 // Project: gowarcraft3 (https://github.com/nielsAD/gowarcraft3)
 // License: Mozilla Public License, v2.0
 
-// dummy is a mocked Warcraft 3 game client that can be used to add dummy players to games.
+// w3gsclient is a mocked Warcraft 3 game client that can be used to add dummy players to games.
 package main
 
 import (
