@@ -32,7 +32,7 @@ var (
 	iface   = flag.String("i", "", "Interface to read packets from")
 	promisc = flag.Bool("promisc", true, "Set promiscuous mode")
 	snaplen = flag.Int("s", 65536, "Snap length (max number of bytes to read per packet")
-	port    = flag.Int("p", 6112, "BNCS server port to sniff")
+	port    = flag.Int("p", 6112, "BNCS port to sniff")
 
 	jsonout = flag.Bool("json", false, "Print machine readable format")
 	bloblen = flag.Int("b", 128, "Max number of bytes to print per blob ")

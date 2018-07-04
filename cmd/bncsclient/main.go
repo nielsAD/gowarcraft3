@@ -24,6 +24,7 @@ var (
 	keytft   = flag.String("tft", "", "TFT CD-key")
 	username = flag.String("u", "", "Username")
 	password = flag.String("p", "", "Password")
+	create   = flag.Bool("c", false, "Create account")
 )
 
 var logOut = log.New(os.Stdout, "", log.Ltime)
@@ -53,16 +54,29 @@ func main() {
 		}
 	}
 
-	c.Username = *username
+	c.UserName = *username
 	c.Password = *password
+
+	if *username == "" {
+		fmt.Print("Enter username: ")
+		fmt.Scanln(&c.UserName)
+	}
 
 	if *password == "" {
 		fmt.Print("Enter password: ")
 		fmt.Scanln(&c.Password)
 	}
 
-	if err := c.Dial(); err != nil {
-		logErr.Fatal("Dial error: ", err)
+	if *create {
+		if err := c.CreateAccount(); err != nil {
+			logErr.Fatal("CreateAccount error: ", err)
+		}
+		logOut.Printf("Succesfully registered new account '%s'\n", c.UserName)
+		return
+	}
+
+	if err := c.Logon(); err != nil {
+		logErr.Fatal("Logon error: ", err)
 	}
 
 	go func() {

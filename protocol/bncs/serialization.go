@@ -51,10 +51,13 @@ type DeserializationBuffer struct {
 	authInfoReq               AuthInfoReq
 	authCheckResp             AuthCheckResp
 	authCheckReq              AuthCheckReq
+	authAccountCreateResp     AuthAccountCreateResp
+	authAccountCreateReq      AuthAccountCreateReq
 	authAccountLogonResp      AuthAccountLogonResp
 	authAccountLogonReq       AuthAccountLogonReq
 	authAccountLogonProofResp AuthAccountLogonProofResp
 	authAccountLogonProofReq  AuthAccountLogonProofReq
+	setEmail                  SetEmail
 	unknownPacket             UnknownPacket
 }
 
@@ -141,12 +144,18 @@ func DeserializeClientPacketWithBuffer(r io.Reader, b *DeserializationBuffer) (P
 	case PidAuthCheck:
 		err = b.authCheckReq.Deserialize(&pbuf)
 		pkt = &b.authCheckReq
+	case PidAuthAccountCreate:
+		err = b.authAccountCreateReq.Deserialize(&pbuf)
+		pkt = &b.authAccountCreateReq
 	case PidAuthAccountLogon:
 		err = b.authAccountLogonReq.Deserialize(&pbuf)
 		pkt = &b.authAccountLogonReq
 	case PidAuthAccountLogonProof:
 		err = b.authAccountLogonProofReq.Deserialize(&pbuf)
 		pkt = &b.authAccountLogonProofReq
+	case PidSetEmail:
+		err = b.setEmail.Deserialize(&pbuf)
+		pkt = &b.setEmail
 	default:
 		err = b.unknownPacket.Deserialize(&pbuf)
 		pkt = &b.unknownPacket
@@ -202,6 +211,9 @@ func DeserializeServerPacketWithBuffer(r io.Reader, b *DeserializationBuffer) (P
 	case PidAuthCheck:
 		err = b.authCheckResp.Deserialize(&pbuf)
 		pkt = &b.authCheckResp
+	case PidAuthAccountCreate:
+		err = b.authAccountCreateResp.Deserialize(&pbuf)
+		pkt = &b.authAccountCreateResp
 	case PidAuthAccountLogon:
 		err = b.authAccountLogonResp.Deserialize(&pbuf)
 		pkt = &b.authAccountLogonResp

@@ -106,11 +106,19 @@ func TestClientPackets(t *testing.T) {
 			ExeInformation: "Warcraft III.exe",
 			KeyOwnerName:   "Niels",
 		},
+		&bncs.AuthAccountCreateReq{},
+		&bncs.AuthAccountCreateReq{
+			UserName: "Grubby",
+		},
 		&bncs.AuthAccountLogonReq{},
 		&bncs.AuthAccountLogonReq{
-			Username: "Moon",
+			UserName: "Moon",
 		},
 		&bncs.AuthAccountLogonProofReq{},
+		&bncs.SetEmail{},
+		&bncs.SetEmail{
+			EmailAddress: "test@test.com",
+		},
 	}
 
 	for _, pkt := range types {
@@ -245,6 +253,10 @@ func TestServerPackets(t *testing.T) {
 		&bncs.AuthCheckResp{
 			Result:                111,
 			AdditionalInformation: "222",
+		},
+		&bncs.AuthAccountCreateResp{},
+		&bncs.AuthAccountCreateResp{
+			Result: bncs.AccountCreateNameExists,
 		},
 		&bncs.AuthAccountLogonResp{},
 		&bncs.AuthAccountLogonResp{

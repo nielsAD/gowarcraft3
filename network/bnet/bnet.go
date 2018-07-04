@@ -32,7 +32,7 @@ type Client struct {
 	KeepAliveInterval time.Duration
 	AuthInfo          bncs.AuthInfoReq
 	BinPath           string
-	Username          string
+	UserName          string
 	Password          string
 	CDKeyOwner        string
 	CDKeys            []string
@@ -113,10 +113,9 @@ func NewClient(searchPaths ...string) *Client {
 	}
 }
 
-// Dial opens a new connection to server
-// Not safe for concurrent invocation
+// Dial opens a new connection to server, verifies game version, and authenticates with CD keys
 //
-// Logon sequence:
+// Dial sequence:
 //   1. C > S [0x50] SID_AUTH_INFO
 //   2. S > C [0x25] SID_PING
 //   3. C > S [0x25] SID_PING (optional)
@@ -131,42 +130,20 @@ func NewClient(searchPaths ...string) *Client {
 //     5. C > S [0x33] SID_GETFILETIME ("bnserver.ini") (optional)
 //     6. S > C [0x33] SID_GETFILETIME (one for each request)
 //     7. Connection to BNFTPv2 to do file downloads
-//   8. Client waits for user to enter account information (standard logon shown, uses NLS):
-//     1. C > S [0x53] SID_AUTH_ACCOUNTLOGON
-//     2. S > C [0x53] SID_AUTH_ACCOUNTLOGON
-//     3. C > S [0x54] SID_AUTH_ACCOUNTLOGONPROOF
-//     4. S > C [0x54] SID_AUTH_ACCOUNTLOGONPROOF
-//   9. C > S [0x45] SID_NETGAMEPORT (optional)
-//  10. C > S [0x0A] SID_ENTERCHAT
-//  11. S > C [0x0A] SID_ENTERCHAT
-//  12. C > S [0x44] SID_WARCRAFTGENERAL (WID_TOURNAMENT) (optional)
-//  13. S > C [0x44] SID_WARCRAFTGENERAL (WID_TOURNAMENT) (optional response)
-//  14. C > S [0x46] SID_NEWS_INFO (optional)
-//  15. S > C [0x46] SID_NEWS_INFO (optional response)
-//  16. Client waits until user wants to Enter Chat.
-//  17. C > S [0x0C] SID_JOINCHANNEL (First Join, "W3")
-//  18. S > C [0x0F] SID_CHATEVENT
-//  19. A sequence of chat events for entering chat follow.
 //
-func (b *Client) Dial() error {
-	nls, err := NewNLS(b.Username, b.Password)
-	if err != nil {
-		return err
+func (b *Client) Dial() (*network.BNCSonn, error) {
+	if !strings.ContainsRune(b.ServerAddr, ':') {
+		b.ServerAddr += ":6112"
 	}
-
-	defer nls.Free()
 
 	addr, err := net.ResolveTCPAddr("tcp4", b.ServerAddr)
 	if err != nil {
-		return err
-	}
-	if addr.Port == 0 {
-		addr.Port = 6112
+		return nil, err
 	}
 
 	conn, err := net.DialTCP("tcp4", nil, addr)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	conn.SetNoDelay(true)
@@ -178,19 +155,56 @@ func (b *Client) Dial() error {
 	authInfo, err := b.sendAuthInfo(bncsconn)
 	if err != nil {
 		bncsconn.Close()
-		return err
+		return nil, err
 	}
 
 	clientToken := uint32(time.Now().Unix())
 	authCheck, err := b.sendAuthCheck(bncsconn, clientToken, authInfo)
 	if err != nil {
 		bncsconn.Close()
-		return err
+		return nil, err
 	}
 
 	if authCheck.Result != bncs.AuthSuccess {
 		bncsconn.Close()
-		return AuthResultToError(authCheck.Result)
+		return nil, AuthResultToError(authCheck.Result)
+	}
+
+	return bncsconn, nil
+}
+
+// Logon opens a new connection to server, logs on, and joins chat
+//
+// Logon sequence:
+//   1. Client starts with Dial sequence ([0x50] SID_AUTH_INFO and [0x51] SID_AUTH_CHECK)
+//   2. Client waits for user to enter account information (standard logon shown, uses NLS):
+//     1. C > S [0x53] SID_AUTH_ACCOUNTLOGON
+//     2. S > C [0x53] SID_AUTH_ACCOUNTLOGON
+//     3. C > S [0x54] SID_AUTH_ACCOUNTLOGONPROOF
+//     4. S > C [0x54] SID_AUTH_ACCOUNTLOGONPROOF
+//   3. C > S [0x45] SID_NETGAMEPORT (optional)
+//   4. C > S [0x0A] SID_ENTERCHAT
+//   5. S > C [0x0A] SID_ENTERCHAT
+//   6. C > S [0x44] SID_WARCRAFTGENERAL (WID_TOURNAMENT) (optional)
+//   7. S > C [0x44] SID_WARCRAFTGENERAL (WID_TOURNAMENT) (optional response)
+//   8. C > S [0x46] SID_NEWS_INFO (optional)
+//   9. S > C [0x46] SID_NEWS_INFO (optional response)
+//  10. Client waits until user wants to Enter Chat.
+//  11. C > S [0x0C] SID_JOINCHANNEL (First Join, "W3")
+//  12. S > C [0x0F] SID_CHATEVENT
+//  13. A sequence of chat events for entering chat follow.
+//
+func (b *Client) Logon() error {
+	nls, err := NewNLS(b.UserName, b.Password)
+	if err != nil {
+		return err
+	}
+
+	defer nls.Free()
+
+	bncsconn, err := b.Dial()
+	if err != nil {
+		return err
 	}
 
 	logon, err := b.sendLogon(bncsconn, nls)
@@ -201,7 +215,7 @@ func (b *Client) Dial() error {
 
 	if logon.Result != bncs.LogonSuccess {
 		bncsconn.Close()
-		return ErrInvalidAccount
+		return LogonResultToError(logon.Result)
 	}
 
 	proof, err := b.sendLogonProof(bncsconn, nls, logon)
@@ -210,7 +224,15 @@ func (b *Client) Dial() error {
 		return err
 	}
 
-	if proof.Result != bncs.LogonProofSuccess {
+	switch proof.Result {
+	case bncs.LogonProofSuccess:
+		//nothing
+	case bncs.LogonProofRequireEmail:
+		if _, err := bncsconn.Send(&bncs.SetEmail{EmailAddress: ""}); err != nil {
+			bncsconn.Close()
+			return err
+		}
+	default:
 		bncsconn.Close()
 		return LogonProofResultToError(proof.Result)
 	}
@@ -225,7 +247,43 @@ func (b *Client) Dial() error {
 		return err
 	}
 
-	b.SetConn(conn)
+	b.SetConn(bncsconn.Conn())
+	return nil
+}
+
+// CreateAccount registers a new account
+//
+// CreateAccount sequence:
+//  1. Client starts with Dial sequence
+//  2. Client waits for user to enter new account information:
+//    1. C > S [0x52] SID_AUTH_ACCOUNTCREATE
+//    2. S > C [0x52] SID_AUTH_ACCOUNTCREATE
+//  3. Client can continue with logon ([0x53] SID_AUTH_ACCOUNTLOGON)
+//
+func (b *Client) CreateAccount() error {
+	nls, err := NewNLS(b.UserName, b.Password)
+	if err != nil {
+		return err
+	}
+
+	defer nls.Free()
+
+	bncsconn, err := b.Dial()
+	if err != nil {
+		return err
+	}
+
+	defer bncsconn.Close()
+
+	create, err := b.sendCreateAccount(bncsconn, nls)
+	if err != nil {
+		return err
+	}
+
+	if create.Result != bncs.AccountCreateSuccess {
+		return AccountCreateResultToError(create.Result)
+	}
+
 	return nil
 }
 
@@ -326,7 +384,7 @@ func (b *Client) sendAuthCheck(conn *network.BNCSonn, clientToken uint32, authin
 func (b *Client) sendLogon(conn *network.BNCSonn, nls *NLS) (*bncs.AuthAccountLogonResp, error) {
 	var req = &bncs.AuthAccountLogonReq{
 		ClientKey: nls.ClientKey(),
-		Username:  b.Username,
+		UserName:  b.UserName,
 	}
 
 	if _, err := conn.Send(req); err != nil {
@@ -360,6 +418,33 @@ func (b *Client) sendLogonProof(conn *network.BNCSonn, nls *NLS, logon *bncs.Aut
 	}
 	switch p := pkt.(type) {
 	case *bncs.AuthAccountLogonProofResp:
+		return p, nil
+	default:
+		return nil, ErrUnexpectedPacket
+	}
+}
+
+func (b *Client) sendCreateAccount(conn *network.BNCSonn, nls *NLS) (*bncs.AuthAccountCreateResp, error) {
+
+	salt, verifier, err := nls.AccountCreate()
+	if err != nil {
+		return nil, err
+	}
+
+	var req = &bncs.AuthAccountCreateReq{UserName: b.UserName}
+	copy(req.Salt[:], salt)
+	copy(req.Verifier[:], verifier)
+
+	if _, err := conn.Send(req); err != nil {
+		return nil, err
+	}
+
+	pkt, err := conn.NextServerPacket(5 * time.Second)
+	if err != nil {
+		return nil, err
+	}
+	switch p := pkt.(type) {
+	case *bncs.AuthAccountCreateResp:
 		return p, nil
 	default:
 		return nil, ErrUnexpectedPacket

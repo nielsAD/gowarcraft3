@@ -111,6 +111,17 @@ func (n *NLS) Free() {
 	C.nls_free(n.n)
 }
 
+// AccountCreate generates the content for an SID_AUTH_ACCOUNTCREATE packet
+func (n *NLS) AccountCreate() ([]byte, []byte, error) {
+	var buf [128]byte
+	var res = int(C.nls_account_create(n.n, (*C.char)(unsafe.Pointer(&buf[0])), C.ulong(len(buf))))
+	if res == 0 {
+		return nil, nil, ErrNLS
+	}
+
+	return buf[0:32], buf[32:64], nil
+}
+
 // ClientKey for NLS exchange
 func (n *NLS) ClientKey() (res [32]byte) {
 	C.nls_get_A(n.n, (*C.char)(unsafe.Pointer(&res[0])))

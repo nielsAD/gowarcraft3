@@ -41,8 +41,10 @@ const (
 	PidNetGamePort           = 0x45 // C -> S |
 	PidAuthInfo              = 0x50 // C -> S | S -> C
 	PidAuthCheck             = 0x51 // C -> S | S -> C
+	PidAuthAccountCreate     = 0x52 // C -> S | S -> C
 	PidAuthAccountLogon      = 0x53 // C -> S | S -> C
 	PidAuthAccountLogonProof = 0x54 // C -> S | S -> C
+	PidSetEmail              = 0x59 // C -> S
 )
 
 // JoinChannelFlag enum
@@ -261,6 +263,44 @@ func (r AuthResult) String() string {
 		return "Wrong product"
 	default:
 		return fmt.Sprintf("AuthResult(0x%03X)", uint32(r))
+	}
+}
+
+// AccountCreateResult enum
+type AccountCreateResult uint32
+
+// AuthAccountCreate result
+const (
+	AccountCreateSuccess        AccountCreateResult = 0x00 // Successfully created account name.
+	AccountCreateNameExists     AccountCreateResult = 0x04 // Name already exists.
+	AccountCreateNameTooShort   AccountCreateResult = 0x07 // Name is too short/blank.
+	AccountCreateIllegalChar    AccountCreateResult = 0x08 // Name contains an illegal character.
+	AccountCreateBlacklist      AccountCreateResult = 0x09 // Name contains an illegal word.
+	AccountCreateTooFewAlphaNum AccountCreateResult = 0x0A // Name contains too few alphanumeric characters.
+	AccountCreateAdjacentPunct  AccountCreateResult = 0x0B // Name contains adjacent punctuation characters.
+	AccountCreateTooManyPunct   AccountCreateResult = 0x0C // Name contains too many punctuation characters.
+)
+
+func (r AccountCreateResult) String() string {
+	switch r {
+	case AccountCreateSuccess:
+		return "Successfully created account name"
+	case AccountCreateNameExists:
+		return "Name already exist."
+	case AccountCreateNameTooShort:
+		return "Name is too short/blank"
+	case AccountCreateIllegalChar:
+		return "Name contains an illegal character"
+	case AccountCreateBlacklist:
+		return "Name contains an illegal word"
+	case AccountCreateTooFewAlphaNum:
+		return "Name contains too few alphanumeric characters"
+	case AccountCreateAdjacentPunct:
+		return "Name contains adjacent punctuation characters"
+	case AccountCreateTooManyPunct:
+		return "Name contains too many punctuation characters"
+	default:
+		return fmt.Sprintf("AccountCreateResult(0x%02X)", uint32(r))
 	}
 }
 
