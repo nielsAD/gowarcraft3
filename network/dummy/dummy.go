@@ -27,13 +27,13 @@ type Player struct {
 	network.W3GSConn
 
 	// Set once before Join(), read-only after that
-	HostAddr    net.TCPAddr
+	HostAddr    string
 	HostCounter uint32
 	DialPeers   bool
 }
 
 // Join a game lobby as a mocked player
-func Join(addr *net.TCPAddr, name string, hostCounter uint32, entryKey uint32, listenPort int) (*Player, error) {
+func Join(addr string, name string, hostCounter uint32, entryKey uint32, listenPort int) (*Player, error) {
 	var p = Player{
 		Host: peer.Host{
 			PlayerInfo: w3gs.PlayerInfo{
@@ -42,7 +42,7 @@ func Join(addr *net.TCPAddr, name string, hostCounter uint32, entryKey uint32, l
 			EntryKey:     entryKey,
 			PingInterval: 10 * time.Second,
 		},
-		HostAddr:    *addr,
+		HostAddr:    addr,
 		HostCounter: hostCounter,
 		DialPeers:   true,
 	}
@@ -63,7 +63,12 @@ func Join(addr *net.TCPAddr, name string, hostCounter uint32, entryKey uint32, l
 // Join opens a new connection to host
 // Not safe for concurrent invocation
 func (p *Player) Join() error {
-	conn, err := net.DialTCP("tcp4", nil, &p.HostAddr)
+	addr, err := net.ResolveTCPAddr("tcp4", p.HostAddr)
+	if err != nil {
+		return err
+	}
+
+	conn, err := net.DialTCP("tcp4", nil, addr)
 	if err != nil {
 		return err
 	}

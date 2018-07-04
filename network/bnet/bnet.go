@@ -6,14 +6,19 @@
 package bnet
 
 import (
+	"io/ioutil"
 	"net"
 	"os"
 	"path"
 	"strings"
 	"time"
+	"unicode"
+
+	"github.com/nielsAD/gowarcraft3/protocol"
 
 	"github.com/nielsAD/gowarcraft3/network"
 	"github.com/nielsAD/gowarcraft3/protocol/bncs"
+	"github.com/nielsAD/gowarcraft3/protocol/w3gs"
 )
 
 // Client represents a mocked BNCS client
@@ -23,7 +28,7 @@ type Client struct {
 	network.BNCSonn
 
 	// Set once before Dial(), read-only after that
-	ServerAddr        net.TCPAddr
+	ServerAddr        string
 	KeepAliveInterval time.Duration
 	AuthInfo          bncs.AuthInfoReq
 	BinPath           string
@@ -32,6 +37,80 @@ type Client struct {
 	CDKeyOwner        string
 	CDKeys            []string
 	GamePort          uint16
+}
+
+// NewClient initializes a Client struct with default values
+func NewClient(searchPaths ...string) *Client {
+	var paths = append(searchPaths, []string{
+		"C:/Program Files/Warcraft III/",
+		"C:/Program Files (x86)/Warcraft III/",
+		path.Join(os.Getenv("HOME"), ".wine/drive_c/Program Files/Warcraft III/"),
+		path.Join(os.Getenv("HOME"), ".wine/drive_c/Program Files (x86)/Warcraft III/"),
+		"./war3",
+	}...)
+
+	var bin = "."
+	for i := 0; i < len(paths); i++ {
+		if _, err := os.Stat(paths[i]); err == nil {
+			bin = paths[i]
+			break
+		}
+	}
+
+	var product = w3gs.ProductROC
+	var version = uint32(29)
+	if exeVersion, _, err := GetExeInfo(path.Join(bin, "Warcraft III.exe")); err == nil {
+		version = (exeVersion >> 16) & 0xFF
+	}
+
+	var user = "gowarcraft3"
+	if _, err := os.Stat(path.Join(bin, "user.w3k")); err == nil {
+		if f, err := ioutil.ReadFile(path.Join(bin, "user.w3k")); err == nil {
+			user = strings.TrimSpace(string(f))
+		}
+	}
+
+	var rock = ""
+	if _, err := os.Stat(path.Join(bin, "roc.w3k")); err == nil {
+		if f, err := ioutil.ReadFile(path.Join(bin, "roc.w3k")); err == nil {
+			rock = strings.TrimSpace(string(f))
+		}
+	}
+
+	var tftk = ""
+	if _, err := os.Stat(path.Join(bin, "tft.w3k")); err == nil {
+		if f, err := ioutil.ReadFile(path.Join(bin, "tft.w3k")); err == nil {
+			tftk = strings.TrimSpace(string(f))
+		}
+	}
+
+	var keys = []string{}
+	if rock != "" {
+		if tftk != "" {
+			product = w3gs.ProductTFT
+			keys = []string{rock, tftk}
+		} else {
+			keys = []string{rock}
+		}
+	}
+
+	return &Client{
+		KeepAliveInterval: 20 * time.Second,
+		AuthInfo: bncs.AuthInfoReq{
+			PlatformCode:        protocol.DString("IX86"),
+			GameVersion:         w3gs.GameVersion{Product: product, Version: version},
+			LanguageCode:        protocol.DString("enUS"),
+			TimeZoneBias:        4294967176,
+			MpqLocaleID:         1033,
+			UserLanguageID:      1033,
+			CountryAbbreviation: "USA",
+			Country:             "United States",
+		},
+		BinPath:    bin,
+		CDKeyOwner: user,
+		CDKeys:     keys,
+		GamePort:   6112,
+	}
 }
 
 // Dial opens a new connection to server
@@ -77,7 +156,15 @@ func (b *Client) Dial() error {
 
 	defer nls.Free()
 
-	conn, err := net.DialTCP("tcp4", nil, &b.ServerAddr)
+	addr, err := net.ResolveTCPAddr("tcp4", b.ServerAddr)
+	if err != nil {
+		return err
+	}
+	if addr.Port == 0 {
+		addr.Port = 6112
+	}
+
+	conn, err := net.DialTCP("tcp4", nil, addr)
 	if err != nil {
 		return err
 	}
@@ -125,7 +212,7 @@ func (b *Client) Dial() error {
 
 	if proof.Result != bncs.LogonProofSuccess {
 		bncsconn.Close()
-		return LogonResultToError(proof.Result)
+		return LogonProofResultToError(proof.Result)
 	}
 
 	if _, err := b.sendEnterChat(bncsconn); err != nil {
@@ -324,10 +411,10 @@ func (b *Client) Run() error {
 // May block while rate-limiting packets
 func (b *Client) Say(s string) error {
 	s = strings.Map(func(r rune) rune {
-		if r >= 32 && r != 127 {
-			return r
+		if !unicode.IsPrint(r) {
+			return -1
 		}
-		return -1
+		return r
 	}, s)
 
 	if len(s) == 0 {

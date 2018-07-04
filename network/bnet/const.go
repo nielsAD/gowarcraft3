@@ -12,15 +12,18 @@ import (
 
 // Errors
 var (
+	ErrCheckRevision      = errors.New("bnet: BNCSUtil call to checkRevision failed")
+	ErrExeInfo            = errors.New("bnet: BNCSUtil call to getExeInfo failed")
+	ErrKeyDecoder         = errors.New("bnet: BNCSUtil call to keyDecoder failed")
+	ErrNLS                = errors.New("bnet: BNCSUtil call to nls initializer failed")
 	ErrUnexpectedPacket   = errors.New("bnet: Received unexpected packet")
-	ErrBNCSUtilFail       = errors.New("bnet: BNCSUtil call failed")
 	ErrAuthFail           = errors.New("bnet: Authentication failed")
 	ErrInvalidGameVersion = errors.New("bnet: Authentication failed (game version invalid)")
 	ErrCDKeyInvalid       = errors.New("bnet: Authentication failed (CD key invalid)")
 	ErrCDKeyInUse         = errors.New("bnet: Authentication failed (CD key in use)")
-	ErrCDKeyBanned        = errors.New("bnet: Authentication failed (CD key banned")
-	ErrInvalidAccount     = errors.New("bnet: Authentication failed (account invalid")
-	ErrIncorrectPassword  = errors.New("bnet: Authentication failed (password incorrect")
+	ErrCDKeyBanned        = errors.New("bnet: Authentication failed (CD key banned)")
+	ErrInvalidAccount     = errors.New("bnet: Authentication failed (account invalid)")
+	ErrIncorrectPassword  = errors.New("bnet: Authentication failed (password incorrect)")
 )
 
 // AuthResultToError converts bncs.AuthResult to an appropriate error
@@ -39,8 +42,8 @@ func AuthResultToError(r bncs.AuthResult) error {
 	}
 }
 
-// LogonResultToError converts bncs.LogonProofResult to an appropriate error
-func LogonResultToError(r bncs.LogonProofResult) error {
+// LogonProofResultToError converts bncs.LogonProofResult to an appropriate error
+func LogonProofResultToError(r bncs.LogonProofResult) error {
 	switch r {
 	case bncs.LogonProofPasswordIncorrect:
 		return ErrIncorrectPassword

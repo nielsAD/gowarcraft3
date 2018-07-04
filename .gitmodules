@@ -13,3 +13,6 @@
 	path = vendor/bncsutil
 	url = https://github.com/BNETDocs/bncsutil.git
 	ignore = dirty
+[submodule "vendor/github.com/BurntSushi/toml"]
+	path = vendor/github.com/BurntSushi/toml
+	url = https://github.com/BurntSushi/toml.git

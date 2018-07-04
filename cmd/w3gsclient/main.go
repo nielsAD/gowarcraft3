@@ -10,7 +10,6 @@ import (
 	"flag"
 	"fmt"
 	"log"
-	"net"
 	"os"
 	"strconv"
 	"strings"
@@ -45,8 +44,7 @@ func main() {
 	logOut.SetPrefix(fmt.Sprintf("[%v] ", *playername))
 	logErr.SetPrefix(fmt.Sprintf("[%v] ", *playername))
 
-	var err error
-	var addr *net.TCPAddr
+	var addr string
 	var hc = uint32(*hostcounter)
 	var ek = uint32(*entrykey)
 
@@ -59,22 +57,18 @@ func main() {
 			p = w3gs.ProductROC
 		}
 
-		var address string
-		address, hc, ek, err = lan.FindGame(ctx, w3gs.GameVersion{Product: p, Version: uint32(*gamevers)})
+		var err error
+		addr, hc, ek, err = lan.FindGame(ctx, w3gs.GameVersion{Product: p, Version: uint32(*gamevers)})
 		cancel()
 
-		if err == nil {
-			addr, err = net.ResolveTCPAddr("tcp4", address)
+		if err != nil {
+			logErr.Fatal(err)
 		}
 	} else {
-		var address = strings.Join(flag.Args(), " ")
-		if address == "" {
-			address = "127.0.0.1:6112"
+		var addr = strings.Join(flag.Args(), " ")
+		if addr == "" {
+			addr = "127.0.0.1:6112"
 		}
-		addr, err = net.ResolveTCPAddr("tcp4", address)
-	}
-	if err != nil {
-		logErr.Fatal(err)
 	}
 
 	d, err := dummy.Join(addr, *playername, hc, ek, *listen)

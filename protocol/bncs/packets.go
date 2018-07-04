@@ -1639,8 +1639,8 @@ func (pkt *AuthAccountLogonResp) Deserialize(buf *protocol.Buffer) error {
 		return ErrInvalidPacketSize
 	}
 	pkt.Result = LogonResult(buf.ReadUInt32())
-	copy(pkt.Salt[:], buf.ReadBlob(20))
-	copy(pkt.ServerKey[:], buf.ReadBlob(20))
+	copy(pkt.Salt[:], buf.ReadBlob(32))
+	copy(pkt.ServerKey[:], buf.ReadBlob(32))
 	return nil
 }
 

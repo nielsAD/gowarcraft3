@@ -26,7 +26,7 @@ func GetExeInfo(fileName string) (uint32, string, error) {
 	var res = int(C.getExeInfo(cstr, (*C.char)(unsafe.Pointer(&buf[0])), C.size_t(len(buf)), &ver, C.BNCSUTIL_PLATFORM_X86))
 
 	if res == 0 || res > len(buf) {
-		return 0, "", ErrBNCSUtilFail
+		return 0, "", ErrExeInfo
 	}
 
 	return uint32(ver), string(buf[:res]), nil
@@ -56,7 +56,7 @@ func CheckRevision(valueString string, fileNames []string, mpqNumber int) (uint3
 	var checksum C.ulong
 	var res = int(C.checkRevision(cstr, &files[0], C.int(len(files)), C.int(mpqNumber), &checksum))
 	if res != 1 {
-		return 0, ErrBNCSUtilFail
+		return 0, ErrCheckRevision
 	}
 
 	return uint32(checksum), nil
@@ -72,7 +72,7 @@ func CreateBNCSKeyInfo(cdkey string, clientToken uint32, serverToken uint32) (*b
 	var buf [20]byte
 	var res = int(C.kd_quick(cstr, C.uint32_t(clientToken), C.uint32_t(serverToken), &publicValue, &productValue, (*C.char)(unsafe.Pointer(&buf[0])), C.size_t(len(buf))))
 	if res != 1 {
-		return nil, ErrBNCSUtilFail
+		return nil, ErrKeyDecoder
 	}
 
 	return &bncs.CDKey{
@@ -96,10 +96,11 @@ func NewNLS(username string, password string) (*NLS, error) {
 	var cstrp = C.CString(password)
 	defer C.free(unsafe.Pointer(cstrp))
 
-	var res NLS
-	res.n = C.nls_init_l(cstru, C.ulong(len(username)), cstrp, C.ulong(len(password)))
+	var res = NLS{
+		n: C.nls_init_l(cstru, C.ulong(len(username)), cstrp, C.ulong(len(password))),
+	}
 	if res.n == nil {
-		return nil, ErrBNCSUtilFail
+		return nil, ErrNLS
 	}
 
 	return &res, nil
