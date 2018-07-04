@@ -94,7 +94,7 @@ func NewClient(searchPaths ...string) *Client {
 		}
 	}
 
-	return &Client{
+	var c = &Client{
 		KeepAliveInterval: 20 * time.Second,
 		AuthInfo: bncs.AuthInfoReq{
 			PlatformCode:        protocol.DString("IX86"),
@@ -111,6 +111,10 @@ func NewClient(searchPaths ...string) *Client {
 		CDKeys:     keys,
 		GamePort:   6112,
 	}
+
+	c.InitDefaultHandlers()
+
+	return c
 }
 
 // Dial opens a new connection to server, verifies game version, and authenticates with CD keys
@@ -515,7 +519,16 @@ func (b *Client) Say(s string) error {
 
 // InitDefaultHandlers adds the default callbacks for relevant packets
 func (b *Client) InitDefaultHandlers() {
+	b.On(&bncs.Ping{}, b.onPing)
 	b.On(&bncs.ChatEvent{}, b.onChatEvent)
+}
+
+func (b *Client) onPing(ev *network.Event) {
+	var pkt = ev.Arg.(*bncs.Ping)
+
+	if _, err := b.Send(pkt); err != nil && !network.IsConnClosedError(err) {
+		b.Fire(&network.AsyncError{Src: "onPing[Send]", Err: err})
+	}
 }
 
 func (b *Client) onChatEvent(ev *network.Event) {

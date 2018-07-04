@@ -79,6 +79,8 @@ func main() {
 		logErr.Fatal("Logon error: ", err)
 	}
 
+	logOut.Printf("Succesfully logged onto %s@%s\n", c.UserName, c.ServerAddr)
+
 	go func() {
 		time.Sleep(time.Second)
 		c.Say("I come from the darkness of the pit.")
