@@ -44,7 +44,8 @@ const (
 	PidAuthAccountCreate     = 0x52 // C -> S | S -> C
 	PidAuthAccountLogon      = 0x53 // C -> S | S -> C
 	PidAuthAccountLogonProof = 0x54 // C -> S | S -> C
-	PidSetEmail              = 0x59 // C -> S
+	PidSetEmail              = 0x59 // C -> S |
+	PidClanInfo              = 0x75 //        | S -> C
 )
 
 // JoinChannelFlag enum
@@ -353,5 +354,34 @@ func (r LogonProofResult) String() string {
 		return "Custom error"
 	default:
 		return fmt.Sprintf("LogonProofResult(0x%02X)", uint32(r))
+	}
+}
+
+// ClanRank enum
+type ClanRank uint8
+
+// Clan rank
+const (
+	ClanRankNew      ClanRank = 0x00 // Initiate (Peon icon), in clan less than one week
+	ClanRankInitiate ClanRank = 0x01 // Initiate (Peon icon)
+	ClanRankMember   ClanRank = 0x02 // Member (Grunt icon)
+	ClanRankOfficer  ClanRank = 0x03 // Officer (Shaman icon)
+	ClanRankLeader   ClanRank = 0x04 // Leader (Chieftain icon)
+)
+
+func (r ClanRank) String() string {
+	switch r {
+	case ClanRankNew:
+		return "Initiate"
+	case ClanRankInitiate:
+		return "Initiate"
+	case ClanRankMember:
+		return "Member"
+	case ClanRankOfficer:
+		return "Officer"
+	case ClanRankLeader:
+		return "Leader"
+	default:
+		return fmt.Sprintf("ClanRank(0x%02X)", uint8(r))
 	}
 }

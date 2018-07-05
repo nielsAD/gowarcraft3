@@ -395,7 +395,7 @@ func (b *Client) sendLogon(conn *network.BNCSonn, nls *NLS) (*bncs.AuthAccountLo
 		return nil, err
 	}
 
-	pkt, err := conn.NextServerPacket(5 * time.Second)
+	pkt, err := conn.NextServerPacket(15 * time.Second)
 	if err != nil {
 		return nil, err
 	}
@@ -465,10 +465,16 @@ func (b *Client) sendEnterChat(conn *network.BNCSonn) (*bncs.EnterChatResp, erro
 	}
 
 	pkt, err := conn.NextServerPacket(5 * time.Second)
+
+rcv:
 	if err != nil {
 		return nil, err
 	}
 	switch p := pkt.(type) {
+	case *bncs.ClanInfo:
+		b.Fire(pkt)
+		pkt, err = conn.NextServerPacket(0)
+		goto rcv
 	case *bncs.EnterChatResp:
 		return p, nil
 	default:

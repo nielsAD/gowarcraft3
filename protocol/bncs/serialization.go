@@ -58,6 +58,7 @@ type DeserializationBuffer struct {
 	authAccountLogonProofResp AuthAccountLogonProofResp
 	authAccountLogonProofReq  AuthAccountLogonProofReq
 	setEmail                  SetEmail
+	clanInfo                  ClanInfo
 	unknownPacket             UnknownPacket
 }
 
@@ -220,6 +221,9 @@ func DeserializeServerPacketWithBuffer(r io.Reader, b *DeserializationBuffer) (P
 	case PidAuthAccountLogonProof:
 		err = b.authAccountLogonProofResp.Deserialize(&pbuf)
 		pkt = &b.authAccountLogonProofResp
+	case PidClanInfo:
+		err = b.clanInfo.Deserialize(&pbuf)
+		pkt = &b.clanInfo
 	default:
 		err = b.unknownPacket.Deserialize(&pbuf)
 		pkt = &b.unknownPacket

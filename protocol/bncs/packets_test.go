@@ -270,6 +270,11 @@ func TestServerPackets(t *testing.T) {
 			Result:                bncs.LogonProofCustomError,
 			AdditionalInformation: "Foo, bar.",
 		},
+		&bncs.ClanInfo{},
+		&bncs.ClanInfo{
+			Tag:  protocol.DString("4K"),
+			Rank: bncs.ClanRankMember,
+		},
 	}
 
 	for _, pkt := range types {
