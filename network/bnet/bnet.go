@@ -650,11 +650,6 @@ func (b *Client) onChatEvent(ev *network.Event) {
 		b.Fire(&Channel{Name: pkt.Text, Flags: pkt.ChannelFlags})
 	case bncs.ChatShowUser, bncs.ChatJoin:
 		var t = time.Now()
-
-		b.chatmut.Lock()
-		if b.users == nil {
-			b.users = make(map[string]*User)
-		}
 		var u = User{
 			Name:       pkt.UserName,
 			StatString: pkt.Text,
@@ -663,10 +658,24 @@ func (b *Client) onChatEvent(ev *network.Event) {
 			Joined:     t,
 			LastSeen:   t,
 		}
+
+		b.chatmut.Lock()
+		if b.users == nil {
+			b.users = make(map[string]*User)
+		}
+		var p = b.users[strings.ToLower(pkt.UserName)]
+		if p != nil {
+			u.Joined = p.Joined
+			u.LastSeen = p.LastSeen
+		}
 		b.users[strings.ToLower(pkt.UserName)] = &u
 		b.chatmut.Unlock()
 
-		b.Fire(&UserJoined{User: u, AlreadyInChannel: pkt.Type == bncs.ChatShowUser})
+		if p == nil {
+			b.Fire(&UserJoined{User: u, AlreadyInChannel: pkt.Type == bncs.ChatShowUser})
+		} else {
+			b.Fire(&UserUpdate{User: u})
+		}
 	case bncs.ChatUserFlagsUpdate:
 		var e UserUpdate
 

@@ -6,6 +6,7 @@
 package main
 
 import (
+	"bufio"
 	"context"
 	"flag"
 	"fmt"
@@ -37,6 +38,7 @@ var (
 
 var logOut = log.New(os.Stdout, "", log.Ltime)
 var logErr = log.New(os.Stderr, "", log.Ltime)
+var stdin = bufio.NewReader(os.Stdin)
 
 func main() {
 	flag.Parse()
@@ -49,7 +51,7 @@ func main() {
 	var ek = uint32(*entrykey)
 
 	if *findlan {
-		// Search local game for 3 seconds
+		// Search local game for 20 seconds
 		var ctx, cancel = context.WithTimeout(context.Background(), 20*time.Second)
 
 		var p = w3gs.ProductTFT
@@ -211,20 +213,23 @@ func main() {
 
 	go func() {
 		for {
-			var line string
-			if _, err := fmt.Scanln(&line); err != nil {
-				break
+			line, err := stdin.ReadString('\n')
+			if err != nil {
+				logErr.Printf("[ERROR] %s\n", err.Error())
+				continue
 			}
 
 			if err := d.Say(line); err != nil {
-				logErr.Fatal(err)
+				logErr.Printf("[ERROR] %s\n", err.Error())
 			}
 		}
 	}()
 
 	go func() {
 		time.Sleep(time.Second)
-		d.Say("I come from the darkness of the pit.")
+		if err := d.Say("I come from the darkness of the pit."); err != nil {
+			logErr.Printf("[ERROR] %s\n", err.Error())
+		}
 	}()
 
 	d.Run()

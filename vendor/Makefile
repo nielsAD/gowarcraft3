@@ -10,7 +10,7 @@ DIR_BNCSUITL=bncsutil
 
 CMAKE=cmake
 
-LIBS=$(DIR_STORMLIB)/build/libstorm.a $(DIR_BNCSUITL)/build/libbncsutil.a
+LIBS=$(DIR_STORMLIB)/build/libstorm.a $(DIR_BNCSUITL)/build/libbncsutil_static.a
 all: $(LIBS)
 
 %/build:

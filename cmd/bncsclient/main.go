@@ -6,6 +6,7 @@
 package main
 
 import (
+	"bufio"
 	"flag"
 	"fmt"
 	"log"
@@ -30,6 +31,7 @@ var (
 
 var logOut = log.New(os.Stdout, "", log.Ltime)
 var logErr = log.New(os.Stderr, "", log.Ltime)
+var stdin = bufio.NewReader(os.Stdin)
 
 func main() {
 	flag.Parse()
@@ -60,12 +62,14 @@ func main() {
 
 	if *username == "" {
 		fmt.Print("Enter username: ")
-		fmt.Scanln(&c.UserName)
+		c.UserName, _ = stdin.ReadString('\n')
+		c.UserName = strings.TrimSpace(c.UserName)
 	}
 
 	if *password == "" {
 		fmt.Print("Enter password: ")
-		fmt.Scanln(&c.Password)
+		c.Password, _ = stdin.ReadString('\n')
+		c.Password = strings.TrimSpace(c.Password)
 	}
 
 	c.On(&network.AsyncError{}, func(ev *network.Event) {
@@ -82,7 +86,7 @@ func main() {
 	})
 	c.On(&bnet.UserJoined{}, func(ev *network.Event) {
 		var user = ev.Arg.(*bnet.UserJoined)
-		logOut.Printf("%s has joined the channel (ping: %d)\n", user.Name, user.Ping)
+		logOut.Printf("%s has joined the channel (ping: %dms)\n", user.Name, user.Ping)
 	})
 	c.On(&bnet.UserLeft{}, func(ev *network.Event) {
 		var user = ev.Arg.(*bnet.UserLeft)
@@ -98,7 +102,12 @@ func main() {
 	})
 	c.On(&bnet.Say{}, func(ev *network.Event) {
 		var say = ev.Arg.(*bnet.Say)
-		logOut.Printf("[CHAT] %s: %s\n", c.UserName, say.Content)
+		if say.Content[0] == '/' {
+			logOut.Printf("[CHAT] %s\n", say.Content)
+		} else {
+
+			logOut.Printf("[CHAT] %s: %s\n", c.UserName, say.Content)
+		}
 	})
 	c.On(&bnet.SystemMessage{}, func(ev *network.Event) {
 		var msg = ev.Arg.(*bnet.SystemMessage)
@@ -121,20 +130,23 @@ func main() {
 
 	go func() {
 		for {
-			var line string
-			if _, err := fmt.Scanln(&line); err != nil {
-				break
+			line, err := stdin.ReadString('\n')
+			if err != nil {
+				logErr.Printf("[ERROR] %s\n", err.Error())
+				continue
 			}
 
 			if err := c.Say(line); err != nil {
-				logErr.Fatal(err)
+				logErr.Printf("[ERROR] %s\n", err.Error())
 			}
 		}
 	}()
 
 	go func() {
 		time.Sleep(time.Second)
-		c.Say("I come from the darkness of the pit.")
+		if err := c.Say("I come from the darkness of the pit."); err != nil {
+			logErr.Printf("[ERROR] %s\n", err.Error())
+		}
 	}()
 
 	c.Run()
