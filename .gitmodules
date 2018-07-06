@@ -16,3 +16,9 @@
 [submodule "vendor/github.com/BurntSushi/toml"]
 	path = vendor/github.com/BurntSushi/toml
 	url = https://github.com/BurntSushi/toml.git
+[submodule "vendor/golang.org/x/crypto"]
+	path = vendor/golang.org/x/crypto
+	url = https://github.com/golang/crypto.git
+[submodule "vendor/golang.org/x/sys"]
+	path = vendor/golang.org/x/sys
+	url = https://github.com/golang/sys.git

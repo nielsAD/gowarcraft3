@@ -14,6 +14,8 @@ import (
 	"strings"
 	"time"
 
+	"golang.org/x/crypto/ssh/terminal"
+
 	"github.com/nielsAD/gowarcraft3/network"
 	"github.com/nielsAD/gowarcraft3/network/bnet"
 	"github.com/nielsAD/gowarcraft3/protocol/w3gs"
@@ -68,8 +70,12 @@ func main() {
 
 	if *password == "" {
 		fmt.Print("Enter password: ")
-		c.Password, _ = stdin.ReadString('\n')
-		c.Password = strings.TrimSpace(c.Password)
+		if b, err := terminal.ReadPassword(int(os.Stdin.Fd())); err == nil {
+			c.Password = string(b)
+		} else {
+			logErr.Fatal("ReadPassword error: ", err)
+		}
+		fmt.Println()
 	}
 
 	c.On(&network.AsyncError{}, func(ev *network.Event) {
@@ -90,7 +96,7 @@ func main() {
 	})
 	c.On(&bnet.UserLeft{}, func(ev *network.Event) {
 		var user = ev.Arg.(*bnet.UserLeft)
-		logOut.Printf("%s has left the channel (after %v)\n", user.Name, time.Now().Sub(user.Joined))
+		logOut.Printf("%s has left the channel (after %dm)\n", user.Name, int(time.Now().Sub(user.Joined).Minutes()))
 	})
 	c.On(&bnet.Whisper{}, func(ev *network.Event) {
 		var msg = ev.Arg.(*bnet.Whisper)
@@ -132,20 +138,13 @@ func main() {
 		for {
 			line, err := stdin.ReadString('\n')
 			if err != nil {
-				logErr.Printf("[ERROR] %s\n", err.Error())
-				continue
+				c.Close()
+				break
 			}
 
 			if err := c.Say(line); err != nil {
 				logErr.Printf("[ERROR] %s\n", err.Error())
 			}
-		}
-	}()
-
-	go func() {
-		time.Sleep(time.Second)
-		if err := c.Say("I come from the darkness of the pit."); err != nil {
-			logErr.Printf("[ERROR] %s\n", err.Error())
 		}
 	}()
 

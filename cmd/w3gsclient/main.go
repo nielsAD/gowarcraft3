@@ -215,20 +215,13 @@ func main() {
 		for {
 			line, err := stdin.ReadString('\n')
 			if err != nil {
-				logErr.Printf("[ERROR] %s\n", err.Error())
-				continue
+				d.Close()
+				break
 			}
 
 			if err := d.Say(line); err != nil {
 				logErr.Printf("[ERROR] %s\n", err.Error())
 			}
-		}
-	}()
-
-	go func() {
-		time.Sleep(time.Second)
-		if err := d.Say("I come from the darkness of the pit."); err != nil {
-			logErr.Printf("[ERROR] %s\n", err.Error())
 		}
 	}()
 
