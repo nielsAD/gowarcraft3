@@ -600,7 +600,6 @@ func (b *Client) Run() error {
 // Say sends a chat message
 // May block while rate-limiting packets
 func (b *Client) Say(s string) error {
-
 	s = strings.Map(func(r rune) rune {
 		if !unicode.IsPrint(r) {
 			return -1

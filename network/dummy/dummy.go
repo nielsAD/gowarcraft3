@@ -7,7 +7,9 @@ package dummy
 
 import (
 	"net"
+	"strings"
 	"time"
+	"unicode"
 
 	"github.com/nielsAD/gowarcraft3/network"
 	"github.com/nielsAD/gowarcraft3/network/peer"
@@ -18,6 +20,11 @@ import (
 // Chat event
 type Chat struct {
 	Sender  *w3gs.PlayerInfo
+	Content string
+}
+
+// Say event
+type Say struct {
 	Content string
 }
 
@@ -130,14 +137,28 @@ func (p *Player) Run() error {
 
 // Say sends a chat message
 func (p *Player) Say(s string) error {
+	s = strings.Map(func(r rune) rune {
+		if !unicode.IsPrint(r) {
+			return -1
+		}
+		return r
+	}, s)
+	if len(s) == 0 {
+		return nil
+	}
+
 	var nonPeers = p.Host.Say(s)
-	var _, err = p.Send(&w3gs.Message{
+	if _, err := p.Send(&w3gs.Message{
 		RecipientIDs: nonPeers,
 		SenderID:     p.PlayerInfo.PlayerID,
 		Type:         w3gs.MsgChat,
 		Content:      s,
-	})
-	return err
+	}); err != nil {
+		return err
+	}
+
+	p.Fire(&Say{Content: s})
+	return nil
 }
 
 func (p *Player) changeVal(t w3gs.MessageType, v uint8) error {

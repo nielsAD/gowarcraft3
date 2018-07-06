@@ -16,6 +16,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/fatih/color"
+
 	"github.com/nielsAD/gowarcraft3/network"
 	"github.com/nielsAD/gowarcraft3/network/dummy"
 	"github.com/nielsAD/gowarcraft3/network/lan"
@@ -36,8 +38,8 @@ var (
 	playername = flag.String("n", "fakeplayer", "Player name")
 )
 
-var logOut = log.New(os.Stdout, "", log.Ltime)
-var logErr = log.New(os.Stderr, "", log.Ltime)
+var logOut = log.New(color.Output, "", log.Ltime)
+var logErr = log.New(color.Error, "", log.Ltime)
 var stdin = bufio.NewReader(os.Stdin)
 
 func main() {
@@ -79,48 +81,48 @@ func main() {
 	}
 
 	d.DialPeers = *dialpeers
-	logOut.Printf("Joined lobby with (ID: %d)\n", d.PlayerInfo.PlayerID)
+	logOut.Println(color.MagentaString("Joined lobby with (ID: %d)", d.PlayerInfo.PlayerID))
 
 	d.On(&network.AsyncError{}, func(ev *network.Event) {
 		var err = ev.Arg.(*network.AsyncError)
-		logErr.Printf("[ERROR] %s\n", err.Error())
+		logErr.Println(color.RedString("[ERROR] %s", err.Error()))
 	})
 	d.On(&peer.Registered{}, func(ev *network.Event) {
 		var reg = ev.Arg.(*peer.Registered)
 		var pi = &reg.Peer.PlayerInfo
 
-		logOut.Printf("%s has joined the game (ID: %d)\n", pi.PlayerName, pi.PlayerID)
+		logOut.Println(color.YellowString("%s has joined the game (ID: %d)", pi.PlayerName, pi.PlayerID))
 
 		reg.Peer.On(&network.AsyncError{}, func(ev *network.Event) {
 			var err = ev.Arg.(*network.AsyncError)
-			logErr.Printf("[ERROR] [PEER%d] %s\n", pi.PlayerID, err.Error())
+			logErr.Println(color.RedString("[ERROR] [PEER%d] %s", pi.PlayerID, err.Error()))
 		})
 	})
 	d.On(&peer.Deregistered{}, func(ev *network.Event) {
 		var reg = ev.Arg.(*peer.Deregistered)
-		logOut.Printf("%s has left the game (ID: %d)\n", reg.Peer.PlayerInfo.PlayerName, reg.Peer.PlayerInfo.PlayerID)
+		logOut.Println(color.YellowString("%s has left the game (ID: %d)", reg.Peer.PlayerInfo.PlayerName, reg.Peer.PlayerInfo.PlayerID))
 	})
 	d.On(&peer.Connected{}, func(ev *network.Event) {
 		var e = ev.Arg.(*peer.Connected)
 		if e.Dial {
-			logOut.Printf("Established peer connection to %s (ID: %d)\n", e.Peer.PlayerInfo.PlayerName, e.Peer.PlayerInfo.PlayerID)
+			logOut.Println(color.MagentaString("Established peer connection to %s (ID: %d)", e.Peer.PlayerInfo.PlayerName, e.Peer.PlayerInfo.PlayerID))
 		} else {
-			logOut.Printf("Accepted peer connection from %s (ID: %d)\n", e.Peer.PlayerInfo.PlayerName, e.Peer.PlayerInfo.PlayerID)
+			logOut.Println(color.MagentaString("Accepted peer connection from %s (ID: %d)", e.Peer.PlayerInfo.PlayerName, e.Peer.PlayerInfo.PlayerID))
 		}
 	})
 	d.On(&peer.Disconnected{}, func(ev *network.Event) {
 		var e = ev.Arg.(*peer.Disconnected)
-		logOut.Printf("Peer connection to %s (ID: %d) closed\n", e.Peer.PlayerInfo.PlayerName, e.Peer.PlayerInfo.PlayerID)
+		logOut.Println(color.MagentaString("Peer connection to %s (ID: %d) closed", e.Peer.PlayerInfo.PlayerName, e.Peer.PlayerInfo.PlayerID))
 	})
 
 	d.On(&w3gs.PlayerKicked{}, func(ev *network.Event) {
-		logOut.Println("Kicked from lobby")
+		logOut.Println(color.MagentaString("Kicked from lobby"))
 	})
 	d.On(&w3gs.CountDownStart{}, func(ev *network.Event) {
-		logOut.Println("Countdown started")
+		logOut.Println(color.CyanString("Countdown started"))
 	})
 	d.On(&w3gs.CountDownEnd{}, func(ev *network.Event) {
-		logOut.Println("Countdown ended, loading game")
+		logOut.Println(color.CyanString("Countdown ended, loading game"))
 	})
 
 	d.On(&w3gs.StartLag{}, func(ev *network.Event) {
@@ -135,7 +137,7 @@ func main() {
 			laggers = append(laggers, peer.PlayerInfo.PlayerName)
 		}
 
-		logOut.Printf("Lag: %v\n", laggers)
+		logOut.Println(color.CyanString("Lag: %v", laggers))
 	})
 	d.On(&w3gs.StopLag{}, func(ev *network.Event) {
 		var lag = ev.Arg.(*w3gs.StopLag)
@@ -144,16 +146,20 @@ func main() {
 			return
 		}
 
-		logOut.Printf("%s (ID: %d) stopped lagging\n", peer.PlayerInfo.PlayerName, peer.PlayerInfo.PlayerID)
+		logOut.Println(color.CyanString("%s (ID: %d) stopped lagging", peer.PlayerInfo.PlayerName, peer.PlayerInfo.PlayerID))
 	})
 
+	d.On(&dummy.Say{}, func(ev *network.Event) {
+		var say = ev.Arg.(*dummy.Say)
+		logOut.Printf("[CHAT] %s (ID: %d): %s\n", d.PlayerInfo.PlayerName, d.PlayerInfo.PlayerID, say.Content)
+	})
 	d.On(&dummy.Chat{}, func(ev *network.Event) {
 		var chat = ev.Arg.(*dummy.Chat)
 		if chat.Content == "" || chat.Sender == nil {
 			return
 		}
 
-		logOut.Printf("[CHAT] %s (ID: %d): '%s'\n", chat.Sender.PlayerName, chat.Sender.PlayerID, chat.Content)
+		logOut.Printf("[CHAT] %s (ID: %d): %s\n", chat.Sender.PlayerName, chat.Sender.PlayerID, chat.Content)
 		if chat.Sender.PlayerID != 1 || chat.Content[:1] != "!" {
 			return
 		}
@@ -220,7 +226,7 @@ func main() {
 			}
 
 			if err := d.Say(line); err != nil {
-				logErr.Printf("[ERROR] %s\n", err.Error())
+				logErr.Println(color.RedString("[ERROR] %s", err.Error()))
 			}
 		}
 	}()
