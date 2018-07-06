@@ -210,6 +210,19 @@ func main() {
 	})
 
 	go func() {
+		for {
+			var line string
+			if _, err := fmt.Scanln(&line); err != nil {
+				break
+			}
+
+			if err := d.Say(line); err != nil {
+				logErr.Fatal(err)
+			}
+		}
+	}()
+
+	go func() {
 		time.Sleep(time.Second)
 		d.Say("I come from the darkness of the pit.")
 	}()

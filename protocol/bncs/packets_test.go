@@ -200,6 +200,13 @@ func TestServerPackets(t *testing.T) {
 			UserName:  "Grubby",
 			Text:      "Oh hi, Mark!",
 		},
+		&bncs.ChatEvent{
+			Type:         bncs.ChatChannelInfo,
+			ChannelFlags: bncs.ChatChannelFlagSilent,
+			Ping:         3,
+			UserName:     "Grubby",
+			Text:         "Oh hi, Mark!",
+		},
 		&bncs.FloodDetected{},
 		&bncs.MessageBox{},
 		&bncs.MessageBox{

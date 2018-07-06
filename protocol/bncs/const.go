@@ -83,7 +83,7 @@ const (
 	ChatTalk                ChatEventType = 0x05 // Chat text
 	ChatBroadcast           ChatEventType = 0x06 // Server broadcast
 	ChatChannelInfo         ChatEventType = 0x07 // Channel information
-	ChatUserFlags           ChatEventType = 0x09 // Flags update
+	ChatUserFlagsUpdate     ChatEventType = 0x09 // Flags update
 	ChatWhisperSent         ChatEventType = 0x0A // Sent whisper
 	ChatChannelFull         ChatEventType = 0x0D // Channel full
 	ChatChannelDoesNotExist ChatEventType = 0x0E // Channel doesn't exist
@@ -106,13 +106,13 @@ func (e ChatEventType) String() string {
 	case ChatWhisper:
 		return "Whisper"
 	case ChatTalk:
-		return "Talk"
+		return "Chat"
 	case ChatBroadcast:
 		return "Broadcast"
 	case ChatChannelInfo:
 		return "ChannelInfo"
-	case ChatUserFlags:
-		return "UserFlags"
+	case ChatUserFlagsUpdate:
+		return "UserFlagsUpdate"
 	case ChatWhisperSent:
 		return "WhisperSent"
 	case ChatChannelFull:
@@ -134,6 +134,117 @@ func (e ChatEventType) String() string {
 	default:
 		return fmt.Sprintf("ChatEventType(0x%02X)", uint32(e))
 	}
+}
+
+// ChatUserFlags enum
+type ChatUserFlags uint32
+
+// ChatUser Flags
+const (
+	ChatUserFlagBlizzard  ChatUserFlags = 0x01 // Blizzard Representative
+	ChatUserFlagOperator  ChatUserFlags = 0x02 // Channel Operator
+	ChatUserFlagSpeaker   ChatUserFlags = 0x04 // Channel Speaker
+	ChatUserFlagAdmin     ChatUserFlags = 0x08 // Battle.net Administrator
+	ChatUserFlagSquelched ChatUserFlags = 0x20 // Squelched
+)
+
+func (f ChatUserFlags) String() string {
+	var res string
+	if f&ChatUserFlagBlizzard != 0 {
+		res += "|Blizzard"
+		f &= ^ChatUserFlagBlizzard
+	}
+	if f&ChatUserFlagOperator != 0 {
+		res += "|Operator"
+		f &= ^ChatUserFlagOperator
+	}
+	if f&ChatUserFlagSpeaker != 0 {
+		res += "|Speaker"
+		f &= ^ChatUserFlagSpeaker
+	}
+	if f&ChatUserFlagAdmin != 0 {
+		res += "|Admin"
+		f &= ^ChatUserFlagAdmin
+	}
+	if f&ChatUserFlagSquelched != 0 {
+		res += "|Squelched"
+		f &= ^ChatUserFlagSquelched
+	}
+	if f != 0 {
+		res += fmt.Sprintf("|ChatUserFlags(0x%02X)", uint32(f))
+	}
+	if res != "" {
+		res = res[1:]
+	}
+	return res
+}
+
+// ChatChannelFlags enum
+type ChatChannelFlags uint32
+
+// ChatChannel Flags
+const (
+	ChatChannelFlagPublic      ChatChannelFlags = 0x00001 // Public Channel
+	ChatChannelFlagModerated   ChatChannelFlags = 0x00002 // Moderated
+	ChatChannelFlagRestricted  ChatChannelFlags = 0x00004 // Restricted
+	ChatChannelFlagSilent      ChatChannelFlags = 0x00008 // Silent
+	ChatChannelFlagSystem      ChatChannelFlags = 0x00010 // System
+	ChatChannelFlagProduct     ChatChannelFlags = 0x00020 // Product-Specific
+	ChatChannelFlagGlobal      ChatChannelFlags = 0x01000 // Globally Accessible
+	ChatChannelFlagRedirected  ChatChannelFlags = 0x04000 // Redirected
+	ChatChannelFlagChat        ChatChannelFlags = 0x08000 // Chat
+	ChatChannelFlagTechSupport ChatChannelFlags = 0x10000 // Tech Support
+)
+
+func (f ChatChannelFlags) String() string {
+	var res string
+	if f&ChatChannelFlagPublic != 0 {
+		res += "|Public"
+		f &= ^ChatChannelFlagPublic
+	}
+	if f&ChatChannelFlagModerated != 0 {
+		res += "|Moderated"
+		f &= ^ChatChannelFlagModerated
+	}
+	if f&ChatChannelFlagRestricted != 0 {
+		res += "|Restricted"
+		f &= ^ChatChannelFlagPublic
+	}
+	if f&ChatChannelFlagSilent != 0 {
+		res += "|Silent"
+		f &= ^ChatChannelFlagSilent
+	}
+	if f&ChatChannelFlagSystem != 0 {
+		res += "|System"
+		f &= ^ChatChannelFlagSystem
+	}
+	if f&ChatChannelFlagProduct != 0 {
+		res += "|Product"
+		f &= ^ChatChannelFlagProduct
+	}
+	if f&ChatChannelFlagGlobal != 0 {
+		res += "|Global"
+		f &= ^ChatChannelFlagGlobal
+	}
+	if f&ChatChannelFlagRedirected != 0 {
+		res += "|Redirected"
+		f &= ^ChatChannelFlagRedirected
+	}
+	if f&ChatChannelFlagChat != 0 {
+		res += "|Chat"
+		f &= ^ChatChannelFlagChat
+	}
+	if f&ChatChannelFlagTechSupport != 0 {
+		res += "|TechSupport"
+		f &= ^ChatChannelFlagTechSupport
+	}
+	if f != 0 {
+		res += fmt.Sprintf("|ChatChannelFlags(0x%02X)", uint32(f))
+	}
+	if res != "" {
+		res = res[1:]
+	}
+	return res
 }
 
 // AdvListResult enum

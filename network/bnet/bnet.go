@@ -11,6 +11,7 @@ import (
 	"os"
 	"path"
 	"strings"
+	"sync"
 	"time"
 	"unicode"
 
@@ -21,11 +22,82 @@ import (
 	"github.com/nielsAD/gowarcraft3/protocol/w3gs"
 )
 
+// JoinError event
+type JoinError struct {
+	Channel string
+	Error   bncs.ChatEventType
+}
+
+// Channel joined event
+type Channel struct {
+	Name  string
+	Flags bncs.ChatChannelFlags
+}
+
+// UserJoined event
+type UserJoined struct {
+	User
+	AlreadyInChannel bool
+}
+
+// UserLeft event
+type UserLeft struct {
+	User
+}
+
+// UserUpdate event
+type UserUpdate struct {
+	User
+}
+
+// Say event
+type Say struct {
+	Content string
+}
+
+// Chat event
+type Chat struct {
+	User
+	Content string
+	Type    bncs.ChatEventType
+}
+
+// Whisper event
+type Whisper struct {
+	UserName string
+	Content  string
+	Flags    bncs.ChatUserFlags
+	Ping     uint32
+}
+
+// SystemMessage event
+type SystemMessage struct {
+	Content string
+	Type    bncs.ChatEventType
+}
+
+// User in chat
+type User struct {
+	Name       string
+	StatString string
+	Flags      bncs.ChatUserFlags
+	Ping       uint32
+	Joined     time.Time
+	LastSeen   time.Time
+}
+
 // Client represents a mocked BNCS client
 // Public methods/fields are thread-safe unless explicitly stated otherwise
 type Client struct {
 	network.EventEmitter
 	network.BNCSonn
+
+	chatmut sync.Mutex
+	channel string
+	users   map[string]*User
+
+	// Read-only
+	UniqueName string
 
 	// Set once before Dial(), read-only after that
 	ServerAddr        string
@@ -115,6 +187,27 @@ func NewClient(searchPaths ...string) *Client {
 	c.InitDefaultHandlers()
 
 	return c
+}
+
+// Channel currently chatting in
+func (b *Client) Channel() string {
+	b.chatmut.Lock()
+	var res = b.channel
+	b.chatmut.Unlock()
+	return res
+}
+
+// Users in channel
+func (b *Client) Users() map[string]User {
+	var res = make(map[string]User)
+
+	b.chatmut.Lock()
+	for k, v := range b.users {
+		res[k] = *v
+	}
+	b.chatmut.Unlock()
+
+	return res
 }
 
 // Dial opens a new connection to server, verifies game version, and authenticates with CD keys
@@ -241,7 +334,8 @@ func (b *Client) Logon() error {
 		return LogonProofResultToError(proof.Result)
 	}
 
-	if _, err := b.sendEnterChat(bncsconn); err != nil {
+	chat, err := b.sendEnterChat(bncsconn)
+	if err != nil {
 		bncsconn.Close()
 		return err
 	}
@@ -251,6 +345,7 @@ func (b *Client) Logon() error {
 		return err
 	}
 
+	b.UniqueName = chat.UniqueName
 	b.SetConn(bncsconn.Conn())
 	return nil
 }
@@ -505,6 +600,7 @@ func (b *Client) Run() error {
 // Say sends a chat message
 // May block while rate-limiting packets
 func (b *Client) Say(s string) error {
+
 	s = strings.Map(func(r rune) rune {
 		if !unicode.IsPrint(r) {
 			return -1
@@ -519,8 +615,12 @@ func (b *Client) Say(s string) error {
 		s = s[:254]
 	}
 
-	_, err := b.SendRL(&bncs.ChatCommand{Text: s})
-	return err
+	if _, err := b.SendRL(&bncs.ChatCommand{Text: s}); err != nil {
+		return err
+	}
+
+	b.Fire(&Say{Content: s})
+	return nil
 }
 
 // InitDefaultHandlers adds the default callbacks for relevant packets
@@ -538,5 +638,80 @@ func (b *Client) onPing(ev *network.Event) {
 }
 
 func (b *Client) onChatEvent(ev *network.Event) {
-	// var pkt = ev.Arg.(*bncs.ChatEvent)
+	var pkt = ev.Arg.(*bncs.ChatEvent)
+
+	switch pkt.Type {
+	case bncs.ChatChannelInfo:
+		b.chatmut.Lock()
+		b.channel = pkt.Text
+		b.users = nil
+		b.chatmut.Unlock()
+
+		b.Fire(&Channel{Name: pkt.Text, Flags: pkt.ChannelFlags})
+	case bncs.ChatShowUser, bncs.ChatJoin:
+		var t = time.Now()
+
+		b.chatmut.Lock()
+		if b.users == nil {
+			b.users = make(map[string]*User)
+		}
+		var u = User{
+			Name:       pkt.UserName,
+			StatString: pkt.Text,
+			Flags:      pkt.UserFlags,
+			Ping:       pkt.Ping,
+			Joined:     t,
+			LastSeen:   t,
+		}
+		b.users[strings.ToLower(pkt.UserName)] = &u
+		b.chatmut.Unlock()
+
+		b.Fire(&UserJoined{User: u, AlreadyInChannel: pkt.Type == bncs.ChatShowUser})
+	case bncs.ChatUserFlagsUpdate:
+		var e UserUpdate
+
+		b.chatmut.Lock()
+		var u = b.users[strings.ToLower(pkt.UserName)]
+		if u != nil {
+			u.Flags = pkt.UserFlags
+			e.User = *u
+		}
+		b.chatmut.Unlock()
+
+		if u != nil {
+			b.Fire(&e)
+		}
+	case bncs.ChatLeave:
+		b.chatmut.Lock()
+		var u = b.users[strings.ToLower(pkt.UserName)]
+		delete(b.users, strings.ToLower(pkt.UserName))
+		b.chatmut.Unlock()
+
+		if u != nil {
+			b.Fire(&UserLeft{User: *u})
+		}
+	case bncs.ChatTalk, bncs.ChatEmote:
+		var e = Chat{
+			Content: pkt.Text,
+			Type:    pkt.Type,
+		}
+
+		b.chatmut.Lock()
+		var u = b.users[strings.ToLower(pkt.UserName)]
+		if u != nil {
+			u.LastSeen = time.Now()
+			e.User = *u
+		}
+		b.chatmut.Unlock()
+
+		if u != nil {
+			b.Fire(&e)
+		}
+	case bncs.ChatWhisper:
+		b.Fire(&Whisper{UserName: pkt.UserName, Content: pkt.Text, Flags: pkt.UserFlags, Ping: pkt.Ping})
+	case bncs.ChatChannelFull, bncs.ChatChannelDoesNotExist, bncs.ChatChannelRestricted:
+		b.Fire(&JoinError{Channel: pkt.Text, Error: pkt.Type})
+	case bncs.ChatBroadcast, bncs.ChatInfo, bncs.ChatError:
+		b.Fire(&SystemMessage{Content: pkt.Text, Type: pkt.Type})
+	}
 }

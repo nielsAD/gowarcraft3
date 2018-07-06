@@ -406,11 +406,12 @@ func (pkt *ChatCommand) Deserialize(buf *protocol.Buffer) error {
 //    (STRING) Text
 //
 type ChatEvent struct {
-	Type      ChatEventType
-	UserFlags uint32
-	Ping      uint32
-	UserName  string
-	Text      string
+	Type         ChatEventType
+	UserFlags    ChatUserFlags
+	ChannelFlags ChatChannelFlags
+	Ping         uint32
+	UserName     string
+	Text         string
 }
 
 // Serialize encodes the struct into its binary form.
@@ -419,7 +420,11 @@ func (pkt *ChatEvent) Serialize(buf *protocol.Buffer) error {
 	buf.WriteUInt8(PidChatEvent)
 	buf.WriteUInt16(uint16(30 + len(pkt.UserName) + len(pkt.Text)))
 	buf.WriteUInt32(uint32(pkt.Type))
-	buf.WriteUInt32(pkt.UserFlags)
+	if pkt.Type == ChatChannelInfo {
+		buf.WriteUInt32(uint32(pkt.ChannelFlags))
+	} else {
+		buf.WriteUInt32(uint32(pkt.UserFlags))
+	}
 	buf.WriteUInt32(pkt.Ping)
 	buf.WriteUInt32(0)
 	buf.WriteUInt32(0xbaadf00d)
@@ -437,7 +442,13 @@ func (pkt *ChatEvent) Deserialize(buf *protocol.Buffer) error {
 	}
 
 	pkt.Type = ChatEventType(buf.ReadUInt32())
-	pkt.UserFlags = buf.ReadUInt32()
+	if pkt.Type == ChatChannelInfo {
+		pkt.UserFlags = 0
+		pkt.ChannelFlags = ChatChannelFlags(buf.ReadUInt32())
+	} else {
+		pkt.ChannelFlags = 0
+		pkt.UserFlags = ChatUserFlags(buf.ReadUInt32())
+	}
 	pkt.Ping = buf.ReadUInt32()
 
 	if buf.ReadUInt32() != 0 || buf.ReadUInt32() != 0xbaadf00d || buf.ReadUInt32() != 0xbaadf00d {
