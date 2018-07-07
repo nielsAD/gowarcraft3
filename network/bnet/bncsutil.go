@@ -5,7 +5,10 @@
 package bnet
 
 // #cgo CFLAGS: -I${SRCDIR}/../../vendor/bncsutil/src
-// #cgo LDFLAGS: -lbncsutil_static -lgmp -L${SRCDIR}/../../vendor/bncsutil/build
+// #cgo !windows LDFLAGS: -lbncsutil_static -lgmp           -L${SRCDIR}/../../vendor/bncsutil/build
+// #cgo  windows LDFLAGS: -lbncsutil_static -lgmp -lversion -L${SRCDIR}/../../vendor/bncsutil/build
+// #undef __declspec
+// #define __declspec(...)
 // #include <bncsutil/bncsutil.h>
 import (
 	"C"
