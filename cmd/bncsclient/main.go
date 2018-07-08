@@ -19,6 +19,7 @@ import (
 
 	"github.com/nielsAD/gowarcraft3/network"
 	"github.com/nielsAD/gowarcraft3/network/bnet"
+	"github.com/nielsAD/gowarcraft3/protocol/bncs"
 	"github.com/nielsAD/gowarcraft3/protocol/w3gs"
 )
 
@@ -119,6 +120,9 @@ func main() {
 	c.On(&bnet.SystemMessage{}, func(ev *network.Event) {
 		var msg = ev.Arg.(*bnet.SystemMessage)
 		logOut.Println(color.CyanString("[%s] %s", strings.ToUpper(msg.Type.String()), msg.Content))
+	})
+	c.On(&bncs.FloodDetected{}, func(ev *network.Event) {
+		logErr.Println(color.RedString("[ERROR] Flood detected!"))
 	})
 
 	if *create {

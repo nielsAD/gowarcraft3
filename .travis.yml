@@ -21,20 +21,9 @@ install:
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]];   then brew update         ; fi
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]];   then brew install libpcap; fi
 
-  # Compile vendor dependencies
-  - make -C vendor
-
   # Install test dependencies
   - go get github.com/golang/lint/golint
 
-before_script:
-  - PKG=($(go list ./...))
-  - DIR=("${PKG[@]//github.com\/nielsAD\/gowarcraft3\//}")
-  - echo "${PKG[@]}"
-
 script:
-  - gofmt -l "${DIR[@]}"
-  - go build "${PKG[@]}"
-  - go test -race -cover -cpu=1,2,4 -timeout=2m "${PKG[@]}"
-  - go vet "${PKG[@]}"
-  - golint -set_exit_status "${PKG[@]}"
+  - make test
+  - make release

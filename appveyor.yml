@@ -1,0 +1,46 @@
+# Author:  Niels A.D.
+# Project: gowarcraft3 (https://github.com/nielsAD/gowarcraft3)
+# License: Mozilla Public License, v2.0
+
+image: Visual Studio 2017
+
+clone_folder: c:\gopath\src\github.com\nielsAD\gowarcraft3
+
+artifacts:
+  - path: bin/*
+
+environment:
+  GOPATH: c:\gopath
+  matrix:
+    - GOROOT: C:\go-x86
+      MSYSTEM: MINGW32
+      MSYS2_ARCH: i686
+    - GOROOT: c:\go
+      MSYSTEM: MINGW64
+      MSYS2_ARCH: x86_64
+
+stack: go 1.10
+
+install:
+  # Initialize environment
+  - set PATH=%GOPATH%\bin;%GOROOT%\bin;C:\msys64\usr\bin;%PATH%
+
+  # Download submodules
+  - git submodule update --init
+
+  # Install OS dependencies
+  - bash -lc "pacman --needed --noconfirm -Syu"
+  - bash -lc "pacman --needed --noconfirm -Sy"
+  - bash -lc "pacman --needed --noconfirm -S mingw-w64-$MSYS2_ARCH-toolchain mingw-w64-$MSYS2_ARCH-cmake"
+
+  - ps: Start-FileDownload 'https://github.com/nielsAD/gowarcraft3/files/2175629/WpdPack_4_1_2.zip'
+  - 7z x WpdPack_4_1_2.zip -oC:\
+
+  # Install test dependencies
+  - go get github.com/golang/lint/golint
+
+build: off
+
+test_script:
+  - bash -lc "cd $APPVEYOR_BUILD_FOLDER; make test TEST_RACE=0"
+  - bash -lc "cd $APPVEYOR_BUILD_FOLDER; make release GO_FLAGS=\"-ldflags '-linkmode external -extldflags -static'\""

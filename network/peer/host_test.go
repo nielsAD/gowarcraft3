@@ -138,7 +138,7 @@ func TestEvents(t *testing.T) {
 		t.Fatal("Expected p.ID")
 	}
 
-	time.Sleep(10 * time.Millisecond)
+	time.Sleep(50 * time.Millisecond)
 	if atomic.LoadInt32(&connectCount) != 2 {
 		t.Fatal("Expected connectCount to be 2")
 	}
@@ -148,7 +148,7 @@ func TestEvents(t *testing.T) {
 	}
 
 	hosts[0].Close()
-	time.Sleep(10 * time.Millisecond)
+	time.Sleep(50 * time.Millisecond)
 
 	if atomic.LoadInt32(&registerCount) != 2 {
 		t.Fatal("Expected registerCount to be 2 again")
@@ -212,7 +212,7 @@ func TestMass(t *testing.T) {
 
 	// Wait for chat
 	for try := 0; try < 100 && atomic.LoadInt32(&chat) != int32(len(hosts)-1); try++ {
-		time.Sleep(10 * time.Millisecond)
+		time.Sleep(50 * time.Millisecond)
 	}
 
 	if atomic.LoadInt32(&chat) != int32(len(hosts)-1) {
@@ -229,7 +229,7 @@ func TestMass(t *testing.T) {
 
 	// Wait for chat
 	for try := 0; try < 100 && atomic.LoadInt32(&chat) != int32(len(hosts)-2); try++ {
-		time.Sleep(10 * time.Millisecond)
+		time.Sleep(50 * time.Millisecond)
 	}
 
 	if atomic.LoadInt32(&chat) != int32(len(hosts)-2) {
