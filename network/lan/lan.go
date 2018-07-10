@@ -2,7 +2,7 @@
 // Project: gowarcraft3 (https://github.com/nielsAD/gowarcraft3)
 // License: Mozilla Public License, v2.0
 
-// Package lan implements a mocked Warcraft 3 LAN client that can be used to discover local games.
+// Package lan implements a mocked Warcraft III LAN client that can be used to discover local games.
 package lan
 
 import (

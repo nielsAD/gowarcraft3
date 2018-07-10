@@ -2,7 +2,7 @@
 // Project: gowarcraft3 (https://github.com/nielsAD/gowarcraft3)
 // License: Mozilla Public License, v2.0
 
-// Package dummy implements a mocked Warcraft 3 game client that can be used to add dummy players to lobbies.
+// Package dummy implements a mocked Warcraft III game client that can be used to add dummy players to lobbies.
 package dummy
 
 import (

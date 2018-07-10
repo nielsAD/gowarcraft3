@@ -2,7 +2,7 @@
 // Project: gowarcraft3 (https://github.com/nielsAD/gowarcraft3)
 // License: Mozilla Public License, v2.0
 
-// Package peer implements a mocked Warcraft 3 client that can be used to manage peer connections in lobbies.
+// Package peer implements a mocked Warcraft III client that can be used to manage peer connections in lobbies.
 package peer
 
 import (

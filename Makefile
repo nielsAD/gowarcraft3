@@ -5,7 +5,6 @@
 GO_FLAGS=
 GOTEST_FLAGS=-cover -cpu=1,2,4 -timeout=2m
 
-
 GO=go
 GOFMT=gofmt
 GOLINT=golint

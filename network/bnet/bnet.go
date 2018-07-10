@@ -15,9 +15,8 @@ import (
 	"time"
 	"unicode"
 
-	"github.com/nielsAD/gowarcraft3/protocol"
-
 	"github.com/nielsAD/gowarcraft3/network"
+	"github.com/nielsAD/gowarcraft3/protocol"
 	"github.com/nielsAD/gowarcraft3/protocol/bncs"
 	"github.com/nielsAD/gowarcraft3/protocol/w3gs"
 )
@@ -114,11 +113,11 @@ type Client struct {
 // NewClient initializes a Client struct with default values
 func NewClient(searchPaths ...string) *Client {
 	var paths = append(searchPaths, []string{
+		"./war3",
 		"C:/Program Files/Warcraft III/",
 		"C:/Program Files (x86)/Warcraft III/",
 		path.Join(os.Getenv("HOME"), ".wine/drive_c/Program Files/Warcraft III/"),
 		path.Join(os.Getenv("HOME"), ".wine/drive_c/Program Files (x86)/Warcraft III/"),
-		"./war3",
 	}...)
 
 	var bin = "."

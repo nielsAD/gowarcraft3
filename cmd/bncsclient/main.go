@@ -2,7 +2,7 @@
 // Project: gowarcraft3 (https://github.com/nielsAD/gowarcraft3)
 // License: Mozilla Public License, v2.0
 
-// bncsclient is a mocked Warcraft 3 chat client that can be used to connect to BNCS servers.
+// bncsclient is a mocked Warcraft III chat client that can be used to connect to BNCS servers.
 package main
 
 import (
