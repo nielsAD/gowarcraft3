@@ -15,6 +15,7 @@ import (
 	"time"
 	"unicode"
 
+	"github.com/imdario/mergo"
 	"github.com/nielsAD/gowarcraft3/network"
 	"github.com/nielsAD/gowarcraft3/protocol"
 	"github.com/nielsAD/gowarcraft3/protocol/bncs"
@@ -63,7 +64,7 @@ type Chat struct {
 
 // Whisper event
 type Whisper struct {
-	UserName string
+	Username string
 	Content  string
 	Flags    bncs.ChatUserFlags
 	Ping     uint32
@@ -73,16 +74,6 @@ type Whisper struct {
 type SystemMessage struct {
 	Content string
 	Type    bncs.ChatEventType
-}
-
-// User in chat
-type User struct {
-	Name       string
-	StatString string
-	Flags      bncs.ChatUserFlags
-	Ping       uint32
-	Joined     time.Time
-	LastSeen   time.Time
 }
 
 // Client represents a mocked BNCS client
@@ -99,93 +90,120 @@ type Client struct {
 	UniqueName string
 
 	// Set once before Dial(), read-only after that
+	Config
+}
+
+// Config for bnet.Client
+type Config struct {
+	bncs.AuthInfoReq
 	ServerAddr        string
 	KeepAliveInterval time.Duration
-	AuthInfo          bncs.AuthInfoReq
 	BinPath           string
-	UserName          string
+	Username          string
 	Password          string
 	CDKeyOwner        string
 	CDKeys            []string
 	GamePort          uint16
 }
 
-// NewClient initializes a Client struct with default values
-func NewClient(searchPaths ...string) *Client {
-	var paths = append(searchPaths, []string{
-		"./war3",
-		"C:/Program Files/Warcraft III/",
-		"C:/Program Files (x86)/Warcraft III/",
-		path.Join(os.Getenv("HOME"), ".wine/drive_c/Program Files/Warcraft III/"),
-		path.Join(os.Getenv("HOME"), ".wine/drive_c/Program Files (x86)/Warcraft III/"),
-	}...)
+// DefaultConfig for bnet.Client
+var DefaultConfig = Config{
+	AuthInfoReq: bncs.AuthInfoReq{
+		PlatformCode:        protocol.DString("IX86"),
+		GameVersion:         w3gs.GameVersion{Product: w3gs.ProductROC, Version: w3gs.CurrentGameVersion},
+		LanguageCode:        protocol.DString("enUS"),
+		TimeZoneBias:        4294967176,
+		MpqLocaleID:         1033,
+		UserLanguageID:      1033,
+		CountryAbbreviation: "USA",
+		Country:             "United States",
+	},
+	KeepAliveInterval: 20 * time.Second,
+	CDKeyOwner:        "gowarcraft3",
+	GamePort:          6112,
 
-	var bin = "."
-	for i := 0; i < len(paths); i++ {
-		if _, err := os.Stat(paths[i]); err == nil {
-			bin = paths[i]
-			break
+	BinPath: func() string {
+		var paths = []string{
+			"./war3",
+			"C:/Program Files/Warcraft III/",
+			"C:/Program Files (x86)/Warcraft III/",
+			path.Join(os.Getenv("HOME"), ".wine/drive_c/Program Files/Warcraft III/"),
+			path.Join(os.Getenv("HOME"), ".wine/drive_c/Program Files (x86)/Warcraft III/"),
 		}
-	}
 
-	var product = w3gs.ProductROC
-	var version = uint32(29)
-	if exeVersion, _, err := GetExeInfo(path.Join(bin, "Warcraft III.exe")); err == nil {
-		version = (exeVersion >> 16) & 0xFF
-	}
-
-	var user = "gowarcraft3"
-	if _, err := os.Stat(path.Join(bin, "user.w3k")); err == nil {
-		if f, err := ioutil.ReadFile(path.Join(bin, "user.w3k")); err == nil {
-			user = strings.TrimSpace(string(f))
+		for i := 0; i < len(paths); i++ {
+			if _, err := os.Stat(paths[i]); err == nil {
+				return paths[i]
+			}
 		}
-	}
 
-	var rock = ""
-	if _, err := os.Stat(path.Join(bin, "roc.w3k")); err == nil {
-		if f, err := ioutil.ReadFile(path.Join(bin, "roc.w3k")); err == nil {
-			rock = strings.TrimSpace(string(f))
-		}
-	}
+		return "."
+	}(),
+}
 
-	var tftk = ""
-	if _, err := os.Stat(path.Join(bin, "tft.w3k")); err == nil {
-		if f, err := ioutil.ReadFile(path.Join(bin, "tft.w3k")); err == nil {
-			tftk = strings.TrimSpace(string(f))
-		}
-	}
-
-	var keys = []string{}
-	if rock != "" {
-		if tftk != "" {
-			product = w3gs.ProductTFT
-			keys = []string{rock, tftk}
-		} else {
-			keys = []string{rock}
-		}
-	}
-
-	var c = &Client{
-		KeepAliveInterval: 20 * time.Second,
-		AuthInfo: bncs.AuthInfoReq{
-			PlatformCode:        protocol.DString("IX86"),
-			GameVersion:         w3gs.GameVersion{Product: product, Version: version},
-			LanguageCode:        protocol.DString("enUS"),
-			TimeZoneBias:        4294967176,
-			MpqLocaleID:         1033,
-			UserLanguageID:      1033,
-			CountryAbbreviation: "USA",
-			Country:             "United States",
-		},
-		BinPath:    bin,
-		CDKeyOwner: user,
-		CDKeys:     keys,
-		GamePort:   6112,
+// NewClient initializes a Client struct
+func NewClient(conf *Config) (*Client, error) {
+	var c = Client{
+		Config: *conf,
 	}
 
 	c.InitDefaultHandlers()
 
-	return c
+	if err := mergo.Merge(&c.Config, DefaultConfig); err != nil {
+		return nil, err
+	}
+
+	if conf.GameVersion.Version == 0 {
+		if exeVersion, _, err := GetExeInfo(path.Join(c.BinPath, "Warcraft III.exe")); err == nil {
+			c.GameVersion.Version = (exeVersion >> 16) & 0xFF
+		}
+		if exeVersion, _, err := GetExeInfo(path.Join(c.BinPath, "war3.exe")); err == nil {
+			c.GameVersion.Version = (exeVersion >> 16) & 0xFF
+		}
+	}
+
+	if conf.Username == "" {
+		if _, err := os.Stat(path.Join(c.BinPath, "user.w3k")); err == nil {
+			if f, err := ioutil.ReadFile(path.Join(c.BinPath, "user.w3k")); err == nil {
+				c.Username = strings.TrimSpace(string(f))
+			}
+		}
+	}
+
+	if len(conf.CDKeys) == 0 {
+		var rock = ""
+		if _, err := os.Stat(path.Join(c.BinPath, "roc.w3k")); err == nil {
+			if f, err := ioutil.ReadFile(path.Join(c.BinPath, "roc.w3k")); err == nil {
+				rock = strings.TrimSpace(string(f))
+			}
+		}
+
+		var tftk = ""
+		if _, err := os.Stat(path.Join(c.BinPath, "tft.w3k")); err == nil {
+			if f, err := ioutil.ReadFile(path.Join(c.BinPath, "tft.w3k")); err == nil {
+				tftk = strings.TrimSpace(string(f))
+			}
+		}
+
+		if rock != "" {
+			if tftk != "" {
+				c.CDKeys = []string{rock, tftk}
+			} else {
+				c.CDKeys = []string{rock}
+			}
+		}
+	}
+
+	if conf.GameVersion.Product == 0 {
+		switch len(c.CDKeys) {
+		case 1:
+			c.GameVersion.Product = w3gs.ProductROC
+		case 2:
+			c.GameVersion.Product = w3gs.ProductTFT
+		}
+	}
+
+	return &c, nil
 }
 
 // Channel currently chatting in
@@ -291,7 +309,7 @@ func (b *Client) Dial() (*network.BNCSonn, error) {
 //  13. A sequence of chat events for entering chat follow.
 //
 func (b *Client) Logon() error {
-	nls, err := NewNLS(b.UserName, b.Password)
+	nls, err := NewNLS(b.Username, b.Password)
 	if err != nil {
 		return err
 	}
@@ -359,7 +377,7 @@ func (b *Client) Logon() error {
 //  3. Client can continue with logon ([0x53] SID_AUTH_ACCOUNTLOGON)
 //
 func (b *Client) CreateAccount() error {
-	nls, err := NewNLS(b.UserName, b.Password)
+	nls, err := NewNLS(b.Username, b.Password)
 	if err != nil {
 		return err
 	}
@@ -386,7 +404,7 @@ func (b *Client) CreateAccount() error {
 }
 
 func (b *Client) sendAuthInfo(conn *network.BNCSonn) (*bncs.AuthInfoResp, error) {
-	if _, err := conn.Send(&b.AuthInfo); err != nil {
+	if _, err := conn.Send(&b.AuthInfoReq); err != nil {
 		return nil, err
 	}
 
@@ -427,7 +445,7 @@ func (b *Client) sendAuthCheck(conn *network.BNCSonn, clientToken uint32, authin
 	}
 
 	var files = []string{exePath}
-	if b.AuthInfo.GameVersion.Version < 29 {
+	if b.GameVersion.Version < 29 {
 		stormPath := path.Join(b.BinPath, "Storm.dll")
 		if _, err := os.Stat(stormPath); err != nil {
 			return nil, err
@@ -482,7 +500,7 @@ func (b *Client) sendAuthCheck(conn *network.BNCSonn, clientToken uint32, authin
 func (b *Client) sendLogon(conn *network.BNCSonn, nls *NLS) (*bncs.AuthAccountLogonResp, error) {
 	var req = &bncs.AuthAccountLogonReq{
 		ClientKey: nls.ClientKey(),
-		UserName:  b.UserName,
+		Username:  b.Username,
 	}
 
 	if _, err := conn.Send(req); err != nil {
@@ -529,7 +547,7 @@ func (b *Client) sendCreateAccount(conn *network.BNCSonn, nls *NLS) (*bncs.AuthA
 		return nil, err
 	}
 
-	var req = &bncs.AuthAccountCreateReq{UserName: b.UserName}
+	var req = &bncs.AuthAccountCreateReq{Username: b.Username}
 	copy(req.Salt[:], salt)
 	copy(req.Verifier[:], verifier)
 
@@ -649,7 +667,7 @@ func (b *Client) onChatEvent(ev *network.Event) {
 	case bncs.ChatShowUser, bncs.ChatJoin:
 		var t = time.Now()
 		var u = User{
-			Name:       pkt.UserName,
+			Name:       pkt.Username,
 			StatString: pkt.Text,
 			Flags:      pkt.UserFlags,
 			Ping:       pkt.Ping,
@@ -661,12 +679,12 @@ func (b *Client) onChatEvent(ev *network.Event) {
 		if b.users == nil {
 			b.users = make(map[string]*User)
 		}
-		var p = b.users[strings.ToLower(pkt.UserName)]
+		var p = b.users[strings.ToLower(pkt.Username)]
 		if p != nil {
 			u.Joined = p.Joined
 			u.LastSeen = p.LastSeen
 		}
-		b.users[strings.ToLower(pkt.UserName)] = &u
+		b.users[strings.ToLower(pkt.Username)] = &u
 		b.chatmut.Unlock()
 
 		if p == nil {
@@ -678,7 +696,7 @@ func (b *Client) onChatEvent(ev *network.Event) {
 		var e UserUpdate
 
 		b.chatmut.Lock()
-		var u = b.users[strings.ToLower(pkt.UserName)]
+		var u = b.users[strings.ToLower(pkt.Username)]
 		if u != nil {
 			u.Flags = pkt.UserFlags
 			e.User = *u
@@ -690,8 +708,8 @@ func (b *Client) onChatEvent(ev *network.Event) {
 		}
 	case bncs.ChatLeave:
 		b.chatmut.Lock()
-		var u = b.users[strings.ToLower(pkt.UserName)]
-		delete(b.users, strings.ToLower(pkt.UserName))
+		var u = b.users[strings.ToLower(pkt.Username)]
+		delete(b.users, strings.ToLower(pkt.Username))
 		b.chatmut.Unlock()
 
 		if u != nil {
@@ -704,7 +722,7 @@ func (b *Client) onChatEvent(ev *network.Event) {
 		}
 
 		b.chatmut.Lock()
-		var u = b.users[strings.ToLower(pkt.UserName)]
+		var u = b.users[strings.ToLower(pkt.Username)]
 		if u != nil {
 			u.LastSeen = time.Now()
 			e.User = *u
@@ -715,7 +733,7 @@ func (b *Client) onChatEvent(ev *network.Event) {
 			b.Fire(&e)
 		}
 	case bncs.ChatWhisper:
-		b.Fire(&Whisper{UserName: pkt.UserName, Content: pkt.Text, Flags: pkt.UserFlags, Ping: pkt.Ping})
+		b.Fire(&Whisper{Username: pkt.Username, Content: pkt.Text, Flags: pkt.UserFlags, Ping: pkt.Ping})
 	case bncs.ChatChannelFull, bncs.ChatChannelDoesNotExist, bncs.ChatChannelRestricted:
 		b.Fire(&JoinError{Channel: pkt.Text, Error: pkt.Type})
 	case bncs.ChatBroadcast, bncs.ChatInfo, bncs.ChatError:

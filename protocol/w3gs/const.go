@@ -20,6 +20,9 @@ var (
 	ErrBufferTooSmall    = errors.New("w3gs: Packet exceeds buffer size")
 )
 
+// CurrentGameVersion used by stable release
+const CurrentGameVersion = uint32(29)
+
 // ProtocolSig is the W3GS magic number used in the packet header.
 const ProtocolSig = 0xF7
 

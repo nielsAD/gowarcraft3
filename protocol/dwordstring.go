@@ -4,6 +4,15 @@
 
 package protocol
 
+import (
+	"errors"
+)
+
+// Errors
+var (
+	ErrInvalidDString = errors.New("dwstr: Length of input for DString() exceeds 4")
+)
+
 // DWordString is a string of size dword (4 bytes / characters)
 type DWordString uint32
 
@@ -22,7 +31,7 @@ func DString(str string) DWordString {
 	case 4:
 		return DWordString(uint32(str[0]) | uint32(str[1])<<8 | uint32(str[2])<<16 | uint32(str[3])<<24)
 	default:
-		panic("dwstr: Length of input for DString() exceeds 4")
+		panic(ErrInvalidDString)
 	}
 }
 
@@ -37,4 +46,13 @@ func (s DWordString) String() string {
 		return string([]byte{byte(uint32(s)), byte(uint32(s) >> 8)})
 	}
 	return string([]byte{byte(uint32(s))})
+}
+
+// UnmarshalText implements TextUnmarshaler
+func (s *DWordString) UnmarshalText(txt []byte) error {
+	if len(txt) > 4 {
+		return ErrInvalidDString
+	}
+	*s = DString(string(txt))
+	return nil
 }

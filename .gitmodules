@@ -25,3 +25,12 @@
 [submodule "vendor/github.com/fatih/color"]
 	path = vendor/github.com/fatih/color
 	url = https://github.com/fatih/color.git
+[submodule "vendor/github.com/imdario/mergo"]
+	path = vendor/github.com/imdario/mergo
+	url = https://github.com/imdario/mergo.git
+[submodule "vendor/github.com/bwmarrin/discordgo"]
+	path = vendor/github.com/bwmarrin/discordgo
+	url = https://github.com/bwmarrin/discordgo.git
+[submodule "vendor/github.com/gorilla/websocket"]
+	path = vendor/github.com/gorilla/websocket
+	url = https://github.com/gorilla/websocket.git

@@ -49,11 +49,12 @@ type Host struct {
 	wg       sync.WaitGroup
 	listener *net.TCPListener
 
-	pmut  sync.Mutex
-	peers map[uint8]*Player
+	pmut    sync.Mutex
+	peers   map[uint8]*Player
+	peerset protocol.BitSet32
 
+	// Atomic
 	gameticks uint32
-	peerset   protocol.BitSet32
 
 	// Set once before ListenAndServe(), read-only after that
 	PlayerInfo   w3gs.PlayerInfo

@@ -322,9 +322,17 @@ func (c *BNCSonn) Close() error {
 
 // Send pkt to addr over net.Conn
 func (c *BNCSonn) Send(pkt bncs.Packet) (int, error) {
+	c.cmut.RLock()
+
+	if c.conn == nil {
+		c.cmut.RUnlock()
+		return 0, io.EOF
+	}
+
 	c.smut.Lock()
 	var n, err = bncs.SerializePacketWithBuffer(c.conn, &c.sbuf, pkt)
 	c.smut.Unlock()
+	c.cmut.RUnlock()
 
 	return n, err
 }

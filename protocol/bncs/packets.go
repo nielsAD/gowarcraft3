@@ -410,7 +410,7 @@ type ChatEvent struct {
 	UserFlags    ChatUserFlags
 	ChannelFlags ChatChannelFlags
 	Ping         uint32
-	UserName     string
+	Username     string
 	Text         string
 }
 
@@ -418,7 +418,7 @@ type ChatEvent struct {
 func (pkt *ChatEvent) Serialize(buf *protocol.Buffer) error {
 	buf.WriteUInt8(ProtocolSig)
 	buf.WriteUInt8(PidChatEvent)
-	buf.WriteUInt16(uint16(30 + len(pkt.UserName) + len(pkt.Text)))
+	buf.WriteUInt16(uint16(30 + len(pkt.Username) + len(pkt.Text)))
 	buf.WriteUInt32(uint32(pkt.Type))
 	if pkt.Type == ChatChannelInfo {
 		buf.WriteUInt32(uint32(pkt.ChannelFlags))
@@ -429,7 +429,7 @@ func (pkt *ChatEvent) Serialize(buf *protocol.Buffer) error {
 	buf.WriteUInt32(0)
 	buf.WriteUInt32(0xbaadf00d)
 	buf.WriteUInt32(0xbaadf00d)
-	buf.WriteCString(pkt.UserName)
+	buf.WriteCString(pkt.Username)
 	buf.WriteCString(pkt.Text)
 	return nil
 }
@@ -456,16 +456,16 @@ func (pkt *ChatEvent) Deserialize(buf *protocol.Buffer) error {
 	}
 
 	var err error
-	if pkt.UserName, err = buf.ReadCString(); err != nil {
+	if pkt.Username, err = buf.ReadCString(); err != nil {
 		return err
 	}
-	if size < 30+len(pkt.UserName) {
+	if size < 30+len(pkt.Username) {
 		return ErrInvalidPacketSize
 	}
 	if pkt.Text, err = buf.ReadCString(); err != nil {
 		return err
 	}
-	if size != 30+len(pkt.UserName)+len(pkt.Text) {
+	if size != 30+len(pkt.Username)+len(pkt.Text) {
 		return ErrInvalidPacketSize
 	}
 	return nil
@@ -1666,17 +1666,17 @@ func (pkt *AuthAccountCreateResp) Deserialize(buf *protocol.Buffer) error {
 type AuthAccountCreateReq struct {
 	Salt     [32]byte
 	Verifier [32]byte
-	UserName string
+	Username string
 }
 
 // Serialize encodes the struct into its binary form.
 func (pkt *AuthAccountCreateReq) Serialize(buf *protocol.Buffer) error {
 	buf.WriteUInt8(ProtocolSig)
 	buf.WriteUInt8(PidAuthAccountCreate)
-	buf.WriteUInt16(uint16(69 + len(pkt.UserName)))
+	buf.WriteUInt16(uint16(69 + len(pkt.Username)))
 	buf.WriteBlob(pkt.Salt[:])
 	buf.WriteBlob(pkt.Verifier[:])
-	buf.WriteCString(pkt.UserName)
+	buf.WriteCString(pkt.Username)
 	return nil
 }
 
@@ -1691,10 +1691,10 @@ func (pkt *AuthAccountCreateReq) Deserialize(buf *protocol.Buffer) error {
 	copy(pkt.Verifier[:], buf.ReadBlob(32))
 
 	var err error
-	if pkt.UserName, err = buf.ReadCString(); err != nil {
+	if pkt.Username, err = buf.ReadCString(); err != nil {
 		return err
 	}
-	if size != 69+len(pkt.UserName) {
+	if size != 69+len(pkt.Username) {
 		return ErrInvalidPacketSize
 	}
 
@@ -1747,7 +1747,7 @@ func (pkt *AuthAccountLogonResp) Deserialize(buf *protocol.Buffer) error {
 
 // AuthAccountLogonReq implements the [0x53] SID_AUTH_ACCOUNTLOGON packet (C -> S).
 //
-// This message is sent to the server to initiate a logon. It consists of the client's public key and their UserName.
+// This message is sent to the server to initiate a logon. It consists of the client's public key and their Username.
 //
 // The client's public key is a value calculated by the client and used for a single logon.
 //
@@ -1758,16 +1758,16 @@ func (pkt *AuthAccountLogonResp) Deserialize(buf *protocol.Buffer) error {
 //
 type AuthAccountLogonReq struct {
 	ClientKey [32]byte
-	UserName  string
+	Username  string
 }
 
 // Serialize encodes the struct into its binary form.
 func (pkt *AuthAccountLogonReq) Serialize(buf *protocol.Buffer) error {
 	buf.WriteUInt8(ProtocolSig)
 	buf.WriteUInt8(PidAuthAccountLogon)
-	buf.WriteUInt16(uint16(37 + len(pkt.UserName)))
+	buf.WriteUInt16(uint16(37 + len(pkt.Username)))
 	buf.WriteBlob(pkt.ClientKey[:])
-	buf.WriteCString(pkt.UserName)
+	buf.WriteCString(pkt.Username)
 	return nil
 }
 
@@ -1781,10 +1781,10 @@ func (pkt *AuthAccountLogonReq) Deserialize(buf *protocol.Buffer) error {
 	copy(pkt.ClientKey[:], buf.ReadBlob(32))
 
 	var err error
-	if pkt.UserName, err = buf.ReadCString(); err != nil {
+	if pkt.Username, err = buf.ReadCString(); err != nil {
 		return err
 	}
-	if size != 37+len(pkt.UserName) {
+	if size != 37+len(pkt.Username) {
 		return ErrInvalidPacketSize
 	}
 

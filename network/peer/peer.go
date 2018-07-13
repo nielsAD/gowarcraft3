@@ -20,6 +20,7 @@ type Player struct {
 	network.EventEmitter
 	network.W3GSConn
 
+	// Atomic
 	rtt     uint32
 	peerset uint32
 

@@ -2,16 +2,21 @@
 # Project: gowarcraft3 (https://github.com/nielsAD/gowarcraft3)
 # License: Mozilla Public License, v2.0
 
+VENDOR=vendor/StormLib/build/libstorm.a vendor/bncsutil/build/libbncsutil_static.a
+
 GO_FLAGS=
 GOTEST_FLAGS=-cover -cpu=1,2,4 -timeout=2m
 
 GO=go
 GOFMT=gofmt
-GOLINT=golint
+GOLINT=$(shell go env GOPATH)/bin/golint
 
 DIR_BIN=bin
+DIR_PRE=github.com/nielsAD/gowarcraft3
+
 PKG:=$(shell $(GO) list ./...)
-DIR:=$(subst github.com/nielsAD/gowarcraft3/,,$(PKG))
+DIR:=$(subst $(DIR_PRE)/,,$(PKG))
+CMD:=$(subst $(DIR_PRE)/cmd/,,$(shell $(GO) list ./cmd/...))
 
 ARCH:=$(shell $(GO) env GOARCH)
 ifeq ($(ARCH),amd64)
@@ -22,22 +27,27 @@ ifeq ($(TEST_RACE),1)
 	TEST_FLAGS+= -race
 endif
 
-.PHONY: all release build test fmt lint vet list clean
+.PHONY: all release check test fmt lint vet list clean
+
 all: test release
+release: $(CMD)
 
 $(DIR_BIN):
 	mkdir -p $@
 
+$(PKG): $(VENDOR)
+	$(GO) build $@
+
+$(CMD): $(VENDOR) $(DIR_BIN)
+	cd $(DIR_BIN); $(GO) build $(GO_FLAGS) $(DIR_PRE)/cmd/$@
+
 vendor/%:
 	$(MAKE) -C vendor $(subst vendor/,,$@)
 
-release: build $(DIR_BIN)
-	cd $(DIR_BIN); $(GO) list ../cmd/... | xargs -L1 go build $(GO_FLAGS)
-
-build: vendor/StormLib/build/libstorm.a vendor/bncsutil/build/libbncsutil_static.a
+check: $(VENDOR)
 	$(GO) build $(PKG)
 
-test: build fmt lint vet
+test: check fmt lint vet
 	$(GO) test $(TEST_FLAGS) $(PKG)
 
 fmt:

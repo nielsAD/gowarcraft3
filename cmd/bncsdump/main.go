@@ -207,7 +207,11 @@ func main() {
 
 	go func() {
 		for packet := range packets {
-			trans := packet.TransportLayer().(*layers.TCP)
+			trans, ok := packet.TransportLayer().(*layers.TCP)
+			if !ok {
+				continue
+			}
+
 			asm.Assemble(packet.NetworkLayer().NetworkFlow(), trans)
 		}
 	}()

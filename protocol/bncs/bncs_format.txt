@@ -1678,7 +1678,7 @@ Format:
  (STRING) Username 
 
 Remarks:
-This message is sent to the server to initiate a logon. It consists of the client's public key and their UserName.
+This message is sent to the server to initiate a logon. It consists of the client's public key and their Username.
 
  The client's public key is a value calculated by the client and used for a single logon. For more information, see
 [NLS/SRP Protocol].

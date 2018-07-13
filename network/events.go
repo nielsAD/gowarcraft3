@@ -58,6 +58,14 @@ type Firer interface {
 	Fire(a EventArg, o ...EventArg)
 }
 
+// Emitter is the interface that wraps the basic On/Once methods
+type Emitter interface {
+	On(a EventArg, h EventHandler) EventID
+	Once(a EventArg, h EventHandler) EventID
+	Off(id EventID)
+	OffAll(a EventArg)
+}
+
 func (e *EventEmitter) addHandler(a EventArg, h EventHandler, once bool) EventID {
 	var ht = reflect.TypeOf(a).String()
 

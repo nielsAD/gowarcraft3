@@ -40,7 +40,10 @@ var stdin = bufio.NewReader(os.Stdin)
 func main() {
 	flag.Parse()
 
-	var c = bnet.NewClient(*binpath)
+	c, err := bnet.NewClient(&bnet.Config{BinPath: *binpath})
+	if err != nil {
+		logErr.Fatal("NewClient error: ", err)
+	}
 
 	c.ServerAddr = strings.Join(flag.Args(), " ")
 	if c.ServerAddr == "" {
@@ -48,26 +51,26 @@ func main() {
 	}
 
 	if *gamevers != 0 {
-		c.AuthInfo.GameVersion.Version = uint32(*gamevers)
+		c.GameVersion.Version = uint32(*gamevers)
 	}
 
 	if *keyroc != "" {
 		if *keytft != "" {
-			c.AuthInfo.GameVersion.Product = w3gs.ProductTFT
+			c.GameVersion.Product = w3gs.ProductTFT
 			c.CDKeys = []string{*keyroc, *keytft}
 		} else {
-			c.AuthInfo.GameVersion.Product = w3gs.ProductROC
+			c.GameVersion.Product = w3gs.ProductROC
 			c.CDKeys = []string{*keyroc}
 		}
 	}
 
-	c.UserName = *username
+	c.Username = *username
 	c.Password = *password
 
 	if *username == "" {
 		fmt.Print("Enter username: ")
-		c.UserName, _ = stdin.ReadString('\n')
-		c.UserName = strings.TrimSpace(c.UserName)
+		c.Username, _ = stdin.ReadString('\n')
+		c.Username = strings.TrimSpace(c.Username)
 	}
 
 	if *password == "" {
@@ -102,7 +105,7 @@ func main() {
 	})
 	c.On(&bnet.Whisper{}, func(ev *network.Event) {
 		var msg = ev.Arg.(*bnet.Whisper)
-		logOut.Println(color.GreenString("[WHISPER] %s: %s", msg.UserName, msg.Content))
+		logOut.Println(color.GreenString("[WHISPER] %s: %s", msg.Username, msg.Content))
 	})
 	c.On(&bnet.Chat{}, func(ev *network.Event) {
 		var msg = ev.Arg.(*bnet.Chat)
@@ -114,7 +117,7 @@ func main() {
 			logOut.Printf("[CHAT] %s\n", say.Content)
 		} else {
 
-			logOut.Printf("[CHAT] %s: %s\n", c.UserName, say.Content)
+			logOut.Printf("[CHAT] %s: %s\n", c.Username, say.Content)
 		}
 	})
 	c.On(&bnet.SystemMessage{}, func(ev *network.Event) {
@@ -129,7 +132,7 @@ func main() {
 		if err := c.CreateAccount(); err != nil {
 			logErr.Fatal("CreateAccount error: ", err)
 		}
-		logOut.Println(color.MagentaString("Succesfully registered new account '%s'", c.UserName))
+		logOut.Println(color.MagentaString("Succesfully registered new account '%s'", c.Username))
 		return
 	}
 
@@ -137,7 +140,7 @@ func main() {
 		logErr.Fatal("Logon error: ", err)
 	}
 
-	logOut.Println(color.MagentaString("Succesfully logged onto %s@%s", c.UserName, c.ServerAddr))
+	logOut.Println(color.MagentaString("Succesfully logged onto %s@%s", c.Username, c.ServerAddr))
 
 	go func() {
 		for {

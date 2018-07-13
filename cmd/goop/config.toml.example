@@ -1,0 +1,34 @@
+# Author:  Niels A.D.
+# Project: gowarcraft3 (https://github.com/nielsAD/gowarcraft3)
+# License: Mozilla Public License, v2.0
+
+[BNet]
+    [BNet.Default]
+    Username   = ""
+    Password   = ""
+
+    [BNet.Realms.Northrend]
+    ServerAddr = "europe.battle.net"
+
+    [BNet.Realms.Azeroth]
+    ServerAddr = "useast.battle.net"
+
+    [BNet.Realms.Lordaeron]
+    ServerAddr = "uswest.battle.net"
+
+    [BNet.Realms.Kalimdor]
+    ServerAddr = "asia.battle.net"
+
+[Discord]
+    [Discord.Realms.Discord]
+    AuthToken = ""
+
+[[Relay]]
+Chat        = true
+PrivateChat = true
+
+[[Relay]]
+Out = ["STDIO"]
+Log    = true
+System = true
+Joins  = true

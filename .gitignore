@@ -1,0 +1,10 @@
+bin/
+
+# Config files
+config.toml
+
+# Test binary (go test -c)
+*.test
+
+# Output of the go coverage tool
+*.out

@@ -28,7 +28,7 @@ import (
 var (
 	findlan  = flag.Bool("lan", false, "Find a game on LAN")
 	gametft  = flag.Bool("tft", true, "Search for TFT or ROC games (only used when searching local)")
-	gamevers = flag.Int("v", 29, "Game version (only used when searching local)")
+	gamevers = flag.Int("v", int(w3gs.CurrentGameVersion), "Game version (only used when searching local)")
 	entrykey = flag.Uint("e", 0, "Entry key (only used when entering local game)")
 
 	hostcounter = flag.Uint("c", 1, "Host counter")
