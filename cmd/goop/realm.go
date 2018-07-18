@@ -53,9 +53,10 @@ type SystemMessage struct {
 
 // User event
 type User struct {
-	ID   string
-	Name string
-	Rank Rank
+	ID        string
+	Name      string
+	Rank      Rank
+	AvatarURL string
 }
 
 // Channel event

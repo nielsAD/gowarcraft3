@@ -26,6 +26,7 @@ type StdIOConfig struct {
 	Read           bool
 	Rank           Rank
 	CommandTrigger string
+	AvatarURL      string
 }
 
 // StdIO relays between stdin/stdout
@@ -47,9 +48,10 @@ func (o *StdIO) read() error {
 
 		o.Fire(&Chat{
 			User: User{
-				ID:   "STDIO",
-				Name: "stdin",
-				Rank: o.Rank,
+				ID:        "STDIO",
+				Name:      "stdin",
+				Rank:      o.Rank,
+				AvatarURL: o.AvatarURL,
 			},
 			Channel: Channel{
 				ID:   "STDIO",

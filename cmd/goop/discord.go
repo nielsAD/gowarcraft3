@@ -155,9 +155,10 @@ func (d *DiscordRealm) onMessageCreate(s *discordgo.Session, msg *discordgo.Mess
 
 	var chat = Chat{
 		User: User{
-			ID:   msg.Author.ID,
-			Name: msg.Author.Username,
-			Rank: d.RankNoChannel,
+			ID:        msg.Author.ID,
+			Name:      msg.Author.Username,
+			Rank:      d.RankNoChannel,
+			AvatarURL: msg.Author.AvatarURL(""),
 		},
 		Channel: Channel{
 			ID:   msg.ChannelID,
@@ -282,13 +283,15 @@ func (c *DiscordChannel) Relay(ev *network.Event, sender string) {
 		err = c.Say(fmt.Sprintf("⬅️ **%s@%s** has left the channel", msg.User.Name, sender))
 	case *Chat:
 		err = c.WebhookOrSay(&discordgo.WebhookParams{
-			Content:  c.filter(msg.Content, msg.User.Rank),
-			Username: fmt.Sprintf("%s@%s", msg.User.Name, sender),
+			Content:   c.filter(msg.Content, msg.User.Rank),
+			Username:  fmt.Sprintf("%s@%s", msg.User.Name, sender),
+			AvatarURL: msg.User.AvatarURL,
 		})
 	case *PrivateChat:
 		err = c.WebhookOrSay(&discordgo.WebhookParams{
-			Content:  c.filter(msg.Content, msg.User.Rank),
-			Username: fmt.Sprintf("%s@%s", msg.User.Name, sender),
+			Content:   c.filter(msg.Content, msg.User.Rank),
+			Username:  fmt.Sprintf("[DM] %s@%s", msg.User.Name, sender),
+			AvatarURL: msg.User.AvatarURL,
 		})
 	default:
 		err = ErrUnknownEvent

@@ -39,7 +39,7 @@ func reverse(s string) string {
 }
 
 // Stat split into (icon, level, clan)
-func (u User) Stat() (product protocol.DWordString, icon string, lvl int, tag string) {
+func (u User) Stat() (product protocol.DWordString, icon protocol.DWordString, lvl int, tag protocol.DWordString) {
 	lvl = -1
 
 	var s = strings.Split(u.StatString, " ")
@@ -50,7 +50,7 @@ func (u User) Stat() (product protocol.DWordString, icon string, lvl int, tag st
 	product = protocol.DString(reverse(s[0]))
 
 	if len(s) >= 2 {
-		icon = s[1]
+		icon = protocol.DString(reverse(s[1]))
 	}
 
 	if len(s) >= 3 {
@@ -59,7 +59,7 @@ func (u User) Stat() (product protocol.DWordString, icon string, lvl int, tag st
 		}
 	}
 	if len(s) >= 4 {
-		tag = strings.ToUpper(s[3])
+		tag = protocol.DString(reverse(s[3]))
 	}
 
 	return

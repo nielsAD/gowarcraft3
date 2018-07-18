@@ -22,6 +22,7 @@ type bnetConfig struct {
 	ReconnectDelay time.Duration
 	FirstChannel   string
 	CommandTrigger string
+	AvatarURL      string
 
 	RankWhisper    Rank
 	RankTalk       Rank
@@ -158,7 +159,7 @@ func (b *BNetRealm) user(u *bnet.User) User {
 		res.Rank = b.RankOperator
 	}
 
-	var prod, _, lvl, tag = u.Stat()
+	var prod, icon, lvl, tag = u.Stat()
 	if prod != 0 {
 		switch prod {
 		case w3gs.ProductDemo, w3gs.ProductROC, w3gs.ProductTFT:
@@ -168,6 +169,8 @@ func (b *BNetRealm) user(u *bnet.User) User {
 			return res
 		}
 
+		res.AvatarURL = strings.Replace(b.AvatarURL, "${ICON}", icon.String(), -1)
+
 		if lvl > 0 && b.RankLevel != nil {
 			for l, r := range b.RankLevel {
 				if lvl >= l && r > res.Rank {
@@ -175,8 +178,8 @@ func (b *BNetRealm) user(u *bnet.User) User {
 				}
 			}
 		}
-		if tag != "" && b.RankClanTag != nil {
-			var rank = b.RankClanTag[tag]
+		if tag != 0 && b.RankClanTag != nil {
+			var rank = b.RankClanTag[tag.String()]
 			if rank > res.Rank {
 				res.Rank = rank
 			}
@@ -215,7 +218,7 @@ func (b *BNetRealm) onUserLeft(ev *network.Event) {
 		return
 	}
 
-	b.Fire(&Join{
+	b.Fire(&Leave{
 		User:    b.user(&user.User),
 		Channel: b.channel(),
 	})
