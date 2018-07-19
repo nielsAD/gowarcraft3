@@ -104,7 +104,11 @@ func (d *DiscordRealm) Run(ctx context.Context) error {
 		}
 
 		d.Fire(&network.AsyncError{Src: "Run[Open]", Err: err})
-		time.Sleep(2 * time.Minute)
+
+		select {
+		case <-time.After(2 * time.Minute):
+		case <-ctx.Done():
+		}
 	}
 
 	if err != nil {
@@ -121,7 +125,6 @@ func (d *DiscordRealm) Run(ctx context.Context) error {
 func (d *DiscordRealm) InitDefaultHandlers() {
 	d.AddHandler(d.onConnect)
 	d.AddHandler(d.onDisconnect)
-	d.AddHandler(d.onPresenceUpdate)
 	d.AddHandler(d.onMessageCreate)
 }
 
@@ -139,13 +142,6 @@ func (d *DiscordRealm) onConnect(s *discordgo.Session, msg *discordgo.Connect) {
 
 func (d *DiscordRealm) onDisconnect(s *discordgo.Session, msg *discordgo.Disconnect) {
 	d.Fire(Disconnected{})
-}
-
-func (d *DiscordRealm) onPresenceUpdate(s *discordgo.Session, msg *discordgo.PresenceUpdate) {
-	old, _ := d.Session.State.Presence(msg.GuildID, msg.User.ID)
-	if old == nil || msg.Presence.Status != old.Status {
-		fmt.Println(msg)
-	}
 }
 
 func (d *DiscordRealm) onMessageCreate(s *discordgo.Session, msg *discordgo.MessageCreate) {
@@ -290,7 +286,7 @@ func (c *DiscordChannel) Relay(ev *network.Event, sender string) {
 	case *PrivateChat:
 		err = c.WebhookOrSay(&discordgo.WebhookParams{
 			Content:   c.filter(msg.Content, msg.User.Rank),
-			Username:  fmt.Sprintf("[DM] %s@%s", msg.User.Name, sender),
+			Username:  fmt.Sprintf("%s@%s (Direct Message)", msg.User.Name, sender),
 			AvatarURL: msg.User.AvatarURL,
 		})
 	default:

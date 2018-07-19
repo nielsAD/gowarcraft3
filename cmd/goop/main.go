@@ -81,7 +81,7 @@ func main() {
 
 	if *makeconf {
 		if err := toml.NewEncoder(os.Stdout).Encode(conf); err != nil {
-			logErr.Fatal(err)
+			logErr.Fatal("Configuration encoding error: ", err)
 		}
 		return
 	}

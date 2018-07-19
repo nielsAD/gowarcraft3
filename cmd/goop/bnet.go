@@ -20,7 +20,7 @@ import (
 
 type bnetConfig struct {
 	ReconnectDelay time.Duration
-	FirstChannel   string
+	HomeChannel    string
 	CommandTrigger string
 	AvatarURL      string
 
@@ -113,7 +113,12 @@ func (b *BNetRealm) Run(ctx context.Context) error {
 
 			if reconnect && ctx.Err() == nil {
 				b.Fire(&network.AsyncError{Src: "Run[Logon]", Err: err})
-				time.Sleep(backoff)
+
+				select {
+				case <-time.After(backoff):
+				case <-ctx.Done():
+				}
+
 				backoff = time.Duration(float64(backoff) * 1.5)
 				continue
 			}
@@ -125,7 +130,7 @@ func (b *BNetRealm) Run(ctx context.Context) error {
 
 		var channel = b.Channel()
 		if channel == "" {
-			channel = b.FirstChannel
+			channel = b.HomeChannel
 		}
 		if channel != "" {
 			b.Say("/join " + channel)
