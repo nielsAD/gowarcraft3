@@ -51,15 +51,15 @@ func main() {
 	}
 
 	if *gamevers != 0 {
-		c.GameVersion.Version = uint32(*gamevers)
+		c.Platform.GameVersion.Version = uint32(*gamevers)
 	}
 
 	if *keyroc != "" {
 		if *keytft != "" {
-			c.GameVersion.Product = w3gs.ProductTFT
+			c.Platform.GameVersion.Product = w3gs.ProductTFT
 			c.CDKeys = []string{*keyroc, *keytft}
 		} else {
-			c.GameVersion.Product = w3gs.ProductROC
+			c.Platform.GameVersion.Product = w3gs.ProductROC
 			c.CDKeys = []string{*keyroc}
 		}
 	}

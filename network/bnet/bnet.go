@@ -22,58 +22,17 @@ import (
 	"github.com/nielsAD/gowarcraft3/protocol/w3gs"
 )
 
-// JoinError event
-type JoinError struct {
-	Channel string
-	Error   bncs.ChatEventType
-}
-
-// Channel joined event
-type Channel struct {
-	Name  string
-	Flags bncs.ChatChannelFlags
-}
-
-// UserJoined event
-type UserJoined struct {
-	User
-	AlreadyInChannel bool
-}
-
-// UserLeft event
-type UserLeft struct {
-	User
-}
-
-// UserUpdate event
-type UserUpdate struct {
-	User
-}
-
-// Say event
-type Say struct {
-	Content string
-}
-
-// Chat event
-type Chat struct {
-	User
-	Content string
-	Type    bncs.ChatEventType
-}
-
-// Whisper event
-type Whisper struct {
-	Username string
-	Content  string
-	Flags    bncs.ChatUserFlags
-	Ping     uint32
-}
-
-// SystemMessage event
-type SystemMessage struct {
-	Content string
-	Type    bncs.ChatEventType
+// Config for bnet.Client
+type Config struct {
+	Platform          bncs.AuthInfoReq
+	ServerAddr        string
+	KeepAliveInterval time.Duration
+	BinPath           string
+	Username          string
+	Password          string
+	CDKeyOwner        string
+	CDKeys            []string
+	GamePort          uint16
 }
 
 // Client represents a mocked BNCS client
@@ -93,22 +52,9 @@ type Client struct {
 	Config
 }
 
-// Config for bnet.Client
-type Config struct {
-	bncs.AuthInfoReq
-	ServerAddr        string
-	KeepAliveInterval time.Duration
-	BinPath           string
-	Username          string
-	Password          string
-	CDKeyOwner        string
-	CDKeys            []string
-	GamePort          uint16
-}
-
 // DefaultConfig for bnet.Client
 var DefaultConfig = Config{
-	AuthInfoReq: bncs.AuthInfoReq{
+	Platform: bncs.AuthInfoReq{
 		PlatformCode:        protocol.DString("IX86"),
 		GameVersion:         w3gs.GameVersion{Product: w3gs.ProductROC, Version: w3gs.CurrentGameVersion},
 		LanguageCode:        protocol.DString("enUS"),
@@ -118,7 +64,7 @@ var DefaultConfig = Config{
 		CountryAbbreviation: "USA",
 		Country:             "United States",
 	},
-	KeepAliveInterval: 20 * time.Second,
+	KeepAliveInterval: 30 * time.Second,
 	CDKeyOwner:        "gowarcraft3",
 	GamePort:          6112,
 
@@ -153,12 +99,12 @@ func NewClient(conf *Config) (*Client, error) {
 		return nil, err
 	}
 
-	if conf.GameVersion.Version == 0 {
+	if conf.Platform.GameVersion.Version == 0 {
 		if exeVersion, _, err := GetExeInfo(path.Join(c.BinPath, "Warcraft III.exe")); err == nil {
-			c.GameVersion.Version = (exeVersion >> 16) & 0xFF
+			c.Platform.GameVersion.Version = (exeVersion >> 16) & 0xFF
 		}
 		if exeVersion, _, err := GetExeInfo(path.Join(c.BinPath, "war3.exe")); err == nil {
-			c.GameVersion.Version = (exeVersion >> 16) & 0xFF
+			c.Platform.GameVersion.Version = (exeVersion >> 16) & 0xFF
 		}
 	}
 
@@ -194,12 +140,12 @@ func NewClient(conf *Config) (*Client, error) {
 		}
 	}
 
-	if conf.GameVersion.Product == 0 {
+	if conf.Platform.GameVersion.Product == 0 {
 		switch len(c.CDKeys) {
 		case 1:
-			c.GameVersion.Product = w3gs.ProductROC
+			c.Platform.GameVersion.Product = w3gs.ProductROC
 		case 2:
-			c.GameVersion.Product = w3gs.ProductTFT
+			c.Platform.GameVersion.Product = w3gs.ProductTFT
 		}
 	}
 
@@ -404,7 +350,7 @@ func (b *Client) CreateAccount() error {
 }
 
 func (b *Client) sendAuthInfo(conn *network.BNCSonn) (*bncs.AuthInfoResp, error) {
-	if _, err := conn.Send(&b.AuthInfoReq); err != nil {
+	if _, err := conn.Send(&b.Platform); err != nil {
 		return nil, err
 	}
 
@@ -445,7 +391,7 @@ func (b *Client) sendAuthCheck(conn *network.BNCSonn, clientToken uint32, authin
 	}
 
 	var files = []string{exePath}
-	if b.GameVersion.Version < 29 {
+	if b.Platform.GameVersion.Version < 29 {
 		stormPath := path.Join(b.BinPath, "Storm.dll")
 		if _, err := os.Stat(stormPath); err != nil {
 			return nil, err

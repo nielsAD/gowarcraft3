@@ -6,12 +6,20 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"sync"
 
-	"github.com/imdario/mergo"
-
 	"github.com/nielsAD/gowarcraft3/network"
+)
+
+// Errors
+var (
+	ErrUnkownRealm      = errors.New("goop: Unknown realm")
+	ErrUnknownEvent     = errors.New("goop: Unknown event")
+	ErrUnknownConfigKey = errors.New("goop: Unknown config key")
+	ErrInvalidType      = errors.New("goop: Type mismatch")
+	ErrChanBufferFull   = errors.New("goop: Channel buffer full")
 )
 
 // Goop main
@@ -20,51 +28,7 @@ type Goop struct {
 
 	// Read-only
 	Realms map[string]Realm
-
-	// Set once before Run()
 	Config Config
-}
-
-// Config struct maps the layout of main configuration file
-type Config struct {
-	StdIO   StdIOConfig
-	BNet    BNetConfigWithDefault
-	Discord DiscordConfigWithDefault
-	Relay   []Relay
-}
-
-// BNetConfigWithDefault struct maps the layout of the BNet configuration section
-type BNetConfigWithDefault struct {
-	Default BNetConfig
-	Realms  map[string]*BNetConfig
-}
-
-// DefaultDiscordConfig struct maps the layout of the default Discord configuration section
-type DefaultDiscordConfig struct {
-	DiscordConfig
-	DiscordChannelConfig
-}
-
-// DiscordConfigWithDefault struct maps the layout of the Discord configuration section
-type DiscordConfigWithDefault struct {
-	Default DefaultDiscordConfig
-	Realms  map[string]*DiscordConfig
-}
-
-// Relay struct maps the layout of Relay configuration section
-type Relay struct {
-	In  []string
-	Out []string
-
-	Log         bool
-	System      bool
-	Joins       bool
-	Chat        bool
-	PrivateChat bool
-
-	JoinRank        Rank
-	ChatRank        Rank
-	PrivateChatRank Rank
 }
 
 // New initializes a Goop struct
@@ -72,16 +36,13 @@ func New(conf *Config) (*Goop, error) {
 	var g = Goop{
 		Config: *conf,
 		Realms: map[string]Realm{
-			"STDIO": &StdIO{StdIOConfig: conf.StdIO},
+			"STDIO": &StdIO{StdIOConfig: &conf.StdIO},
 		},
 	}
 
 	var realms = []string{"STDIO"}
 
 	for k, r := range g.Config.BNet.Realms {
-		if err := mergo.Merge(r, g.Config.BNet.Default); err != nil {
-			return nil, err
-		}
 		realm, err := NewBNetRealm(r)
 		if err != nil {
 			return nil, err
@@ -91,25 +52,16 @@ func New(conf *Config) (*Goop, error) {
 		realms = append(realms, k)
 	}
 
-	for k, r := range g.Config.Discord.Realms {
-		if err := mergo.Merge(r, g.Config.Discord.Default.DiscordConfig); err != nil {
-			return nil, err
-		}
-		for _, c := range r.Channels {
-			if err := mergo.Merge(c, g.Config.Discord.Default.DiscordChannelConfig); err != nil {
-				return nil, err
-			}
-		}
-
-		realm, err := NewDiscordRealm(r)
+	for k, r := range g.Config.Discord.Sessions {
+		discord, err := NewDiscordSession(r)
 		if err != nil {
 			return nil, err
 		}
 
-		g.Realms[k] = realm
+		g.Realms[k] = discord
 		realms = append(realms, k)
 
-		for cid, c := range realm.Channels {
+		for cid, c := range discord.Channels {
 			var idx = k + RealmDelimiter + cid
 			g.Realms[idx] = c
 			realms = append(realms, idx)

@@ -12,13 +12,11 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
-	"time"
 
 	"github.com/BurntSushi/toml"
 	"github.com/fatih/color"
 
 	"github.com/nielsAD/gowarcraft3/network"
-	"github.com/nielsAD/gowarcraft3/network/bnet"
 )
 
 var (
@@ -34,37 +32,9 @@ func main() {
 		logErr.SetFlags(log.Ltime)
 	}
 
-	var conf = &Config{
-		StdIO: StdIOConfig{
-			Rank:           RankOwner,
-			CommandTrigger: "/",
-		},
-		BNet: BNetConfigWithDefault{
-			Default: BNetConfig{
-				bnetConfig: bnetConfig{
-					ReconnectDelay: 30 * time.Second,
-					CommandTrigger: "!",
-				},
-				Config: bnet.Config{
-					CDKeyOwner: "goop",
-				},
-			},
-		},
-		Discord: DiscordConfigWithDefault{
-			Default: DefaultDiscordConfig{
-				DiscordConfig: DiscordConfig{
-					Presence:      "Battle.net",
-					RankNoChannel: RankIgnore,
-				},
-				DiscordChannelConfig: DiscordChannelConfig{
-					CommandTrigger: "!",
-					RankMentions:   RankWhitelist,
-				},
-			},
-		},
-	}
+	var conf = DefaultConfig
 	for _, f := range flag.Args() {
-		md, err := toml.DecodeFile(f, conf)
+		md, err := toml.DecodeFile(f, &conf)
 		if err != nil {
 			logErr.Fatal("Error reading configuration: ", err)
 		}
@@ -74,13 +44,18 @@ func main() {
 		}
 	}
 
-	g, err := New(conf)
+	if err := conf.MergeDefaults(); err != nil {
+		logErr.Fatal("Merging defaults error: ", err)
+	}
+
+	g, err := New(&conf)
 	if err != nil {
 		logErr.Fatal("Initialization error: ", err)
 	}
 
 	if *makeconf {
-		if err := toml.NewEncoder(os.Stdout).Encode(conf); err != nil {
+		var m = conf.Map()
+		if err := toml.NewEncoder(os.Stdout).Encode(m); err != nil {
 			logErr.Fatal("Configuration encoding error: ", err)
 		}
 		return

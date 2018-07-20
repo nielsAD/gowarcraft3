@@ -20,7 +20,7 @@
     ServerAddr = "asia.battle.net"
 
 [Discord]
-    [Discord.Realms.Discord]
+    [Discord.Sessions.Discord]
     AuthToken = ""
 
 [[Relay]]

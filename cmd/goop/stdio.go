@@ -21,18 +21,10 @@ var logOut = log.New(color.Output, "", 0)
 var logErr = log.New(color.Error, "", 0)
 var stdin = bufio.NewReader(os.Stdin)
 
-// StdIOConfig struct maps the layout of StdIO configuration section
-type StdIOConfig struct {
-	Read           bool
-	Rank           Rank
-	CommandTrigger string
-	AvatarURL      string
-}
-
 // StdIO relays between stdin/stdout
 type StdIO struct {
 	network.EventEmitter
-	StdIOConfig
+	*StdIOConfig
 }
 
 func (o *StdIO) read() error {

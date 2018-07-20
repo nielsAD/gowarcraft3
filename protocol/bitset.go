@@ -53,6 +53,20 @@ func (b BitSet8) String() string {
 	return fmt.Sprintf("0b%v", strconv.FormatUint(uint64(b), 2))
 }
 
+// MarshalText implements TextMarshaler
+func (b BitSet8) MarshalText() ([]byte, error) {
+	return []byte(strconv.FormatUint(uint64(b), 2)), nil
+}
+
+// UnmarshalText implements TextUnmarshaler
+func (b *BitSet8) UnmarshalText(txt []byte) error {
+	i, err := strconv.ParseUint(string(txt), 2, 8)
+	if err == nil {
+		*b = BitSet8(i)
+	}
+	return err
+}
+
 // BitSet16 is a set of 16 bits
 type BitSet16 uint16
 
@@ -97,6 +111,20 @@ func (b BitSet16) String() string {
 	return fmt.Sprintf("0b%v", strconv.FormatUint(uint64(b), 2))
 }
 
+// MarshalText implements TextMarshaler
+func (b BitSet16) MarshalText() ([]byte, error) {
+	return []byte(strconv.FormatUint(uint64(b), 2)), nil
+}
+
+// UnmarshalText implements TextUnmarshaler
+func (b *BitSet16) UnmarshalText(txt []byte) error {
+	i, err := strconv.ParseUint(string(txt), 2, 8)
+	if err == nil {
+		*b = BitSet16(i)
+	}
+	return err
+}
+
 // BitSet32 is a set of 32 bits
 type BitSet32 uint32
 
@@ -139,4 +167,18 @@ func (b *BitSet32) Clear(i uint) *BitSet32 {
 
 func (b BitSet32) String() string {
 	return fmt.Sprintf("0b%v", strconv.FormatUint(uint64(b), 2))
+}
+
+// MarshalText implements TextMarshaler
+func (b BitSet32) MarshalText() ([]byte, error) {
+	return []byte(strconv.FormatUint(uint64(b), 2)), nil
+}
+
+// UnmarshalText implements TextUnmarshaler
+func (b *BitSet32) UnmarshalText(txt []byte) error {
+	i, err := strconv.ParseUint(string(txt), 2, 8)
+	if err == nil {
+		*b = BitSet32(i)
+	}
+	return err
 }

@@ -11,7 +11,6 @@ import (
 	"time"
 
 	"github.com/nielsAD/gowarcraft3/protocol"
-
 	"github.com/nielsAD/gowarcraft3/protocol/bncs"
 )
 

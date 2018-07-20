@@ -6,20 +6,12 @@ package main
 
 import (
 	"context"
-	"errors"
 
 	"github.com/nielsAD/gowarcraft3/network"
 )
 
 // RealmDelimiter between main/sub realm name (i.e. discord.{CHANNELID})
 const RealmDelimiter = "."
-
-// Errors
-var (
-	ErrUnkownRealm    = errors.New("goop: Unknown realm")
-	ErrUnknownEvent   = errors.New("goop: Unknown event")
-	ErrChanBufferFull = errors.New("goop: Channel buffer full")
-)
 
 // Rank for user
 type Rank int32
@@ -69,8 +61,8 @@ type Channel struct {
 type Chat struct {
 	User
 	Channel
-	Private bool
 	Content string
+	Self    bool
 }
 
 // PrivateChat event

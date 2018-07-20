@@ -18,26 +18,6 @@ import (
 	"github.com/nielsAD/gowarcraft3/protocol/w3gs"
 )
 
-type bnetConfig struct {
-	ReconnectDelay time.Duration
-	HomeChannel    string
-	CommandTrigger string
-	AvatarURL      string
-
-	RankWhisper    Rank
-	RankTalk       Rank
-	RankOperator   Rank
-	RankNoWarcraft Rank
-	RankClanTag    map[string]Rank
-	RankLevel      map[int]Rank
-}
-
-// BNetConfig stores the configuration of a single BNet server
-type BNetConfig struct {
-	bnet.Config
-	bnetConfig
-}
-
 // BNetRealm manages a BNet connection
 type BNetRealm struct {
 	*bnet.Client
@@ -46,7 +26,7 @@ type BNetRealm struct {
 	say  chan string
 
 	// Set once before Run(), read-only after that
-	bnetConfig
+	*BNetRealmConfig
 }
 
 // NewBNetRealm initializes a new BNetRealm struct
@@ -57,8 +37,8 @@ func NewBNetRealm(conf *BNetConfig) (*BNetRealm, error) {
 	}
 
 	var b = BNetRealm{
-		Client:     c,
-		bnetConfig: conf.bnetConfig,
+		Client:          c,
+		BNetRealmConfig: &conf.BNetRealmConfig,
 	}
 
 	b.InitDefaultHandlers()
@@ -92,7 +72,7 @@ func (b *BNetRealm) Say(s string) error {
 func (b *BNetRealm) Run(ctx context.Context) error {
 	go func() {
 		<-ctx.Done()
-		b.Close()
+		b.Client.Close()
 	}()
 
 	var backoff = b.ReconnectDelay
@@ -148,7 +128,7 @@ func (b *BNetRealm) Run(ctx context.Context) error {
 }
 
 func (b *BNetRealm) channel() Channel {
-	var name = b.Channel()
+	var name = b.Client.Channel()
 	return Channel{
 		ID:   name,
 		Name: name,
@@ -160,8 +140,9 @@ func (b *BNetRealm) user(u *bnet.User) User {
 		Name: u.Name,
 		Rank: b.RankTalk,
 	}
-	if b.RankOperator > res.Rank && u.Operator() {
-		res.Rank = b.RankOperator
+
+	if b.RankOperator != nil && u.Operator() {
+		res.Rank = *b.RankOperator
 	}
 
 	var prod, icon, lvl, tag = u.Stat()
@@ -174,21 +155,28 @@ func (b *BNetRealm) user(u *bnet.User) User {
 			return res
 		}
 
-		res.AvatarURL = strings.Replace(b.AvatarURL, "${ICON}", icon.String(), -1)
-
 		if lvl > 0 && b.RankLevel != nil {
+			var max = 0
 			for l, r := range b.RankLevel {
-				if lvl >= l && r > res.Rank {
+				if l >= max && lvl >= l {
+					max = l
 					res.Rank = r
 				}
 			}
 		}
 		if tag != 0 && b.RankClanTag != nil {
-			var rank = b.RankClanTag[tag.String()]
-			if rank > res.Rank {
+			var rank, ok = b.RankClanTag[tag.String()]
+			if ok {
 				res.Rank = rank
 			}
 		}
+
+		res.AvatarURL = strings.Replace(b.AvatarURL, "${ICON}", icon.String(), -1)
+	}
+
+	var rank, ok = b.RankUser[u.Name]
+	if ok {
+		res.Rank = rank
 	}
 
 	return res
@@ -200,6 +188,7 @@ func (b *BNetRealm) InitDefaultHandlers() {
 	b.On(&bnet.UserLeft{}, b.onUserLeft)
 	b.On(&bnet.Chat{}, b.onChat)
 	b.On(&bnet.Whisper{}, b.onWhisper)
+	b.On(&bnet.JoinError{}, b.onJoinError)
 	b.On(&bnet.Channel{}, b.onChannel)
 	b.On(&bnet.SystemMessage{}, b.onSystemMessage)
 	b.On(&bncs.FloodDetected{}, b.onFloodDetected)
@@ -256,13 +245,25 @@ func (b *BNetRealm) onWhisper(ev *network.Event) {
 		return
 	}
 
-	b.Fire(&PrivateChat{
+	var chat = PrivateChat{
 		User: User{
 			Name: msg.Username,
 			Rank: b.RankWhisper,
 		},
 		Content: msg.Content,
-	})
+	}
+
+	var rank, ok = b.RankUser[msg.Username]
+	if ok {
+		chat.User.Rank = rank
+	}
+
+	b.Fire(&chat)
+}
+
+func (b *BNetRealm) onJoinError(ev *network.Event) {
+	var err = ev.Arg.(*bnet.JoinError)
+	b.Fire(&SystemMessage{Content: fmt.Sprintf("Could not join %s (%s)", err.Channel, err.Error.String())})
 }
 
 func (b *BNetRealm) onChannel(ev *network.Event) {

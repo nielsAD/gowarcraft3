@@ -36,6 +36,9 @@ func DString(str string) DWordString {
 }
 
 func (s DWordString) String() string {
+	if s == 0 {
+		return ""
+	}
 	if s&0xFF000000 != 0 {
 		return string([]byte{byte(uint32(s)), byte(uint32(s) >> 8), byte(uint32(s) >> 16), byte(uint32(s) >> 24)})
 	}
@@ -46,6 +49,11 @@ func (s DWordString) String() string {
 		return string([]byte{byte(uint32(s)), byte(uint32(s) >> 8)})
 	}
 	return string([]byte{byte(uint32(s))})
+}
+
+// MarshalText implements TextMarshaler
+func (s DWordString) MarshalText() ([]byte, error) {
+	return []byte(s.String()), nil
 }
 
 // UnmarshalText implements TextUnmarshaler

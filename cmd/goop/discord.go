@@ -16,28 +16,11 @@ import (
 	"github.com/nielsAD/gowarcraft3/network"
 )
 
-// DiscordConfig stores the configuration of a Discord session
-type DiscordConfig struct {
-	AuthToken     string
-	Channels      map[string]*DiscordChannelConfig
-	Presence      string
-	RankNoChannel Rank
-}
-
-// DiscordChannelConfig stores the configuration of a single Discord channel
-type DiscordChannelConfig struct {
-	CommandTrigger string
-	Webhook        string
-	RankMentions   Rank
-	RankTalk       Rank
-	RankRole       map[string]Rank
-}
-
-// DiscordRealm manages a Discord connection
-type DiscordRealm struct {
+// DiscordSession manages a Discord connection
+type DiscordSession struct {
 	network.EventEmitter
 	*discordgo.Session
-	DiscordConfig
+	*DiscordConfig
 
 	Channels map[string]*DiscordChannel
 }
@@ -45,15 +28,15 @@ type DiscordRealm struct {
 // DiscordChannel manages a Discord channel
 type DiscordChannel struct {
 	network.EventEmitter
-	DiscordChannelConfig
+	*DiscordChannelConfig
 
 	wg      *sync.WaitGroup
 	id      string
 	session *discordgo.Session
 }
 
-// NewDiscordRealm initializes a new DiscordRealm struct
-func NewDiscordRealm(conf *DiscordConfig) (*DiscordRealm, error) {
+// NewDiscordSession initializes a new DiscordRealm struct
+func NewDiscordSession(conf *DiscordConfig) (*DiscordSession, error) {
 	s, err := discordgo.New("Bot " + conf.AuthToken)
 	if err != nil {
 		return nil, err
@@ -64,9 +47,9 @@ func NewDiscordRealm(conf *DiscordConfig) (*DiscordRealm, error) {
 	s.State.TrackVoice = false
 	s.State.MaxMessageCount = 0
 
-	var d = DiscordRealm{
+	var d = DiscordSession{
 		Session:       s,
-		DiscordConfig: *conf,
+		DiscordConfig: conf,
 		Channels:      make(map[string]*DiscordChannel),
 	}
 
@@ -81,7 +64,7 @@ func NewDiscordRealm(conf *DiscordConfig) (*DiscordRealm, error) {
 
 	for id, c := range d.DiscordConfig.Channels {
 		d.Channels[id] = &DiscordChannel{
-			DiscordChannelConfig: *c,
+			DiscordChannelConfig: c,
 
 			wg:      &wg,
 			id:      id,
@@ -95,7 +78,7 @@ func NewDiscordRealm(conf *DiscordConfig) (*DiscordRealm, error) {
 }
 
 // Run reads packets and emits an event for each received packet
-func (d *DiscordRealm) Run(ctx context.Context) error {
+func (d *DiscordSession) Run(ctx context.Context) error {
 	var err error
 	for i := 1; i < 60 && ctx.Err() == nil; i++ {
 		err = d.Session.Open()
@@ -122,13 +105,14 @@ func (d *DiscordRealm) Run(ctx context.Context) error {
 }
 
 // InitDefaultHandlers adds the default callbacks for relevant packets
-func (d *DiscordRealm) InitDefaultHandlers() {
+func (d *DiscordSession) InitDefaultHandlers() {
 	d.AddHandler(d.onConnect)
 	d.AddHandler(d.onDisconnect)
+	d.AddHandler(d.onPresenceUpdate)
 	d.AddHandler(d.onMessageCreate)
 }
 
-func (d *DiscordRealm) onConnect(s *discordgo.Session, msg *discordgo.Connect) {
+func (d *DiscordSession) onConnect(s *discordgo.Session, msg *discordgo.Connect) {
 	if d.Presence != "" {
 		go func() {
 			time.Sleep(time.Second)
@@ -140,11 +124,18 @@ func (d *DiscordRealm) onConnect(s *discordgo.Session, msg *discordgo.Connect) {
 	d.Fire(Connected{})
 }
 
-func (d *DiscordRealm) onDisconnect(s *discordgo.Session, msg *discordgo.Disconnect) {
+func (d *DiscordSession) onDisconnect(s *discordgo.Session, msg *discordgo.Disconnect) {
 	d.Fire(Disconnected{})
 }
 
-func (d *DiscordRealm) onMessageCreate(s *discordgo.Session, msg *discordgo.MessageCreate) {
+func (d *DiscordSession) onPresenceUpdate(s *discordgo.Session, msg *discordgo.PresenceUpdate) {
+	old, _ := d.Session.State.Presence(msg.GuildID, msg.User.ID)
+	if old == nil || msg.Presence.Status != old.Status {
+		fmt.Println(msg)
+	}
+}
+
+func (d *DiscordSession) onMessageCreate(s *discordgo.Session, msg *discordgo.MessageCreate) {
 	if msg.Author.Bot {
 		return
 	}
@@ -163,16 +154,25 @@ func (d *DiscordRealm) onMessageCreate(s *discordgo.Session, msg *discordgo.Mess
 		Content: msg.Content,
 	}
 
-	var channel = d.Channels[msg.ChannelID]
-	if channel != nil && channel.RankTalk > chat.User.Rank {
-		chat.User.Rank = channel.RankTalk
-	}
-
 	if c, err := msg.ContentWithMoreMentionsReplaced(s); err == nil {
 		chat.Content = c
 	}
 
+	var channel = d.Channels[msg.ChannelID]
+	if channel != nil {
+		chat.User.Rank = channel.RankTalk
+	}
+
 	if ch, err := s.State.Channel(msg.ChannelID); err == nil {
+		if channel == nil && ch.Type == discordgo.ChannelTypeDM {
+			chat.User.Rank = d.RankDM
+			d.Fire(&PrivateChat{
+				User:    chat.User,
+				Content: chat.Content,
+			})
+			return
+		}
+
 		if g, err := s.State.Guild(ch.GuildID); err == nil {
 			chat.Channel.Name = fmt.Sprintf("%s.%s", g.Name, ch.Name)
 		} else {
@@ -183,8 +183,8 @@ func (d *DiscordRealm) onMessageCreate(s *discordgo.Session, msg *discordgo.Mess
 			if m, err := s.State.Member(ch.GuildID, msg.Author.ID); err == nil {
 				for _, rid := range m.Roles {
 					if r, err := s.State.Role(ch.GuildID, rid); err == nil {
-						var rank = channel.RankRole[strings.ToLower(r.Name)]
-						if rank > chat.User.Rank {
+						var rank, ok = channel.RankRole[strings.ToLower(r.Name)]
+						if ok {
 							chat.User.Rank = rank
 						}
 					}
@@ -194,6 +194,11 @@ func (d *DiscordRealm) onMessageCreate(s *discordgo.Session, msg *discordgo.Mess
 	}
 
 	if channel != nil {
+		var rank, ok = channel.RankUser[msg.Author.ID]
+		if ok {
+			chat.User.Rank = rank
+		}
+
 		channel.Fire(&chat)
 	} else {
 		d.Fire(&chat)
@@ -202,7 +207,7 @@ func (d *DiscordRealm) onMessageCreate(s *discordgo.Session, msg *discordgo.Mess
 
 // Relay placeholder to implement Realm interface
 // Events should instead be relayed directly to a DiscordChannel
-func (d *DiscordRealm) Relay(ev *network.Event, sender string) {
+func (d *DiscordSession) Relay(ev *network.Event, sender string) {
 }
 
 // Run placeholder to implement Realm interface

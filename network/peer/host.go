@@ -15,32 +15,6 @@ import (
 	"github.com/nielsAD/gowarcraft3/protocol/w3gs"
 )
 
-// Event root struct
-type Event struct {
-	Peer *Player
-}
-
-// Registered event
-type Registered Event
-
-// Deregistered event
-type Deregistered Event
-
-// Disconnected event
-type Disconnected Event
-
-// Connected event
-type Connected struct {
-	Event
-	Dial bool
-}
-
-// Chat event
-type Chat struct {
-	Event
-	Content string
-}
-
 // Host manages (incoming/outgoing) peer connections in a game lobby
 // Public methods/fields are thread-safe unless explicitly stated otherwise
 type Host struct {
