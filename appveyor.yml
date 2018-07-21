@@ -27,7 +27,7 @@ install:
   - set PATH=%GOPATH%\bin;%GOROOT%\bin;C:\msys64\usr\bin;%PATH%
 
   # Download submodules
-  - git submodule update --init
+  - git submodule update --init --recursive
 
   # Install OS dependencies
   - bash -lc "pacman --needed --noconfirm -Syu"

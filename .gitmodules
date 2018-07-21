@@ -13,9 +13,6 @@
 	path = vendor/bncsutil
 	url = https://github.com/BNETDocs/bncsutil.git
 	ignore = dirty
-[submodule "vendor/github.com/BurntSushi/toml"]
-	path = vendor/github.com/BurntSushi/toml
-	url = https://github.com/BurntSushi/toml.git
 [submodule "vendor/golang.org/x/crypto"]
 	path = vendor/golang.org/x/crypto
 	url = https://github.com/golang/crypto.git
@@ -28,9 +25,3 @@
 [submodule "vendor/github.com/imdario/mergo"]
 	path = vendor/github.com/imdario/mergo
 	url = https://github.com/imdario/mergo.git
-[submodule "vendor/github.com/bwmarrin/discordgo"]
-	path = vendor/github.com/bwmarrin/discordgo
-	url = https://github.com/bwmarrin/discordgo.git
-[submodule "vendor/github.com/gorilla/websocket"]
-	path = vendor/github.com/gorilla/websocket
-	url = https://github.com/gorilla/websocket.git
