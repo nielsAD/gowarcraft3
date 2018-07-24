@@ -24,7 +24,7 @@ ifeq ($(ARCH),amd64)
 endif
 
 ifeq ($(TEST_RACE),1)
-	TEST_FLAGS+= -race
+	GOTEST_FLAGS+= -race
 endif
 
 .PHONY: all release check test fmt lint vet list clean $(CMD)
@@ -48,7 +48,7 @@ check: $(VENDOR)
 	$(GO) build $(PKG)
 
 test: check fmt lint vet
-	$(GO) test $(TEST_FLAGS) $(PKG)
+	$(GO) test $(GOTEST_FLAGS) $(PKG)
 
 fmt:
 	$(GOFMT) -l $(filter-out .,$(DIR)) $(wildcard *.go)
