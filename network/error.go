@@ -51,8 +51,20 @@ func IsSysCallError(err error, errno syscall.Errno) bool {
 	return err != nil && err.Error() == errno.Error()
 }
 
+// WSAECONNREFUSED is ECONNREFUSED on Windows
+const WSAECONNREFUSED = 10061
+
+// IsConnRefusedError checks if net.error is a "connection refused" error
+func IsConnRefusedError(err error) bool {
+	err = UnnestError(err)
+	return IsSysCallError(err, syscall.ECONNREFUSED) || IsSysCallError(err, WSAECONNREFUSED)
+}
+
+// WSAECONNRESET is ECONNRESET on Windows
+const WSAECONNRESET = 10054
+
 // IsConnClosedError checks if net.error is a "connection closed" error
 func IsConnClosedError(err error) bool {
 	err = UnnestError(err)
-	return err == io.EOF || IsUseClosedNetworkError(err) || IsSysCallError(err, syscall.ECONNRESET) || IsSysCallError(err, syscall.EPIPE)
+	return err == io.EOF || IsUseClosedNetworkError(err) || IsSysCallError(err, syscall.ECONNRESET) || IsSysCallError(err, WSAECONNRESET) || IsSysCallError(err, syscall.EPIPE)
 }
