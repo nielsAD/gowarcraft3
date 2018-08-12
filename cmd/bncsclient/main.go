@@ -24,13 +24,15 @@ import (
 )
 
 var (
-	gamevers = flag.Int("v", 0, "Game version")
-	binpath  = flag.String("b", "", "Path to game binaries")
-	keyroc   = flag.String("roc", "", "ROC CD-key")
-	keytft   = flag.String("tft", "", "TFT CD-key")
-	username = flag.String("u", "", "Username")
-	password = flag.String("p", "", "Password")
-	create   = flag.Bool("c", false, "Create account")
+	gamevers    = flag.Int("v", 0, "Game version")
+	binpath     = flag.String("b", "", "Path to game binaries")
+	keyroc      = flag.String("roc", "", "ROC CD-key")
+	keytft      = flag.String("tft", "", "TFT CD-key")
+	username    = flag.String("u", "", "Username")
+	password    = flag.String("p", "", "Password")
+	newpassword = flag.String("np", "", "New password")
+	create      = flag.Bool("create", false, "Create account")
+	changepass  = flag.Bool("changepass", false, "Change password")
 )
 
 var logOut = log.New(color.Output, "", log.Ltime)
@@ -133,6 +135,25 @@ func main() {
 			logErr.Fatal("CreateAccount error: ", err)
 		}
 		logOut.Println(color.MagentaString("Succesfully registered new account '%s'", c.Username))
+		return
+	}
+
+	if *changepass {
+		var pass = *newpassword
+		if pass == "" {
+			fmt.Print("Enter new password: ")
+			if b, err := terminal.ReadPassword(int(os.Stdin.Fd())); err == nil {
+				pass = string(b)
+			} else {
+				logErr.Fatal("ReadPassword error: ", err)
+			}
+			fmt.Println()
+		}
+
+		if err := c.ChangePassword(pass); err != nil {
+			logErr.Fatal("ChangePassword error: ", err)
+		}
+		logOut.Println(color.MagentaString("Succesfully changed password"))
 		return
 	}
 

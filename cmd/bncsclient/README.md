@@ -11,15 +11,17 @@ Usage
 
 `./bncsclient [options] [server address]`
 
-| Flag |  Type  | Description |
-|------|--------|-------------|
-|`-u`  |`string`|Username (will query if omitted)|
-|`-p`  |`string`|Password (will query if omitted)|
-|`-b`  |`path`  |Path to game binaries|
-|`-v`  |`int`   |Game version|
-|`-roc`|`string`|ROC CD-key|
-|`-tft`|`string`|TFT CD-key|
-|`-c`  |`bool`  |Create account|
+|     Flag    |  Type  | Description |
+|-------------|--------|-------------|
+|`-u`         |`string`|Username (will query if omitted)|
+|`-p`         |`string`|Password (will query if omitted)|
+|`-np`        |`string`|New password (used by `-changepass`, will query if omitted)|
+|`-b`         |`path`  |Path to game binaries|
+|`-v`         |`int`   |Game version|
+|`-roc`       |`string`|ROC CD-key|
+|`-tft`       |`string`|TFT CD-key|
+|`-create`    |`bool`  |Create account|
+|`-changepass`|`bool`  |Change password|
 
 Example
 -------

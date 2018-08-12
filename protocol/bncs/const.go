@@ -26,26 +26,28 @@ const ProtocolGreeting = 0x01
 
 // BNCS packet type identifiers
 const (
-	PidNull                  = 0x00 // C -> S | S -> C
-	PidStopAdv               = 0x02 // C -> S |
-	PidGetAdvListEx          = 0x09 // C -> S | S -> C
-	PidEnterChat             = 0x0A // C -> S | S -> C
-	PidJoinChannel           = 0x0C // C -> S |
-	PidChatCommand           = 0x0E // C -> S |
-	PidChatEvent             = 0x0F //        | S -> C
-	PidFloodDetected         = 0x13 //        | S -> C
-	PidMessageBox            = 0x19 //        | S -> C
-	PidStartAdvex3           = 0x1C // C -> S | S -> C
-	PidNotifyJoin            = 0x22 // C -> S |
-	PidPing                  = 0x25 // C -> S | S -> C
-	PidNetGamePort           = 0x45 // C -> S |
-	PidAuthInfo              = 0x50 // C -> S | S -> C
-	PidAuthCheck             = 0x51 // C -> S | S -> C
-	PidAuthAccountCreate     = 0x52 // C -> S | S -> C
-	PidAuthAccountLogon      = 0x53 // C -> S | S -> C
-	PidAuthAccountLogonProof = 0x54 // C -> S | S -> C
-	PidSetEmail              = 0x59 // C -> S |
-	PidClanInfo              = 0x75 //        | S -> C
+	PidNull                   = 0x00 // C -> S | S -> C
+	PidStopAdv                = 0x02 // C -> S |
+	PidGetAdvListEx           = 0x09 // C -> S | S -> C
+	PidEnterChat              = 0x0A // C -> S | S -> C
+	PidJoinChannel            = 0x0C // C -> S |
+	PidChatCommand            = 0x0E // C -> S |
+	PidChatEvent              = 0x0F //        | S -> C
+	PidFloodDetected          = 0x13 //        | S -> C
+	PidMessageBox             = 0x19 //        | S -> C
+	PidStartAdvex3            = 0x1C // C -> S | S -> C
+	PidNotifyJoin             = 0x22 // C -> S |
+	PidPing                   = 0x25 // C -> S | S -> C
+	PidNetGamePort            = 0x45 // C -> S |
+	PidAuthInfo               = 0x50 // C -> S | S -> C
+	PidAuthCheck              = 0x51 // C -> S | S -> C
+	PidAuthAccountCreate      = 0x52 // C -> S | S -> C
+	PidAuthAccountLogon       = 0x53 // C -> S | S -> C
+	PidAuthAccountLogonProof  = 0x54 // C -> S | S -> C
+	PidAuthAccountChange      = 0x55 // C -> S | S -> C
+	PidAuthAccountChangeProof = 0x56 // C -> S | S -> C
+	PidSetEmail               = 0x59 // C -> S |
+	PidClanInfo               = 0x75 //        | S -> C
 )
 
 // JoinChannelFlag enum

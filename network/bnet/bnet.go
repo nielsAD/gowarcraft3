@@ -349,6 +349,61 @@ func (b *Client) CreateAccount() error {
 	return nil
 }
 
+// ChangePassword of an existing account
+//
+// ChangePassword sequence:
+//  1. Client starts with Dial sequence
+//  2. Client waits for user to enter account information and new password:
+//    1. C > S [0x55] SID_AUTH_ACCOUNTCHANGE
+//    2. S > C [0x55] SID_AUTH_ACCOUNTCHANGE
+//    3. C > S [0x56] SID_AUTH_ACCOUNTCHANGEPROOF
+//    4. S > C [0x56] SID_AUTH_ACCOUNTCHANGEPROOF
+//  3. Client can continue with logon ([0x53] SID_AUTH_ACCOUNTLOGON)
+//
+func (b *Client) ChangePassword(newPassword string) error {
+	oldNLS, err := NewNLS(b.Username, b.Password)
+	if err != nil {
+		return err
+	}
+
+	defer oldNLS.Free()
+
+	newNLS, err := NewNLS(b.Username, newPassword)
+	if err != nil {
+		return err
+	}
+
+	defer newNLS.Free()
+
+	bncsconn, err := b.Dial()
+	if err != nil {
+		return err
+	}
+
+	defer bncsconn.Close()
+
+	resp, err := b.sendChangePass(bncsconn, oldNLS)
+	if err != nil {
+		return err
+	}
+
+	if resp.Result != bncs.LogonSuccess {
+		return LogonResultToError(resp.Result)
+	}
+
+	proof, err := b.sendChangePassProof(bncsconn, oldNLS, newNLS, resp)
+	if err != nil {
+		return err
+	}
+
+	if proof.Result != bncs.LogonProofSuccess {
+		return LogonProofResultToError(proof.Result)
+	}
+
+	b.Password = newPassword
+	return nil
+}
+
 func (b *Client) sendAuthInfo(conn *network.BNCSonn) (*bncs.AuthInfoResp, error) {
 	if _, err := conn.Send(&b.Platform); err != nil {
 		return nil, err
@@ -487,7 +542,6 @@ func (b *Client) sendLogonProof(conn *network.BNCSonn, nls *NLS, logon *bncs.Aut
 }
 
 func (b *Client) sendCreateAccount(conn *network.BNCSonn, nls *NLS) (*bncs.AuthAccountCreateResp, error) {
-
 	salt, verifier, err := nls.AccountCreate()
 	if err != nil {
 		return nil, err
@@ -507,6 +561,58 @@ func (b *Client) sendCreateAccount(conn *network.BNCSonn, nls *NLS) (*bncs.AuthA
 	}
 	switch p := pkt.(type) {
 	case *bncs.AuthAccountCreateResp:
+		return p, nil
+	default:
+		return nil, ErrUnexpectedPacket
+	}
+}
+
+func (b *Client) sendChangePass(conn *network.BNCSonn, nls *NLS) (*bncs.AuthAccountChangePassResp, error) {
+	var req = &bncs.AuthAccountChangePassReq{
+		AuthAccountLogonReq: bncs.AuthAccountLogonReq{
+			ClientKey: nls.ClientKey(),
+			Username:  b.Username,
+		},
+	}
+
+	if _, err := conn.Send(req); err != nil {
+		return nil, err
+	}
+
+	pkt, err := conn.NextServerPacket(15 * time.Second)
+	if err != nil {
+		return nil, err
+	}
+	switch p := pkt.(type) {
+	case *bncs.AuthAccountChangePassResp:
+		return p, nil
+	default:
+		return nil, ErrUnexpectedPacket
+	}
+}
+
+func (b *Client) sendChangePassProof(conn *network.BNCSonn, oldNLS *NLS, newNLS *NLS, resp *bncs.AuthAccountChangePassResp) (*bncs.AuthAccountChangePassProofResp, error) {
+	salt, verifier, err := newNLS.AccountCreate()
+	if err != nil {
+		return nil, err
+	}
+
+	var req = &bncs.AuthAccountChangePassProofReq{
+		ClientPasswordProof: oldNLS.SessionKey(&resp.ServerKey, &resp.Salt),
+	}
+	copy(req.NewSalt[:], salt)
+	copy(req.NewVerifier[:], verifier)
+
+	if _, err := conn.Send(req); err != nil {
+		return nil, err
+	}
+
+	pkt, err := conn.NextServerPacket(5 * time.Second)
+	if err != nil {
+		return nil, err
+	}
+	switch p := pkt.(type) {
+	case *bncs.AuthAccountChangePassProofResp:
 		return p, nil
 	default:
 		return nil, ErrUnexpectedPacket

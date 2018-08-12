@@ -30,36 +30,40 @@ func SerializePacket(w io.Writer, p Packet) (int, error) {
 
 // DeserializationBuffer is used by DeserializePacketWithBuffer to bring amortized allocs to 0 for repeated calls
 type DeserializationBuffer struct {
-	Buffer                    [4096]byte
-	keepAlive                 KeepAlive
-	ping                      Ping
-	enterChatReq              EnterChatReq
-	enterChatResp             EnterChatResp
-	joinChannel               JoinChannel
-	chatCommand               ChatCommand
-	chatEvent                 ChatEvent
-	floodDetected             FloodDetected
-	messageBox                MessageBox
-	getAdvListResp            GetAdvListResp
-	getAdvListReq             GetAdvListReq
-	startAdvex3Resp           StartAdvex3Resp
-	startAdvex3Req            StartAdvex3Req
-	stopAdv                   StopAdv
-	notifyJoin                NotifyJoin
-	netGamePort               NetGamePort
-	authInfoResp              AuthInfoResp
-	authInfoReq               AuthInfoReq
-	authCheckResp             AuthCheckResp
-	authCheckReq              AuthCheckReq
-	authAccountCreateResp     AuthAccountCreateResp
-	authAccountCreateReq      AuthAccountCreateReq
-	authAccountLogonResp      AuthAccountLogonResp
-	authAccountLogonReq       AuthAccountLogonReq
-	authAccountLogonProofResp AuthAccountLogonProofResp
-	authAccountLogonProofReq  AuthAccountLogonProofReq
-	setEmail                  SetEmail
-	clanInfo                  ClanInfo
-	unknownPacket             UnknownPacket
+	Buffer                         [4096]byte
+	keepAlive                      KeepAlive
+	ping                           Ping
+	enterChatReq                   EnterChatReq
+	enterChatResp                  EnterChatResp
+	joinChannel                    JoinChannel
+	chatCommand                    ChatCommand
+	chatEvent                      ChatEvent
+	floodDetected                  FloodDetected
+	messageBox                     MessageBox
+	getAdvListResp                 GetAdvListResp
+	getAdvListReq                  GetAdvListReq
+	startAdvex3Resp                StartAdvex3Resp
+	startAdvex3Req                 StartAdvex3Req
+	stopAdv                        StopAdv
+	notifyJoin                     NotifyJoin
+	netGamePort                    NetGamePort
+	authInfoResp                   AuthInfoResp
+	authInfoReq                    AuthInfoReq
+	authCheckResp                  AuthCheckResp
+	authCheckReq                   AuthCheckReq
+	authAccountCreateResp          AuthAccountCreateResp
+	authAccountCreateReq           AuthAccountCreateReq
+	authAccountLogonResp           AuthAccountLogonResp
+	authAccountLogonReq            AuthAccountLogonReq
+	authAccountLogonProofResp      AuthAccountLogonProofResp
+	authAccountLogonProofReq       AuthAccountLogonProofReq
+	authAccountChangePassResp      AuthAccountChangePassResp
+	authAccountChangePassReq       AuthAccountChangePassReq
+	authAccountChangePassProofResp AuthAccountChangePassProofResp
+	authAccountChangePassProofReq  AuthAccountChangePassProofReq
+	setEmail                       SetEmail
+	clanInfo                       ClanInfo
+	unknownPacket                  UnknownPacket
 }
 
 // ReadPacketWithBuffer reads exactly one packet from r and returns its raw bytes.
@@ -154,6 +158,12 @@ func DeserializeClientPacketWithBuffer(r io.Reader, b *DeserializationBuffer) (P
 	case PidAuthAccountLogonProof:
 		err = b.authAccountLogonProofReq.Deserialize(&pbuf)
 		pkt = &b.authAccountLogonProofReq
+	case PidAuthAccountChange:
+		err = b.authAccountChangePassReq.Deserialize(&pbuf)
+		pkt = &b.authAccountChangePassReq
+	case PidAuthAccountChangeProof:
+		err = b.authAccountChangePassProofReq.Deserialize(&pbuf)
+		pkt = &b.authAccountChangePassProofReq
 	case PidSetEmail:
 		err = b.setEmail.Deserialize(&pbuf)
 		pkt = &b.setEmail
@@ -221,6 +231,12 @@ func DeserializeServerPacketWithBuffer(r io.Reader, b *DeserializationBuffer) (P
 	case PidAuthAccountLogonProof:
 		err = b.authAccountLogonProofResp.Deserialize(&pbuf)
 		pkt = &b.authAccountLogonProofResp
+	case PidAuthAccountChange:
+		err = b.authAccountChangePassResp.Deserialize(&pbuf)
+		pkt = &b.authAccountChangePassResp
+	case PidAuthAccountChangeProof:
+		err = b.authAccountChangePassProofResp.Deserialize(&pbuf)
+		pkt = &b.authAccountChangePassProofResp
 	case PidClanInfo:
 		err = b.clanInfo.Deserialize(&pbuf)
 		pkt = &b.clanInfo

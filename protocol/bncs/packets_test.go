@@ -115,6 +115,11 @@ func TestClientPackets(t *testing.T) {
 			Username: "Moon",
 		},
 		&bncs.AuthAccountLogonProofReq{},
+		&bncs.AuthAccountChangePassReq{},
+		&bncs.AuthAccountChangePassReq{
+			AuthAccountLogonReq: bncs.AuthAccountLogonReq{Username: "Lyn"},
+		},
+		&bncs.AuthAccountChangePassProofReq{},
 		&bncs.SetEmail{},
 		&bncs.SetEmail{
 			EmailAddress: "test@test.com",
@@ -276,6 +281,14 @@ func TestServerPackets(t *testing.T) {
 		&bncs.AuthAccountLogonProofResp{
 			Result:                bncs.LogonProofCustomError,
 			AdditionalInformation: "Foo, bar.",
+		},
+		&bncs.AuthAccountChangePassResp{},
+		&bncs.AuthAccountChangePassResp{
+			AuthAccountLogonResp: bncs.AuthAccountLogonResp{Result: bncs.LogonUpgradeRequired},
+		},
+		&bncs.AuthAccountChangePassProofResp{},
+		&bncs.AuthAccountChangePassProofResp{
+			AuthAccountLogonProofResp: bncs.AuthAccountLogonProofResp{Result: bncs.LogonProofPasswordIncorrect},
 		},
 		&bncs.ClanInfo{},
 		&bncs.ClanInfo{
