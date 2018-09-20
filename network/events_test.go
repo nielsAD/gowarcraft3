@@ -154,6 +154,25 @@ func TestEmitterRecursive(t *testing.T) {
 	}
 }
 
+func TestCatchAll(t *testing.T) {
+	var e network.EventEmitter
+	var fired int
+
+	e.On(nil, func(ev *network.Event) { fired++ })
+	e.On("", func(ev *network.Event) { fired++ })
+	e.Once(nil, func(ev *network.Event) { fired++ })
+	e.Once("", func(ev *network.Event) { fired++ })
+
+	e.Fire(123)
+	e.Fire("Foo")
+	e.Fire(456)
+	e.Fire("Bar")
+
+	if fired != 8 {
+		t.Fatal("Expected 8 callbacks, got", fired)
+	}
+}
+
 func TestGoroutines(t *testing.T) {
 	var c uint32
 

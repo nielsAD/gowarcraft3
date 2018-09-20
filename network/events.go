@@ -66,8 +66,15 @@ type Emitter interface {
 	OffAll(a EventArg)
 }
 
+func topic(a EventArg) string {
+	if a == nil {
+		return "*"
+	}
+	return reflect.TypeOf(a).String()
+}
+
 func (e *EventEmitter) addHandler(a EventArg, h EventHandler, once bool) EventID {
-	var ht = reflect.TypeOf(a).String()
+	var ht = topic(a)
 
 	e.hanmutex.Lock()
 	e.id++
@@ -118,7 +125,7 @@ func (e *EventEmitter) Off(id EventID) {
 
 // OffAll clears the current listeners for events of type a
 func (e *EventEmitter) OffAll(a EventArg) {
-	var ht = reflect.TypeOf(a).String()
+	var ht = topic(a)
 
 	e.hanmutex.Lock()
 	e.handlers[ht] = e.handlers[ht][:0]
@@ -169,24 +176,14 @@ func (e *EventEmitter) freeEvent(b uint32) {
 	}
 }
 
-// Fire new event of type a
-func (e *EventEmitter) Fire(a EventArg, o ...EventArg) {
-	var ht = reflect.TypeOf(a).String()
-
-	e.hanmutex.RLock()
-	var arr = e.handlers[ht][:]
-	e.hanmutex.RUnlock()
-
+func (e *EventEmitter) fire(ht string, arr []eventHandler, ev *Event) bool {
 	if len(arr) == 0 {
-		return
+		return false
 	}
 
+	var prevent bool
 	var once bool
 	var minID = uint32(0xFFFFFFFF)
-
-	var ev, eid = e.newEvent()
-	ev.Arg = a
-	ev.Opt = o
 
 	for i := 0; i < len(arr); i++ {
 		var eh = arr[i]
@@ -197,13 +194,41 @@ func (e *EventEmitter) Fire(a EventArg, o ...EventArg) {
 			once = true
 		}
 		if ev.preventNext {
+			prevent = true
 			break
 		}
 	}
 
-	e.freeEvent(eid)
-
 	if once {
 		e.offOnce(ht, minID, arr[0].id)
 	}
+
+	return prevent
+}
+
+// CatchAll
+var ca = topic(nil)
+
+// Fire new event of type a
+func (e *EventEmitter) Fire(a EventArg, o ...EventArg) {
+	var ht = topic(a)
+
+	e.hanmutex.RLock()
+	var arr1 = e.handlers[ca][:]
+	var arr2 = e.handlers[ht][:]
+	e.hanmutex.RUnlock()
+
+	if len(arr1) == 0 && len(arr2) == 0 {
+		return
+	}
+
+	var ev, eid = e.newEvent()
+	ev.Arg = a
+	ev.Opt = o
+
+	if !e.fire(ca, arr1, ev) && ht != ca {
+		e.fire(ht, arr2, ev)
+	}
+
+	e.freeEvent(eid)
 }
