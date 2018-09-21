@@ -160,6 +160,19 @@ func (b *Client) Channel() string {
 	return res
 }
 
+// User in channel by name
+func (b *Client) User(name string) (*User, bool) {
+	b.chatmut.Lock()
+	u, ok := b.users[name]
+	if ok {
+		copy := *u
+		u = &copy
+	}
+	b.chatmut.Unlock()
+
+	return u, ok
+}
+
 // Users in channel
 func (b *Client) Users() map[string]User {
 	var res = make(map[string]User)
