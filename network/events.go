@@ -55,7 +55,7 @@ type EventEmitter struct {
 
 // Firer is the interface that wraps the basic Fire method
 type Firer interface {
-	Fire(a EventArg, o ...EventArg)
+	Fire(a EventArg, o ...EventArg) bool
 }
 
 // Emitter is the interface that wraps the basic On/Once methods
@@ -210,7 +210,7 @@ func (e *EventEmitter) fire(ht string, arr []eventHandler, ev *Event) bool {
 var ca = topic(nil)
 
 // Fire new event of type a
-func (e *EventEmitter) Fire(a EventArg, o ...EventArg) {
+func (e *EventEmitter) Fire(a EventArg, o ...EventArg) bool {
 	var ht = topic(a)
 
 	e.hanmutex.RLock()
@@ -219,16 +219,19 @@ func (e *EventEmitter) Fire(a EventArg, o ...EventArg) {
 	e.hanmutex.RUnlock()
 
 	if len(arr1) == 0 && len(arr2) == 0 {
-		return
+		return false
 	}
 
 	var ev, eid = e.newEvent()
 	ev.Arg = a
 	ev.Opt = o
 
-	if !e.fire(ca, arr1, ev) && ht != ca {
-		e.fire(ht, arr2, ev)
+	var prevent = e.fire(ca, arr1, ev)
+	if !prevent && ht != ca {
+		prevent = e.fire(ht, arr2, ev)
 	}
 
 	e.freeEvent(eid)
+
+	return prevent
 }
