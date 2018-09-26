@@ -53,13 +53,13 @@ type EventEmitter struct {
 	epool    [16]Event
 }
 
-// Firer is the interface that wraps the basic Fire method
-type Firer interface {
+// Emitter is the interface that wraps the basic Fire method
+type Emitter interface {
 	Fire(a EventArg, o ...EventArg) bool
 }
 
-// Emitter is the interface that wraps the basic On/Once methods
-type Emitter interface {
+// Listener is the interface that wraps the basic On/Once methods
+type Listener interface {
 	On(a EventArg, h EventHandler) EventID
 	Once(a EventArg, h EventHandler) EventID
 	Off(id EventID)

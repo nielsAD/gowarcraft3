@@ -137,7 +137,7 @@ func (c *W3GSPacketConn) NextPacket(timeout time.Duration) (w3gs.Packet, net.Add
 
 // Run reads packets (with given max time between packets) from Conn and emits an event for each received packet
 // Not safe for concurrent invocation
-func (c *W3GSPacketConn) Run(f Firer, timeout time.Duration) error {
+func (c *W3GSPacketConn) Run(f Emitter, timeout time.Duration) error {
 	c.cmut.RLock()
 	f.Fire(RunStart{})
 	for {
@@ -248,7 +248,7 @@ func (c *W3GSConn) NextPacket(timeout time.Duration) (w3gs.Packet, error) {
 
 // Run reads packets (with given max time between packets) from Conn and fires an event through f for each received packet
 // Not safe for concurrent invocation
-func (c *W3GSConn) Run(f Firer, timeout time.Duration) error {
+func (c *W3GSConn) Run(f Emitter, timeout time.Duration) error {
 	c.cmut.RLock()
 	f.Fire(RunStart{})
 	for {
@@ -408,7 +408,7 @@ func (c *BNCSonn) NextServerPacket(timeout time.Duration) (bncs.Packet, error) {
 
 // RunServer reads client packets (with given max time between packets) from Conn and emits an event for each received packet
 // Not safe for concurrent invocation
-func (c *BNCSonn) RunServer(f Firer, timeout time.Duration) error {
+func (c *BNCSonn) RunServer(f Emitter, timeout time.Duration) error {
 	c.cmut.RLock()
 	f.Fire(RunStart{})
 	for {
@@ -433,7 +433,7 @@ func (c *BNCSonn) RunServer(f Firer, timeout time.Duration) error {
 
 // RunClient reads server packets (with given max time between packets) from Conn and emits an event for each received packet
 // Not safe for concurrent invocation
-func (c *BNCSonn) RunClient(f Firer, timeout time.Duration) error {
+func (c *BNCSonn) RunClient(f Emitter, timeout time.Duration) error {
 	c.cmut.RLock()
 	f.Fire(RunStart{})
 	for {
