@@ -32,5 +32,5 @@ $(DIR_BNCSUITL)/build/libbncsutil_static.a: $(DIR_BNCSUITL)/build
 	$(MAKE) -C $(DIR_BNCSUITL)/build
 
 clean:
-	rm -r $(DIR_STORMLIB)/build
-	rm -r $(DIR_BNCSUITL)/build
+	-rm -r $(DIR_STORMLIB)/build
+	-rm -r $(DIR_BNCSUITL)/build
