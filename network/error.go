@@ -18,6 +18,9 @@ type AsyncError struct {
 }
 
 func (e *AsyncError) Error() string {
+	if e.Err == nil {
+		return e.Src + ":NIL"
+	}
 	return e.Src + ":" + e.Err.Error()
 }
 
