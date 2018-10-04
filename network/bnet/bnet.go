@@ -163,7 +163,7 @@ func (b *Client) Channel() string {
 // User in channel by name
 func (b *Client) User(name string) (*User, bool) {
 	b.chatmut.Lock()
-	u, ok := b.users[name]
+	u, ok := b.users[strings.ToLower(name)]
 	if ok {
 		copy := *u
 		u = &copy
