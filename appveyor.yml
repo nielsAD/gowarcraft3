@@ -38,7 +38,7 @@ install:
   - 7z x WpdPack_4_1_2.zip -oC:\
 
   # Install test dependencies
-  - go get github.com/golang/lint/golint
+  - go get golang.org/x/lint/golint
 
 build: off
 
