@@ -62,7 +62,8 @@ Packages
 |`network/lan`   |Package `lan` implements a mocked Warcraft 3 LAN client that can be used to discover local games.|
 |`network/peer`  |Package `peer` implements a mocked Warcraft 3 client that can be used to manage peer connections in lobbies.|
 |`protocol`      |Package `protocol` implements common utilities for Warcraft III network protocols.|
-|`protocol/bncs` |Package `bncs` implements the Battle.net chat protocol for Warcraft III.|
+|`protocol/capi` |Package `capi` implements the official classic Battle.net chat API.|
+|`protocol/bncs` |Package `bncs` implements the old Battle.net chat protocol for Warcraft III.|
 |`protocol/w3gs` |Package `w3gs` implements the game protocol for Warcraft III.|
 
 ### Download

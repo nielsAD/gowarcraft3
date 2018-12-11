@@ -25,3 +25,6 @@
 [submodule "vendor/github.com/imdario/mergo"]
 	path = vendor/github.com/imdario/mergo
 	url = https://github.com/imdario/mergo.git
+[submodule "vendor/github.com/gorilla/websocket"]
+	path = vendor/github.com/gorilla/websocket
+	url = https://github.com/gorilla/websocket.git

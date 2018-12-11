@@ -2,7 +2,7 @@
 // Project: gowarcraft3 (https://github.com/nielsAD/gowarcraft3)
 // License: Mozilla Public License, v2.0
 
-// Package bncs implements the Battle.net chat protocol for Warcraft III.
+// Package bncs implements the old Battle.net chat protocol for Warcraft III.
 // The protocol is used for multiple classic games, but this package only
 // implements the small set of packets required for Warcraft III to log
 // on and enter chat.
