@@ -11,33 +11,12 @@ import (
 )
 
 // SerializePacket serializes p and writes it to w.
-func SerializePacket(w io.Writer, p Packet) error {
+func SerializePacket(w io.Writer, p *Packet) error {
 	return json.NewEncoder(w).Encode(p)
 }
 
-// DeserializationBuffer is used by DeserializePacketWithBuffer to bring amortized allocs to 0 for repeated calls
-type DeserializationBuffer struct {
-	packet          Packet
-	response        Response
-	authenticate    Authenticate
-	connect         Connect
-	disconnect      Disconnect
-	sendMessage     SendMessage
-	sendEmote       SendEmote
-	sendWhisper     SendWhisper
-	kickUser        KickUser
-	banUser         BanUser
-	unbanUser       UnbanUser
-	setModerator    SetModerator
-	connectEvent    ConnectEvent
-	disconnectEvent DisconnectEvent
-	messageEvent    MessageEvent
-	userUpdateEvent UserUpdateEvent
-	userLeaveEvent  UserLeaveEvent
-}
-
-// DeserializePacketWithBuffer reads exactly one packet from r and returns it in the proper (deserialized) packet type.
-func DeserializePacketWithBuffer(r io.Reader, b *DeserializationBuffer) (*Packet, error) {
+// DeserializePacket reads exactly one packet from r and returns it in the proper (deserialized) packet type.
+func DeserializePacket(r io.Reader) (*Packet, error) {
 	type rawPacket struct {
 		Command   string          `json:"command"`
 		RequestID int             `json:"request_id"`
@@ -50,49 +29,48 @@ func DeserializePacketWithBuffer(r io.Reader, b *DeserializationBuffer) (*Packet
 		return nil, err
 	}
 
-	var p = &b.packet
-	*p = Packet{
+	var p = &Packet{
 		Command:   raw.Command,
 		RequestID: raw.RequestID,
 		Status:    raw.Status,
 	}
 
-	if strings.HasSuffix(raw.Command, "Response") {
-		p.Payload = &b.response
+	if strings.HasSuffix(raw.Command, CmdResponseSuffix) {
+		p.Payload = &Response{}
 	} else {
-		switch strings.TrimSuffix(raw.Command, "Request") {
-		case b.authenticate.Command():
-			p.Payload = &b.authenticate
-		case b.connect.Command():
-			p.Payload = &b.connect
-		case b.disconnect.Command():
-			p.Payload = &b.disconnect
-		case b.sendMessage.Command():
-			p.Payload = &b.sendMessage
-		case b.sendEmote.Command():
-			p.Payload = &b.sendEmote
-		case b.sendWhisper.Command():
-			p.Payload = &b.sendWhisper
-		case b.kickUser.Command():
-			p.Payload = &b.kickUser
-		case b.banUser.Command():
-			p.Payload = &b.banUser
-		case b.unbanUser.Command():
-			p.Payload = &b.unbanUser
-		case b.setModerator.Command():
-			p.Payload = &b.setModerator
-		case b.connectEvent.Command():
-			p.Payload = &b.connectEvent
-		case b.disconnectEvent.Command():
-			p.Payload = &b.disconnectEvent
-		case b.messageEvent.Command():
-			p.Payload = &b.messageEvent
-		case b.userUpdateEvent.Command():
-			p.Payload = &b.userUpdateEvent
-		case b.userLeaveEvent.Command():
-			p.Payload = &b.userLeaveEvent
+		switch raw.Command {
+		case CmdAuthenticate + CmdRequestSuffix:
+			p.Payload = &Authenticate{}
+		case CmdConnect + CmdRequestSuffix:
+			p.Payload = &Connect{}
+		case CmdDisconnect + CmdRequestSuffix:
+			p.Payload = &Disconnect{}
+		case CmdSendMessage + CmdRequestSuffix:
+			p.Payload = &SendMessage{}
+		case CmdSendEmote + CmdRequestSuffix:
+			p.Payload = &SendEmote{}
+		case CmdSendWhisper + CmdRequestSuffix:
+			p.Payload = &SendWhisper{}
+		case CmdKickUser + CmdRequestSuffix:
+			p.Payload = &KickUser{}
+		case CmdBanUser + CmdRequestSuffix:
+			p.Payload = &BanUser{}
+		case CmdUnbanUser + CmdRequestSuffix:
+			p.Payload = &UnbanUser{}
+		case CmdSetModerator + CmdRequestSuffix:
+			p.Payload = &SetModerator{}
+		case CmdConnectEvent + CmdRequestSuffix:
+			p.Payload = &ConnectEvent{}
+		case CmdDisconnectEvent + CmdRequestSuffix:
+			p.Payload = &DisconnectEvent{}
+		case CmdMessageEvent + CmdRequestSuffix:
+			p.Payload = &MessageEvent{}
+		case CmdUserUpdateEvent + CmdRequestSuffix:
+			p.Payload = &UserUpdateEvent{}
+		case CmdUserLeaveEvent + CmdRequestSuffix:
+			p.Payload = &UserLeaveEvent{}
 		default:
-			p.Payload = map[string]interface{}{}
+			p.Payload = &map[string]interface{}{}
 		}
 	}
 
@@ -101,9 +79,4 @@ func DeserializePacketWithBuffer(r io.Reader, b *DeserializationBuffer) (*Packet
 	}
 
 	return p, nil
-}
-
-// DeserializePacket reads exactly one packet from r and returns it in the proper (deserialized) packet type.
-func DeserializePacket(r io.Reader) (*Packet, error) {
-	return DeserializePacketWithBuffer(r, &DeserializationBuffer{})
 }

@@ -7,13 +7,16 @@ package network
 
 import (
 	"io"
+	"io/ioutil"
 	"math"
 	"net"
 	"sync"
 	"time"
 
+	"github.com/gorilla/websocket"
 	"github.com/nielsAD/gowarcraft3/protocol"
 	"github.com/nielsAD/gowarcraft3/protocol/bncs"
+	"github.com/nielsAD/gowarcraft3/protocol/capi"
 	"github.com/nielsAD/gowarcraft3/protocol/w3gs"
 )
 
@@ -171,7 +174,7 @@ type W3GSConn struct {
 	rbuf w3gs.DeserializationBuffer
 }
 
-// NewW3GSConn returns conn wrapped in W3GSPacketConn
+// NewW3GSConn returns conn wrapped in W3GSConn
 func NewW3GSConn(conn net.Conn) *W3GSConn {
 	return &W3GSConn{conn: conn}
 }
@@ -285,7 +288,7 @@ type BNCSonn struct {
 	lnxt time.Time
 }
 
-// NewBNCSonn returns conn wrapped in W3GSPacketConn
+// NewBNCSonn returns conn wrapped in BNCSonn
 func NewBNCSonn(conn net.Conn) *BNCSonn {
 	return &BNCSonn{conn: conn}
 }
@@ -453,5 +456,132 @@ func (c *BNCSonn) RunClient(f Emitter, timeout time.Duration) error {
 		}
 
 		f.Fire(pkt)
+	}
+}
+
+// CAPIConn manages a websocket connection that processes CAPI requests.
+// Public methods/fields are thread-safe unless explicitly stated otherwise
+type CAPIConn struct {
+	// websocket.Conn supports one concurrent reader and one concurrent writer.
+	//
+	// Applications are responsible for ensuring that no more than one goroutine calls the write methods
+	// (NextWriter, SetWriteDeadline, WriteMessage, WriteJSON, EnableWriteCompression, SetCompressionLevel)
+	// concurrently and that no more than one goroutine calls the read methods (NextReader, SetReadDeadline,
+	// ReadMessage, ReadJSON, SetPongHandler, SetPingHandler) concurrently.
+	//
+	// The Close and WriteControl methods can be called concurrently with all other methods.
+	conn *websocket.Conn
+
+	cmut RWMutex
+	smut sync.Mutex
+}
+
+// NewCAPIConn returns conn wrapped in CAPIConn
+func NewCAPIConn(conn *websocket.Conn) *CAPIConn {
+	return &CAPIConn{conn: conn}
+}
+
+// Conn returns the underlying net.Conn
+func (c *CAPIConn) Conn() *websocket.Conn {
+	c.cmut.RLock()
+	var conn = c.conn
+	c.cmut.RUnlock()
+	return conn
+}
+
+// SetConn closes the old connection and starts using the new net.Conn
+func (c *CAPIConn) SetConn(conn *websocket.Conn) {
+	c.Close()
+	c.cmut.Lock()
+	c.conn = conn
+	c.cmut.Unlock()
+}
+
+// Close closes the connection
+func (c *CAPIConn) Close() error {
+	c.cmut.RLock()
+
+	var err error
+	if c.conn != nil {
+		err = c.conn.Close()
+	}
+
+	c.cmut.RUnlock()
+
+	return err
+}
+
+// Send pkt to addr over net.Conn
+func (c *CAPIConn) Send(pkt *capi.Packet) error {
+	c.cmut.RLock()
+
+	if c.conn == nil {
+		c.cmut.RUnlock()
+		return io.EOF
+	}
+
+	c.smut.Lock()
+
+	w, err := c.conn.NextWriter(websocket.TextMessage)
+	if err == nil {
+		err = capi.SerializePacket(w, pkt)
+		w.Close()
+	}
+
+	c.smut.Unlock()
+	c.cmut.RUnlock()
+
+	return err
+}
+
+// NextPacket waits for the next packet (with given timeout) and returns its deserialized representation
+// Not safe for concurrent invocation
+func (c *CAPIConn) NextPacket(timeout time.Duration) (*capi.Packet, error) {
+	c.cmut.RLock()
+
+	if c.conn == nil {
+		c.cmut.RUnlock()
+		return nil, io.EOF
+	}
+
+	if timeout != 0 {
+		if err := c.conn.SetReadDeadline(time.Now().Add(timeout)); err != nil {
+			c.cmut.RUnlock()
+			return nil, err
+		}
+	}
+
+	_, r, err := c.conn.NextReader()
+
+	var pkt *capi.Packet
+	if err == nil {
+		pkt, err = capi.DeserializePacket(r)
+
+		if n, _ := io.Copy(ioutil.Discard, r); n > 0 && err == nil {
+			err = io.ErrUnexpectedEOF
+		}
+	}
+
+	c.cmut.RUnlock()
+
+	return pkt, err
+}
+
+// Run reads packets (with given max time between packets) from Conn and fires an event through f for each received packet
+// Not safe for concurrent invocation
+func (c *CAPIConn) Run(f Emitter, timeout time.Duration) error {
+	c.cmut.RLock()
+	f.Fire(RunStart{})
+	for {
+		pkt, err := c.NextPacket(timeout)
+
+		if err != nil {
+			f.Fire(RunStop{})
+			c.cmut.RUnlock()
+			return err
+		}
+
+		f.Fire(pkt)
+		f.Fire(pkt.Payload, pkt)
 	}
 }

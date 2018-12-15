@@ -9,6 +9,28 @@ import (
 	"fmt"
 )
 
+// CAPI command identifiers
+const (
+	CmdRequestSuffix  = "Request"
+	CmdResponseSuffix = "Response"
+
+	CmdAuthenticate    = "Botapiauth.Authenticate"
+	CmdConnect         = "Botapichat.Connect"
+	CmdDisconnect      = "Botapichat.Disconnect"
+	CmdSendMessage     = "Botapichat.SendMessage"
+	CmdSendEmote       = "Botapichat.SendEmote"
+	CmdSendWhisper     = "Botapichat.SendWhisper"
+	CmdKickUser        = "Botapichat.KickUser"
+	CmdBanUser         = "Botapichat.BanUser"
+	CmdUnbanUser       = "Botapichat.UnbanUser"
+	CmdSetModerator    = "Botapichat.SendSetModerator"
+	CmdConnectEvent    = "Botapichat.ConnectEvent"
+	CmdDisconnectEvent = "Botapichat.DisconnectEvent"
+	CmdMessageEvent    = "Botapichat.MessageEvent"
+	CmdUserUpdateEvent = "Botapichat.UserUpdateEvent"
+	CmdUserLeaveEvent  = "Botapichat.UserLeaveEvent"
+)
+
 // MessageEventType enum
 type MessageEventType uint32
 
@@ -21,14 +43,6 @@ const (
 	MessageServerError
 	MessageEmote
 )
-
-var messageEventTypeStr = map[string]MessageEventType{
-	"Whisper":     MessageWhisper,
-	"Channel":     MessageChannel,
-	"ServerInfo":  MessageServerInfo,
-	"ServerError": MessageServerError,
-	"Emote":       MessageEmote,
-}
 
 func (m MessageEventType) String() string {
 	switch m {
