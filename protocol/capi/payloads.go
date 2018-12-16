@@ -43,21 +43,21 @@ type SendEmote struct {
 // Sends a chat message to one user in the channel
 type SendWhisper struct {
 	Message string `json:"message"`
-	UserID  string `json:"user_id"`
+	UserID  int64  `json:"user_id"`
 }
 
 // KickUser payload (Botapichat.KickUserRequest)
 //
 // Kicks a user from the channel
 type KickUser struct {
-	UserID string `json:"user_id"`
+	UserID int64 `json:"user_id"`
 }
 
 // BanUser payload (Botapichat.BanUserRequest)
 //
 // Bans a user from the channel
 type BanUser struct {
-	UserID string `json:"user_id"`
+	UserID int64 `json:"user_id"`
 }
 
 // UnbanUser payload (Botapichat.UnbanUserRequest)
@@ -72,7 +72,7 @@ type UnbanUser struct {
 // Sets the current chat moderator to a member of the current chat.
 // Same as a normal user doing /designate followed by /resign.
 type SetModerator struct {
-	UserID string `json:"user_id"`
+	UserID int64 `json:"user_id"`
 }
 
 // ConnectEvent payload (Botapichat.ConnectEventRequest)
@@ -85,16 +85,16 @@ type DisconnectEvent struct{}
 
 // MessageEvent payload (Botapichat.MessageEventRequest)
 type MessageEvent struct {
-	UserID  string           `json:"user_id"`
+	UserID  int64            `json:"user_id"`
 	Message string           `json:"message"`
 	Type    MessageEventType `json:"type"`
 }
 
 // UserUpdateEvent payload (Botapichat.UserUpdateEvent)
 type UserUpdateEvent struct {
-	UserID     string         `json:"user_id"`
+	UserID     int64          `json:"user_id"`
 	Username   string         `json:"toon_name"`
-	Flags      UserFlags      `json:"flags"`
+	Flags      UserFlags      `json:"flag"`
 	Attributes UserAttributes `json:"attributes"`
 }
 
@@ -108,5 +108,5 @@ type UserAttributes struct {
 
 // UserLeaveEvent payload (Botapichat.UserLeaveEventRequest)
 type UserLeaveEvent struct {
-	UserID string `json:"user_id"`
+	UserID int64 `json:"user_id"`
 }

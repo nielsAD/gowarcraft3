@@ -113,15 +113,6 @@ func main() {
 		var msg = ev.Arg.(*bnet.Chat)
 		logOut.Printf("[%s] %s: %s\n", strings.ToUpper(msg.Type.String()), msg.User.Name, msg.Content)
 	})
-	c.On(&bnet.Say{}, func(ev *network.Event) {
-		var say = ev.Arg.(*bnet.Say)
-		if say.Content[0] == '/' {
-			logOut.Printf("[CHAT] %s\n", say.Content)
-		} else {
-
-			logOut.Printf("[CHAT] %s: %s\n", c.Username, say.Content)
-		}
-	})
 	c.On(&bnet.SystemMessage{}, func(ev *network.Event) {
 		var msg = ev.Arg.(*bnet.SystemMessage)
 		logOut.Println(color.CyanString("[%s] %s", strings.ToUpper(msg.Type.String()), msg.Content))
@@ -171,7 +162,7 @@ func main() {
 				break
 			}
 
-			if err := c.Say(line); err != nil {
+			if err := c.Say(strings.TrimRight(line, "\r\n")); err != nil {
 				logErr.Println(color.RedString("[ERROR] %s", err.Error()))
 			}
 		}

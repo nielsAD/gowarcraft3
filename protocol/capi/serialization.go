@@ -19,7 +19,7 @@ func SerializePacket(w io.Writer, p *Packet) error {
 func DeserializePacket(r io.Reader) (*Packet, error) {
 	type rawPacket struct {
 		Command   string          `json:"command"`
-		RequestID int             `json:"request_id"`
+		RequestID int64           `json:"request_id"`
 		Status    *Status         `json:"status,omitempty"`
 		Payload   json.RawMessage `json:"payload"`
 	}

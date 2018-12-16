@@ -39,7 +39,7 @@ type Config struct {
 // Public methods/fields are thread-safe unless explicitly stated otherwise
 type Client struct {
 	network.EventEmitter
-	network.BNCSonn
+	network.BNCSConn
 
 	chatmut sync.Mutex
 	channel string
@@ -204,7 +204,7 @@ func (b *Client) Users() map[string]User {
 //     6. S > C [0x33] SID_GETFILETIME (one for each request)
 //     7. Connection to BNFTPv2 to do file downloads
 //
-func (b *Client) Dial() (*network.BNCSonn, error) {
+func (b *Client) Dial() (*network.BNCSConn, error) {
 	if !strings.ContainsRune(b.ServerAddr, ':') {
 		b.ServerAddr += ":6112"
 	}
@@ -223,7 +223,7 @@ func (b *Client) Dial() (*network.BNCSonn, error) {
 	conn.SetLinger(3)
 	conn.Write([]byte{bncs.ProtocolGreeting})
 
-	bncsconn := network.NewBNCSonn(conn)
+	bncsconn := network.NewBNCSConn(conn)
 
 	authInfo, err := b.sendAuthInfo(bncsconn)
 	if err != nil {
@@ -417,7 +417,7 @@ func (b *Client) ChangePassword(newPassword string) error {
 	return nil
 }
 
-func (b *Client) sendAuthInfo(conn *network.BNCSonn) (*bncs.AuthInfoResp, error) {
+func (b *Client) sendAuthInfo(conn *network.BNCSConn) (*bncs.AuthInfoResp, error) {
 	if _, err := conn.Send(&b.Platform); err != nil {
 		return nil, err
 	}
@@ -447,7 +447,7 @@ func (b *Client) sendAuthInfo(conn *network.BNCSonn) (*bncs.AuthInfoResp, error)
 	}
 }
 
-func (b *Client) sendAuthCheck(conn *network.BNCSonn, clientToken uint32, authinfo *bncs.AuthInfoResp) (*bncs.AuthCheckResp, error) {
+func (b *Client) sendAuthCheck(conn *network.BNCSConn, clientToken uint32, authinfo *bncs.AuthInfoResp) (*bncs.AuthCheckResp, error) {
 	exePath := path.Join(b.BinPath, "Warcraft III.exe")
 	if _, err := os.Stat(exePath); err != nil {
 		return nil, err
@@ -511,7 +511,7 @@ func (b *Client) sendAuthCheck(conn *network.BNCSonn, clientToken uint32, authin
 	}
 }
 
-func (b *Client) sendLogon(conn *network.BNCSonn, nls *NLS) (*bncs.AuthAccountLogonResp, error) {
+func (b *Client) sendLogon(conn *network.BNCSConn, nls *NLS) (*bncs.AuthAccountLogonResp, error) {
 	var req = &bncs.AuthAccountLogonReq{
 		ClientKey: nls.ClientKey(),
 		Username:  b.Username,
@@ -533,7 +533,7 @@ func (b *Client) sendLogon(conn *network.BNCSonn, nls *NLS) (*bncs.AuthAccountLo
 	}
 }
 
-func (b *Client) sendLogonProof(conn *network.BNCSonn, nls *NLS, logon *bncs.AuthAccountLogonResp) (*bncs.AuthAccountLogonProofResp, error) {
+func (b *Client) sendLogonProof(conn *network.BNCSConn, nls *NLS, logon *bncs.AuthAccountLogonResp) (*bncs.AuthAccountLogonProofResp, error) {
 	var req = &bncs.AuthAccountLogonProofReq{
 		ClientPasswordProof: nls.SessionKey(&logon.ServerKey, &logon.Salt),
 	}
@@ -554,7 +554,7 @@ func (b *Client) sendLogonProof(conn *network.BNCSonn, nls *NLS, logon *bncs.Aut
 	}
 }
 
-func (b *Client) sendCreateAccount(conn *network.BNCSonn, nls *NLS) (*bncs.AuthAccountCreateResp, error) {
+func (b *Client) sendCreateAccount(conn *network.BNCSConn, nls *NLS) (*bncs.AuthAccountCreateResp, error) {
 	salt, verifier, err := nls.AccountCreate()
 	if err != nil {
 		return nil, err
@@ -580,7 +580,7 @@ func (b *Client) sendCreateAccount(conn *network.BNCSonn, nls *NLS) (*bncs.AuthA
 	}
 }
 
-func (b *Client) sendChangePass(conn *network.BNCSonn, nls *NLS) (*bncs.AuthAccountChangePassResp, error) {
+func (b *Client) sendChangePass(conn *network.BNCSConn, nls *NLS) (*bncs.AuthAccountChangePassResp, error) {
 	var req = &bncs.AuthAccountChangePassReq{
 		AuthAccountLogonReq: bncs.AuthAccountLogonReq{
 			ClientKey: nls.ClientKey(),
@@ -604,7 +604,7 @@ func (b *Client) sendChangePass(conn *network.BNCSonn, nls *NLS) (*bncs.AuthAcco
 	}
 }
 
-func (b *Client) sendChangePassProof(conn *network.BNCSonn, oldNLS *NLS, newNLS *NLS, resp *bncs.AuthAccountChangePassResp) (*bncs.AuthAccountChangePassProofResp, error) {
+func (b *Client) sendChangePassProof(conn *network.BNCSConn, oldNLS *NLS, newNLS *NLS, resp *bncs.AuthAccountChangePassResp) (*bncs.AuthAccountChangePassProofResp, error) {
 	salt, verifier, err := newNLS.AccountCreate()
 	if err != nil {
 		return nil, err
@@ -632,7 +632,7 @@ func (b *Client) sendChangePassProof(conn *network.BNCSonn, oldNLS *NLS, newNLS 
 	}
 }
 
-func (b *Client) sendEnterChat(conn *network.BNCSonn) (*bncs.EnterChatResp, error) {
+func (b *Client) sendEnterChat(conn *network.BNCSConn) (*bncs.EnterChatResp, error) {
 	if _, err := conn.Send(&bncs.NetGamePort{Port: b.GamePort}); err != nil {
 		return nil, err
 	}
@@ -676,7 +676,7 @@ func (b *Client) Run() error {
 		}()
 	}
 
-	return b.BNCSonn.RunClient(&b.EventEmitter, 30*time.Second)
+	return b.BNCSConn.RunClient(&b.EventEmitter, 30*time.Second)
 }
 
 // Say sends a chat message
@@ -700,7 +700,6 @@ func (b *Client) Say(s string) error {
 		return err
 	}
 
-	b.Fire(&Say{Content: s})
 	return nil
 }
 

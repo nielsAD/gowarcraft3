@@ -28,31 +28,31 @@ func TestPackets(t *testing.T) {
 		},
 		capi.CmdSendWhisper + capi.CmdRequestSuffix: &capi.SendWhisper{
 			Message: "[MESSAGE]",
-			UserID:  "[USER ID]",
+			UserID:  123,
 		},
 		capi.CmdKickUser + capi.CmdRequestSuffix: &capi.KickUser{
-			UserID: "[USER ID]",
+			UserID: 123,
 		},
 		capi.CmdBanUser + capi.CmdRequestSuffix: &capi.BanUser{
-			UserID: "[USER ID]",
+			UserID: 123,
 		},
 		capi.CmdUnbanUser + capi.CmdRequestSuffix: &capi.UnbanUser{
 			Username: "[TOON NAME]",
 		},
 		capi.CmdSetModerator + capi.CmdRequestSuffix: &capi.SetModerator{
-			UserID: "[USER ID]",
+			UserID: 123,
 		},
 		capi.CmdConnectEvent + capi.CmdRequestSuffix: &capi.ConnectEvent{
 			Channel: "Op Lodle",
 		},
 		capi.CmdDisconnectEvent + capi.CmdRequestSuffix: &capi.DisconnectEvent{},
 		capi.CmdMessageEvent + capi.CmdRequestSuffix: &capi.MessageEvent{
-			UserID:  "[USER ID]",
+			UserID:  123,
 			Message: "[MESSAGE]",
 			Type:    capi.MessageServerInfo,
 		},
 		capi.CmdUserUpdateEvent + capi.CmdRequestSuffix: &capi.UserUpdateEvent{
-			UserID:   "[USER ID]",
+			UserID:   123,
 			Username: "[TOON NAME]",
 			Flags:    capi.UserFlagModerator | capi.UserFlagMuteWhisper,
 			Attributes: capi.UserAttributes{
@@ -104,7 +104,7 @@ var testPkt = capi.Packet{
 	RequestID: 123,
 	Status:    &capi.Success,
 	Payload: &capi.MessageEvent{
-		UserID:  "[USER ID]",
+		UserID:  123,
 		Message: "[MESSAGE]",
 		Type:    capi.MessageServerInfo,
 	},

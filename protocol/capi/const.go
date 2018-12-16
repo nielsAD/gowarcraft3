@@ -150,7 +150,7 @@ func (f UserFlags) MarshalJSON() ([]byte, error) {
 	return json.Marshal(arr)
 }
 
-// UnmarshalJSON implements JSONUnmarshaler
+// UnmarshalJSON implements json.Unmarshaler
 func (f *UserFlags) UnmarshalJSON(b []byte) error {
 	var arr []string
 	if err := json.Unmarshal(b, &arr); err != nil {

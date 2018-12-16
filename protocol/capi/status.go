@@ -41,7 +41,7 @@ func (s *Status) Error() string {
 	case ErrRequestTimeout:
 		return "capi: Request timeout"
 	case ErrRateLimit:
-		return "capi: Ratelimit"
+		return "capi: Rate limit"
 	default:
 		return fmt.Sprintf("capi: Unknown error (%+v)", *s)
 	}

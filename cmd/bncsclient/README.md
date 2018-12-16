@@ -35,7 +35,7 @@ Enter password:
 12:00:00 [INFO] There are currently 2391 users playing 393 games of Warcraft III The Frozen Throne, and 15384 users playing 11699 games on Battle.net.
 12:00:00 [INFO] Last logon: Fri Jul 6  7:52 PM
 # Type "hello" in terminal
-12:00:05 [CHAT] hivemind: hello
+12:00:05 [CHAT] niels: hello
 12:00:05 [INFO] No one hears you.
 ```
 

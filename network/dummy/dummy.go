@@ -130,7 +130,6 @@ func (p *Player) Close() error {
 func (p *Player) Run() error {
 	var err = p.W3GSConn.Run(&p.EventEmitter, 35*time.Second)
 	p.Leave(w3gs.LeaveLobby)
-	p.Close()
 
 	return err
 }

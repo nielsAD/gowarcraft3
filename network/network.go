@@ -6,6 +6,7 @@
 package network
 
 import (
+	"encoding/json"
 	"io"
 	"io/ioutil"
 	"math"
@@ -150,7 +151,7 @@ func (c *W3GSPacketConn) Run(f Emitter, timeout time.Duration) error {
 			switch err {
 			// Connection is still valid after these errors, only deserialization failed
 			case w3gs.ErrInvalidPacketSize, w3gs.ErrInvalidChecksum, w3gs.ErrUnexpectedConst, w3gs.ErrBufferTooSmall:
-				f.Fire(&AsyncError{Src: "Run[Deserialize]", Err: err})
+				f.Fire(&AsyncError{Src: "Run[NextPacket]", Err: err})
 				continue
 			default:
 				f.Fire(RunStop{})
@@ -261,7 +262,7 @@ func (c *W3GSConn) Run(f Emitter, timeout time.Duration) error {
 			switch err {
 			case w3gs.ErrInvalidPacketSize, w3gs.ErrInvalidChecksum, w3gs.ErrUnexpectedConst, w3gs.ErrBufferTooSmall:
 				// Connection is still valid after these errors, only deserialization failed
-				f.Fire(&AsyncError{Src: "Run[Deserialize]", Err: err})
+				f.Fire(&AsyncError{Src: "Run[NextPacket]", Err: err})
 				continue
 			default:
 				f.Fire(RunStop{})
@@ -274,9 +275,9 @@ func (c *W3GSConn) Run(f Emitter, timeout time.Duration) error {
 	}
 }
 
-// BNCSonn manages a TCP connection that transfers BNCS packets from/to client.
+// BNCSConn manages a TCP connection that transfers BNCS packets from/to client.
 // Public methods/fields are thread-safe unless explicitly stated otherwise
-type BNCSonn struct {
+type BNCSConn struct {
 	cmut RWMutex
 	conn net.Conn
 
@@ -288,13 +289,13 @@ type BNCSonn struct {
 	lnxt time.Time
 }
 
-// NewBNCSonn returns conn wrapped in BNCSonn
-func NewBNCSonn(conn net.Conn) *BNCSonn {
-	return &BNCSonn{conn: conn}
+// NewBNCSConn returns conn wrapped in BNCSConn
+func NewBNCSConn(conn net.Conn) *BNCSConn {
+	return &BNCSConn{conn: conn}
 }
 
 // Conn returns the underlying net.Conn
-func (c *BNCSonn) Conn() net.Conn {
+func (c *BNCSConn) Conn() net.Conn {
 	c.cmut.RLock()
 	var conn = c.conn
 	c.cmut.RUnlock()
@@ -302,7 +303,7 @@ func (c *BNCSonn) Conn() net.Conn {
 }
 
 // SetConn closes the old connection and starts using the new net.Conn
-func (c *BNCSonn) SetConn(conn net.Conn) {
+func (c *BNCSConn) SetConn(conn net.Conn) {
 	c.Close()
 	c.cmut.Lock()
 	c.conn = conn
@@ -310,7 +311,7 @@ func (c *BNCSonn) SetConn(conn net.Conn) {
 }
 
 // Close closes the connection
-func (c *BNCSonn) Close() error {
+func (c *BNCSConn) Close() error {
 	c.cmut.RLock()
 
 	var err error
@@ -324,7 +325,7 @@ func (c *BNCSonn) Close() error {
 }
 
 // Send pkt to addr over net.Conn
-func (c *BNCSonn) Send(pkt bncs.Packet) (int, error) {
+func (c *BNCSConn) Send(pkt bncs.Packet) (int, error) {
 	c.cmut.RLock()
 
 	if c.conn == nil {
@@ -341,7 +342,7 @@ func (c *BNCSonn) Send(pkt bncs.Packet) (int, error) {
 }
 
 // SendRL pkt to addr over net.Conn with rate limit
-func (c *BNCSonn) SendRL(pkt bncs.Packet) (int, error) {
+func (c *BNCSConn) SendRL(pkt bncs.Packet) (int, error) {
 	c.lmut.Lock()
 
 	var t = time.Now()
@@ -366,7 +367,7 @@ func (c *BNCSonn) SendRL(pkt bncs.Packet) (int, error) {
 
 // NextClientPacket waits for the next client packet (with given timeout) and returns its deserialized representation
 // Not safe for concurrent invocation
-func (c *BNCSonn) NextClientPacket(timeout time.Duration) (bncs.Packet, error) {
+func (c *BNCSConn) NextClientPacket(timeout time.Duration) (bncs.Packet, error) {
 	c.cmut.RLock()
 	if c.conn == nil {
 		c.cmut.RUnlock()
@@ -388,7 +389,7 @@ func (c *BNCSonn) NextClientPacket(timeout time.Duration) (bncs.Packet, error) {
 
 // NextServerPacket waits for the next server packet (with given timeout) and returns its deserialized representation
 // Not safe for concurrent invocation
-func (c *BNCSonn) NextServerPacket(timeout time.Duration) (bncs.Packet, error) {
+func (c *BNCSConn) NextServerPacket(timeout time.Duration) (bncs.Packet, error) {
 	c.cmut.RLock()
 
 	if c.conn == nil {
@@ -411,7 +412,7 @@ func (c *BNCSonn) NextServerPacket(timeout time.Duration) (bncs.Packet, error) {
 
 // RunServer reads client packets (with given max time between packets) from Conn and emits an event for each received packet
 // Not safe for concurrent invocation
-func (c *BNCSonn) RunServer(f Emitter, timeout time.Duration) error {
+func (c *BNCSConn) RunServer(f Emitter, timeout time.Duration) error {
 	c.cmut.RLock()
 	f.Fire(RunStart{})
 	for {
@@ -421,7 +422,7 @@ func (c *BNCSonn) RunServer(f Emitter, timeout time.Duration) error {
 			switch err {
 			// Connection is still valid after these errors, only deserialization failed
 			case bncs.ErrInvalidPacketSize, bncs.ErrInvalidChecksum, bncs.ErrUnexpectedConst, bncs.ErrBufferTooSmall:
-				f.Fire(&AsyncError{Src: "RunServer[Deserialize]", Err: err})
+				f.Fire(&AsyncError{Src: "RunServer[NextPacket]", Err: err})
 				continue
 			default:
 				f.Fire(RunStop{})
@@ -436,7 +437,7 @@ func (c *BNCSonn) RunServer(f Emitter, timeout time.Duration) error {
 
 // RunClient reads server packets (with given max time between packets) from Conn and emits an event for each received packet
 // Not safe for concurrent invocation
-func (c *BNCSonn) RunClient(f Emitter, timeout time.Duration) error {
+func (c *BNCSConn) RunClient(f Emitter, timeout time.Duration) error {
 	c.cmut.RLock()
 	f.Fire(RunStart{})
 	for {
@@ -446,7 +447,7 @@ func (c *BNCSonn) RunClient(f Emitter, timeout time.Duration) error {
 			switch err {
 			// Connection is still valid after these errors, only deserialization failed
 			case bncs.ErrInvalidPacketSize, bncs.ErrInvalidChecksum, bncs.ErrUnexpectedConst, bncs.ErrBufferTooSmall:
-				f.Fire(&AsyncError{Src: "RunClient[Deserialize]", Err: err})
+				f.Fire(&AsyncError{Src: "RunClient[NextPacket]", Err: err})
 				continue
 			default:
 				f.Fire(RunStop{})
@@ -556,10 +557,7 @@ func (c *CAPIConn) NextPacket(timeout time.Duration) (*capi.Packet, error) {
 	var pkt *capi.Packet
 	if err == nil {
 		pkt, err = capi.DeserializePacket(r)
-
-		if n, _ := io.Copy(ioutil.Discard, r); n > 0 && err == nil {
-			err = io.ErrUnexpectedEOF
-		}
+		io.Copy(ioutil.Discard, r)
 	}
 
 	c.cmut.RUnlock()
@@ -576,9 +574,16 @@ func (c *CAPIConn) Run(f Emitter, timeout time.Duration) error {
 		pkt, err := c.NextPacket(timeout)
 
 		if err != nil {
-			f.Fire(RunStop{})
-			c.cmut.RUnlock()
-			return err
+			switch err.(type) {
+			// Connection is still valid after these errors, only deserialization failed
+			case *json.SyntaxError, *json.UnmarshalTypeError:
+				f.Fire(&AsyncError{Src: "Run[NextPacket]", Err: err})
+				continue
+			default:
+				f.Fire(RunStop{})
+				c.cmut.RUnlock()
+				return err
+			}
 		}
 
 		f.Fire(pkt)

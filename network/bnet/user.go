@@ -2,7 +2,6 @@
 // Project: gowarcraft3 (https://github.com/nielsAD/gowarcraft3)
 // License: Mozilla Public License, v2.0
 
-// Package bnet implements a mocked BNCS client that can be used to interact with BNCS servers.
 package bnet
 
 import (

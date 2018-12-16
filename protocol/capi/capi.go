@@ -15,7 +15,7 @@ const Endpoint = "wss://connect-bot.classic.blizzard.com/v1/rpc/chat"
 // Packet structure
 type Packet struct {
 	Command   string      `json:"command"`
-	RequestID int         `json:"request_id"`
+	RequestID int64       `json:"request_id"`
 	Status    *Status     `json:"status,omitempty"`
 	Payload   interface{} `json:"payload"`
 }

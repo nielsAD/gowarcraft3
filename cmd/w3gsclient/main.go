@@ -225,7 +225,7 @@ func main() {
 				break
 			}
 
-			if err := d.Say(line); err != nil {
+			if err := d.Say(strings.TrimRight(line, "\r\n")); err != nil {
 				logErr.Println(color.RedString("[ERROR] %s", err.Error()))
 			}
 		}
