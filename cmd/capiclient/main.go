@@ -14,13 +14,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/nielsAD/gowarcraft3/protocol/capi"
-
 	"github.com/fatih/color"
-	"golang.org/x/crypto/ssh/terminal"
-
 	"github.com/nielsAD/gowarcraft3/network"
 	"github.com/nielsAD/gowarcraft3/network/chat"
+	"github.com/nielsAD/gowarcraft3/protocol/capi"
+	"golang.org/x/crypto/ssh/terminal"
 )
 
 var (

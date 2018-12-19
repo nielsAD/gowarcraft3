@@ -9,9 +9,11 @@ import (
 	"context"
 	"math/rand"
 	"os"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
+	"unicode"
 
 	"github.com/gorilla/websocket"
 	"github.com/nielsAD/gowarcraft3/network"
@@ -221,12 +223,25 @@ func (b *Bot) Run() error {
 
 // SendMessage sends a chat message to the channel
 func (b *Bot) SendMessage(s string) error {
+	s = strings.Map(func(r rune) rune {
+		if !unicode.IsPrint(r) {
+			return -1
+		}
+		return r
+	}, s)
+
 	if len(s) == 0 {
 		return nil
 	}
+	if len(s) > 254 {
+		s = s[:254]
+	}
 
-	_, err := b.RPC(capi.CmdSendMessage, &capi.SendMessage{Message: s})
-	return err
+	if _, err := b.RPC(capi.CmdSendMessage, &capi.SendMessage{Message: s}); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // SendEmote sends an emote on behalf of a bot
