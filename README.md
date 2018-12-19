@@ -12,6 +12,7 @@ Tools
 
 |              Name            | Description |
 |------------------------------|-------------|
+|[capiclient](./cmd/capiclient)|A command-line interface for the official classic Battle.net chat API.|
 |[bncsclient](./cmd/bncsclient)|A mocked Warcraft III chat client that can be used to connect to BNCS servers.|
 |[w3gsclient](./cmd/w3gsclient)|A mocked Warcraft III game client that can be used to add dummy players to games.|
 |  [bncsdump](./cmd/bncsdump)  |A tool that decodes and dumps BNCS packets via pcap (on the wire or from a file).|
