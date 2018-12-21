@@ -3,7 +3,7 @@
 # License: Mozilla Public License, v2.0
 
 language: go
-go: 1.10.x
+go: 1.11.x
 
 os:
   - linux
@@ -30,14 +30,22 @@ script:
   - md5sum ./bin/*
 
 before_deploy:
-  - tar -czf release_$TRAVIS_OS_NAME.tar.gz bin LICENSE
+  - >
+    echo -e
+    "Author:   Niels A.D.
+    \nProject:  gowarcraft3 (https://github.com/nielsAD/gowarcraft3)
+    \nPlatform: $TRAVIS_OS_NAME
+    \nRelease:  $TRAVIS_TAG ($TRAVIS_COMMIT)
+    \nDate:     `date --utc`"
+    > VERSION
+  - tar -czf gowarcraft3_${TRAVIS_TAG}_${TRAVIS_OS_NAME}.tar.gz bin LICENSE VERSION
 
 deploy:
   provider: releases
   api_key:
     secure: YBMQ2YzGBe+o+hJ0RYV/ZssnukUkuhetKWbPsTcPWq9UjK9+AVQB4ZNef13gz5l+uSRVuK84dN7BZ9YoVNBIVS0vxl4vXmJoR9IZ5Zj649ohHiExjhR8bZyjpSvb6XSVSZOJkoRbFvZmg2FzbOqZRCj6nrDhCeg2JUBk20xOmrYi3NysVpnSBPAAB9UDwqCrD8nZnoco2ZNDOeBlP0i/37FiojyM6mtVV1bN9qMxsJakhnTmCCVzSOFRgmHJteagjPjSxIPKNjV/xHThFmnKvWGOmNcjOBBluDbp63lz8ml34xYOBIh9tIt9Bkzc41PbK+OJIZ4CeZLqL6fV47y3lP+VT86am4FbJy/XCpUoUccFtO28GzTLaJpgD3EN3qy5YpjR39rsSLHaK+5kmuKzo0zm8JNYLPVRKtNmlwKf91QEsb+bu4vrB9y7qE3FqbqBsQu8TzYgF9iLDJQ5j6JzXDkoYeoGw9CTYSYhB/ycN/eH6f37zuNTCkf8n5IEatmcEGcXInizDHgf+AS3cV47uAC9fwEAk2HmvR2UdgHZ1mMa/wM+V0r8FbIs0CsvksCcbRLd/Fea/fk4SMMhCq7vxObFtAketE62tXHGKhpykGYRHRlRna4+BTSF2sxuFBfyKnnZ3OdjpRJANIOdeqWftlsNm75Q3lCksydir3MfGQU=
   file_glob: true
-  file: release_*
+  file: gowarcraft3_*
   skip_cleanup: true
   on:
     tags: true
