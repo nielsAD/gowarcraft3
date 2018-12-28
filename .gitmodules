@@ -28,3 +28,6 @@
 [submodule "vendor/github.com/gorilla/websocket"]
 	path = vendor/github.com/gorilla/websocket
 	url = https://github.com/gorilla/websocket.git
+[submodule "vendor/github.com/kyokomi/emoji"]
+	path = vendor/github.com/kyokomi/emoji
+	url = https://github.com/kyokomi/emoji.git

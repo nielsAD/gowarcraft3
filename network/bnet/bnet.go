@@ -16,6 +16,7 @@ import (
 	"unicode"
 
 	"github.com/imdario/mergo"
+	"github.com/kyokomi/emoji"
 	"github.com/nielsAD/gowarcraft3/network"
 	"github.com/nielsAD/gowarcraft3/protocol"
 	"github.com/nielsAD/gowarcraft3/protocol/bncs"
@@ -679,9 +680,20 @@ func (b *Client) Run() error {
 	return b.BNCSConn.RunClient(&b.EventEmitter, 30*time.Second)
 }
 
-// Say sends a chat message
-// May block while rate-limiting packets
-func (b *Client) Say(s string) error {
+var emojiToText = func() *strings.Replacer {
+	var r []string
+	for txt, uc := range emoji.CodeMap() {
+		r = append(r, uc, txt)
+	}
+
+	return strings.NewReplacer(r...)
+}()
+
+// FilterChat makes the chat message suitable for bnet.
+// It filters out control characters, replaces emoji with text, and truncates length.
+func FilterChat(s string) string {
+	s = emojiToText.Replace(s)
+
 	s = strings.Map(func(r rune) rune {
 		if !unicode.IsPrint(r) {
 			return -1
@@ -689,11 +701,18 @@ func (b *Client) Say(s string) error {
 		return r
 	}, s)
 
-	if len(s) == 0 {
-		return nil
-	}
 	if len(s) > 254 {
 		s = s[:254]
+	}
+	return s
+}
+
+// Say sends a chat message
+// May block while rate-limiting packets
+func (b *Client) Say(s string) error {
+	s = FilterChat(s)
+	if len(s) == 0 {
+		return nil
 	}
 
 	if _, err := b.SendRL(&bncs.ChatCommand{Text: s}); err != nil {

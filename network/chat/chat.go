@@ -9,14 +9,13 @@ import (
 	"context"
 	"math/rand"
 	"os"
-	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
-	"unicode"
 
 	"github.com/gorilla/websocket"
 	"github.com/nielsAD/gowarcraft3/network"
+	"github.com/nielsAD/gowarcraft3/network/bnet"
 	"github.com/nielsAD/gowarcraft3/protocol/capi"
 )
 
@@ -223,18 +222,9 @@ func (b *Bot) Run() error {
 
 // SendMessage sends a chat message to the channel
 func (b *Bot) SendMessage(s string) error {
-	s = strings.Map(func(r rune) rune {
-		if !unicode.IsPrint(r) {
-			return -1
-		}
-		return r
-	}, s)
-
+	s = bnet.FilterChat(s)
 	if len(s) == 0 {
 		return nil
-	}
-	if len(s) > 254 {
-		s = s[:254]
 	}
 
 	if _, err := b.RPC(capi.CmdSendMessage, &capi.SendMessage{Message: s}); err != nil {
