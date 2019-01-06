@@ -20,7 +20,7 @@ Example
 -------
 
 ```bash
-➜ ./bncsclient europe.battle.net
+➜ ./capiclient
 Enter API key:
 12:00:00 Succesfully connected to wss://connect-bot.classic.blizzard.com/v1/rpc/chat
 12:00:00 Joined channel 'Clan 1uk1'
