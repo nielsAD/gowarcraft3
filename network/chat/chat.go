@@ -32,7 +32,7 @@ type Bot struct {
 	network.EventEmitter
 	network.CAPIConn
 
-	rid int64
+	rid uint32
 
 	chatmut sync.Mutex
 	channel string
@@ -155,7 +155,7 @@ func (b *Bot) asyncRPC(ctx context.Context, command string, arg ...interface{}) 
 		p = arg
 	}
 
-	var rid = atomic.AddInt64(&b.rid, 1)
+	var rid = int64(atomic.AddUint32(&b.rid, 1))
 	var cmd = command + capi.CmdResponseSuffix
 	var rsp = make(chan capi.Packet)
 
