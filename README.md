@@ -35,7 +35,6 @@ apt-get install --no-install-recommends -y build-essential cmake git golang-go l
 brew install cmake git go gmp bzip2 zlib libpcap
 
 # Windows dependencies (use MSYS2 -- https://www.msys2.org/)
-# Install WinPcap in C:\WinPcap (https://www.winpcap.org/devel.htm)
 pacman --needed --noconfirm -S git mingw-w64-x86_64-toolchain mingw-w64-x86_64-go mingw-w64-x86_64-cmake
 
 # Download vendor submodules

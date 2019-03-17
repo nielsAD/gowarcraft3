@@ -20,7 +20,7 @@ environment:
       MSYSTEM: MINGW64
       MSYS2_ARCH: x86_64
 
-stack: go 1.11
+stack: go 1.12
 
 init:
   - git config --global core.autocrlf true
@@ -36,9 +36,6 @@ install:
   - bash -lc "pacman --needed --noconfirm -Syu" # core system upgrade
   - bash -lc "pacman --needed --noconfirm -Syu" # out-of-date packages
   - bash -lc "pacman --needed --noconfirm -S mingw-w64-$MSYS2_ARCH-toolchain mingw-w64-$MSYS2_ARCH-cmake"
-
-  - ps: Start-FileDownload 'https://github.com/nielsAD/gowarcraft3/files/2175629/WpdPack_4_1_2.zip'
-  - 7z x WpdPack_4_1_2.zip -oC:\
 
   # Install test dependencies
   - go get golang.org/x/lint/golint

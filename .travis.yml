@@ -3,11 +3,13 @@
 # License: Mozilla Public License, v2.0
 
 language: go
-go: 1.11.x
+go: 1.12.x
 
 os:
   - linux
   - osx
+
+dist: xenial
 
 notifications:
   email:

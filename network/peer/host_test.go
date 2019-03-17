@@ -82,6 +82,7 @@ func closeAll(hosts []*peer.Host) {
 	var n = len(hosts)
 	for i := 0; i < n; i++ {
 		hosts[i].Close()
+		hosts[i].Wait()
 	}
 }
 
@@ -211,7 +212,7 @@ func TestMass(t *testing.T) {
 	}
 
 	// Wait for chat
-	for try := 0; try < 100 && atomic.LoadInt32(&chat) != int32(len(hosts)-1); try++ {
+	for try := 0; try < 300 && atomic.LoadInt32(&chat) != int32(len(hosts)-1); try++ {
 		time.Sleep(50 * time.Millisecond)
 	}
 
@@ -228,7 +229,7 @@ func TestMass(t *testing.T) {
 	}
 
 	// Wait for chat
-	for try := 0; try < 100 && atomic.LoadInt32(&chat) != int32(len(hosts)-2); try++ {
+	for try := 0; try < 300 && atomic.LoadInt32(&chat) != int32(len(hosts)-2); try++ {
 		time.Sleep(50 * time.Millisecond)
 	}
 
