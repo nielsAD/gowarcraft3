@@ -96,7 +96,7 @@ const (
 
 // User attribute keys
 const (
-	UserAttrProgramID = "ProgramID"
+	UserAttrProgramID = "ProgramId"
 	UserAttrRate      = "Rate"
 	UserAttrRank      = "Rank"
 	UserAttrWins      = "Wins"
