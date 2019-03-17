@@ -315,29 +315,48 @@ func (b *Bot) onMessageEvent(ev *network.Event) {
 func (b *Bot) onUserUpdateEvent(ev *network.Event) {
 	var pkt = ev.Arg.(*capi.UserUpdateEvent)
 
+	var join bool
+	var user User
+
 	b.chatmut.Lock()
 	var p = b.users[pkt.UserID]
 	if p == nil {
+		join = true
+
 		if b.users == nil {
 			b.users = make(map[int64]*User)
 		}
 
 		var t = time.Now()
-		p = &User{
+		user = User{
 			Joined:   t,
 			LastSeen: t,
 		}
+		user.Update(pkt)
 
-		b.users[pkt.UserID] = p
+		b.users[pkt.UserID] = &user
+	} else {
+		p.Update(pkt)
+		user = *p
 	}
-	p.Update(pkt)
 	b.chatmut.Unlock()
+
+	if join {
+		b.Fire(&UserJoined{User: user})
+	} else {
+		b.Fire(&UserUpdate{User: user})
+	}
 }
 
 func (b *Bot) onUserLeaveEvent(ev *network.Event) {
 	var pkt = ev.Arg.(*capi.UserLeaveEvent)
 
 	b.chatmut.Lock()
+	var u = b.users[pkt.UserID]
 	delete(b.users, pkt.UserID)
 	b.chatmut.Unlock()
+
+	if u != nil {
+		b.Fire(&UserLeft{User: *u})
+	}
 }
