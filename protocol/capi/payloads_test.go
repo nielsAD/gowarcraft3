@@ -54,15 +54,15 @@ func TestPackets(t *testing.T) {
 		capi.CmdUserUpdateEvent + capi.CmdRequestSuffix: &capi.UserUpdateEvent{
 			UserID:   123,
 			Username: "[TOON NAME]",
-			Flags:    capi.UserFlagModerator | capi.UserFlagMuteWhisper,
-			Attributes: capi.UserAttributes{
-				ProgramID: "W3XP",
-				Rate:      "1",
-				Rank:      "2",
-				Wins:      "3",
+			Flags:    []string{capi.UserFlagModerator, capi.UserFlagMuteWhisper},
+			Attributes: []capi.UserAttribute{
+				capi.UserAttribute{Key: capi.UserAttrProgramID, Value: "W3XP"},
+				capi.UserAttribute{Key: capi.UserAttrRank, Value: "1"},
 			},
 		},
-		capi.CmdUserLeaveEvent + capi.CmdRequestSuffix: &capi.UserLeaveEvent{},
+		capi.CmdUserLeaveEvent + capi.CmdRequestSuffix: &capi.UserLeaveEvent{
+			UserID: 123,
+		},
 	}
 
 	for cmd, payl := range types {

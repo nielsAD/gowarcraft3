@@ -92,18 +92,16 @@ type MessageEvent struct {
 
 // UserUpdateEvent payload (Botapichat.UserUpdateEvent)
 type UserUpdateEvent struct {
-	UserID     int64          `json:"user_id"`
-	Username   string         `json:"toon_name"`
-	Flags      UserFlags      `json:"flag"`
-	Attributes UserAttributes `json:"attributes"`
+	UserID     int64           `json:"user_id"`
+	Username   string          `json:"toon_name,omitempty"`
+	Flags      []string        `json:"flag,omitempty"`
+	Attributes []UserAttribute `json:"attribute,omitempty"`
 }
 
-// UserAttributes for UserUpdateEvent
-type UserAttributes struct {
-	ProgramID string `json:"ProgramId"`
-	Rate      string `json:"Rate"`
-	Rank      string `json:"Rank"`
-	Wins      string `json:"Wins"`
+// UserAttribute for UserUpdateEvent
+type UserAttribute struct {
+	Key   string
+	Value string
 }
 
 // UserLeaveEvent payload (Botapichat.UserLeaveEventRequest)

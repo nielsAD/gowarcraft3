@@ -315,23 +315,22 @@ func (b *Bot) onMessageEvent(ev *network.Event) {
 func (b *Bot) onUserUpdateEvent(ev *network.Event) {
 	var pkt = ev.Arg.(*capi.UserUpdateEvent)
 
-	var t = time.Now()
-	var u = User{
-		UserUpdateEvent: *pkt,
-		Joined:          t,
-		LastSeen:        t,
-	}
-
 	b.chatmut.Lock()
-	if b.users == nil {
-		b.users = make(map[int64]*User)
-	}
 	var p = b.users[pkt.UserID]
-	if p != nil {
-		u.Joined = p.Joined
-		u.LastSeen = p.LastSeen
+	if p == nil {
+		if b.users == nil {
+			b.users = make(map[int64]*User)
+		}
+
+		var t = time.Now()
+		p = &User{
+			Joined:   t,
+			LastSeen: t,
+		}
+
+		b.users[pkt.UserID] = p
 	}
-	b.users[pkt.UserID] = &u
+	p.Update(pkt)
 	b.chatmut.Unlock()
 }
 
