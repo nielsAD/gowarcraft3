@@ -101,10 +101,9 @@ func NewClient(conf *Config) (*Client, error) {
 	}
 
 	if conf.Platform.GameVersion.Version == 0 {
-		if exeVersion, _, err := GetExeInfo(path.Join(c.BinPath, "Warcraft III.exe")); err == nil {
-			c.Platform.GameVersion.Version = (exeVersion >> 16) & 0xFF
-		}
 		if exeVersion, _, err := GetExeInfo(path.Join(c.BinPath, "war3.exe")); err == nil {
+			c.Platform.GameVersion.Version = (exeVersion >> 16) & 0xFF
+		} else if exeVersion, _, err := GetExeInfo(path.Join(c.BinPath, "Warcraft III.exe")); err == nil {
 			c.Platform.GameVersion.Version = (exeVersion >> 16) & 0xFF
 		}
 	}
@@ -450,6 +449,9 @@ func (b *Client) sendAuthInfo(conn *network.BNCSConn) (*bncs.AuthInfoResp, error
 
 func (b *Client) sendAuthCheck(conn *network.BNCSConn, clientToken uint32, authinfo *bncs.AuthInfoResp) (*bncs.AuthCheckResp, error) {
 	exePath := path.Join(b.BinPath, "Warcraft III.exe")
+	if b.Platform.GameVersion.Version < 28 {
+		exePath = path.Join(b.BinPath, "war3.exe")
+	}
 	if _, err := os.Stat(exePath); err != nil {
 		return nil, err
 	}
