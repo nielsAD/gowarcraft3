@@ -25,10 +25,13 @@ import (
 
 // Config for bnet.Client
 type Config struct {
-	Platform          bncs.AuthInfoReq
 	ServerAddr        string
 	KeepAliveInterval time.Duration
+	Platform          bncs.AuthInfoReq
 	BinPath           string
+	ExeInformation    string
+	ExeVersion        uint32
+	ExeHash           uint32
 	Username          string
 	Password          string
 	CDKeyOwner        string
@@ -101,7 +104,9 @@ func NewClient(conf *Config) (*Client, error) {
 	}
 
 	if conf.Platform.GameVersion.Version == 0 {
-		if exeVersion, _, err := GetExeInfo(path.Join(c.BinPath, "war3.exe")); err == nil {
+		if c.ExeVersion != 0 {
+			c.Platform.GameVersion.Version = (c.ExeVersion >> 16) & 0xFF
+		} else if exeVersion, _, err := GetExeInfo(path.Join(c.BinPath, "war3.exe")); err == nil {
 			c.Platform.GameVersion.Version = (exeVersion >> 16) & 0xFF
 		} else if exeVersion, _, err := GetExeInfo(path.Join(c.BinPath, "Warcraft III.exe")); err == nil {
 			c.Platform.GameVersion.Version = (exeVersion >> 16) & 0xFF
@@ -448,35 +453,52 @@ func (b *Client) sendAuthInfo(conn *network.BNCSConn) (*bncs.AuthInfoResp, error
 }
 
 func (b *Client) sendAuthCheck(conn *network.BNCSConn, clientToken uint32, authinfo *bncs.AuthInfoResp) (*bncs.AuthCheckResp, error) {
-	exePath := path.Join(b.BinPath, "Warcraft III.exe")
-	if b.Platform.GameVersion.Version < 28 {
-		exePath = path.Join(b.BinPath, "war3.exe")
-	}
-	if _, err := os.Stat(exePath); err != nil {
-		return nil, err
-	}
+	var exeInfo = b.ExeInformation
+	var exeVers = b.ExeVersion
+	var exeHash = b.ExeHash
 
-	exeVersion, exeInfo, err := GetExeInfo(exePath)
-	if err != nil {
-		return nil, err
-	}
-
-	var files = []string{exePath}
-	if b.Platform.GameVersion.Version < 29 {
-		stormPath := path.Join(b.BinPath, "Storm.dll")
-		if _, err := os.Stat(stormPath); err != nil {
+	if exeVers == 0 || exeHash == 0 {
+		var exePath = path.Join(b.BinPath, "Warcraft III.exe")
+		if b.Platform.GameVersion.Version < 28 {
+			exePath = path.Join(b.BinPath, "war3.exe")
+		}
+		if _, err := os.Stat(exePath); err != nil {
 			return nil, err
 		}
-		gamePath := path.Join(b.BinPath, "game.dll")
-		if _, err := os.Stat(gamePath); err != nil {
-			return nil, err
-		}
-		files = append(files, stormPath, gamePath)
-	}
 
-	exeHash, err := CheckRevision(authinfo.ValueString, files, ExtractMPQNumber(authinfo.MpqFileName))
-	if err != nil {
-		return nil, err
+		if exeVers == 0 {
+			v, i, err := GetExeInfo(exePath)
+			if err != nil {
+				return nil, err
+			}
+			if exeVers == 0 {
+				exeVers = v
+			}
+			if exeInfo == "" {
+				exeInfo = i
+			}
+		}
+
+		if exeHash == 0 {
+			var files = []string{exePath}
+			if b.Platform.GameVersion.Version < 29 {
+				stormPath := path.Join(b.BinPath, "Storm.dll")
+				if _, err := os.Stat(stormPath); err != nil {
+					return nil, err
+				}
+				gamePath := path.Join(b.BinPath, "game.dll")
+				if _, err := os.Stat(gamePath); err != nil {
+					return nil, err
+				}
+				files = append(files, stormPath, gamePath)
+			}
+
+			var err error
+			exeHash, err = CheckRevision(authinfo.ValueString, files, ExtractMPQNumber(authinfo.MpqFileName))
+			if err != nil {
+				return nil, err
+			}
+		}
 	}
 
 	var cdkeys = make([]bncs.CDKey, len(b.CDKeys))
@@ -491,10 +513,10 @@ func (b *Client) sendAuthCheck(conn *network.BNCSConn, clientToken uint32, authi
 
 	var req = &bncs.AuthCheckReq{
 		ClientToken:    clientToken,
-		ExeVersion:     exeVersion,
+		ExeInformation: exeInfo,
+		ExeVersion:     exeVers,
 		ExeHash:        exeHash,
 		CDKeys:         cdkeys,
-		ExeInformation: exeInfo,
 		KeyOwnerName:   b.CDKeyOwner,
 	}
 

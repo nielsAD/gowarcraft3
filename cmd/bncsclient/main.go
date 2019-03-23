@@ -24,8 +24,10 @@ import (
 )
 
 var (
-	gamevers    = flag.Int("v", 0, "Game version")
 	binpath     = flag.String("b", "", "Path to game binaries")
+	exeinfo     = flag.String("ei", "", "Exe version string")
+	exevers     = flag.Uint("ev", 0, "Exe version number")
+	exehash     = flag.Uint("eh", 0, "Exe hash")
 	keyroc      = flag.String("roc", "", "ROC CD-key")
 	keytft      = flag.String("tft", "", "TFT CD-key")
 	username    = flag.String("u", "", "Username")
@@ -42,7 +44,12 @@ var stdin = bufio.NewReader(os.Stdin)
 func main() {
 	flag.Parse()
 
-	c, err := bnet.NewClient(&bnet.Config{BinPath: *binpath})
+	c, err := bnet.NewClient(&bnet.Config{
+		BinPath:        *binpath,
+		ExeInformation: *exeinfo,
+		ExeVersion:     uint32(*exevers),
+		ExeHash:        uint32(*exehash),
+	})
 	if err != nil {
 		logErr.Fatal("NewClient error: ", err)
 	}
@@ -50,10 +57,6 @@ func main() {
 	c.ServerAddr = strings.Join(flag.Args(), " ")
 	if c.ServerAddr == "" {
 		c.ServerAddr = "uswest.battle.net:6112"
-	}
-
-	if *gamevers != 0 {
-		c.Platform.GameVersion.Version = uint32(*gamevers)
 	}
 
 	if *keyroc != "" {

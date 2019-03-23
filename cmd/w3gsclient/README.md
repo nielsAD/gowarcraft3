@@ -15,7 +15,7 @@ Usage
 |-------|--------|-------------|
 |`-lan` |`bool`  |Find a game on LAN|
 |`-tft` |`bool`  |Search for TFT instead of ROC games (only used when searching local) (default `true`)|
-|`-v`   |`int`   |Game version (only used when searching local) (default `29`)|
+|`-v`   |`uint`  |Game version (only used when searching local) (default `30`)|
 |`-e`   |`uint`  |Entry key (only used when entering local game)|
 |`-c`   |`uint`  |Host counter (default `1`)|
 |`-dial`|`bool`  |Dial peers (default `true`)|

@@ -16,8 +16,10 @@ Usage
 |`-u`         |`string`|Username (will query if omitted)|
 |`-p`         |`string`|Password (will query if omitted)|
 |`-np`        |`string`|New password (used by `-changepass`, will query if omitted)|
-|`-b`         |`path`  |Path to game binaries|
-|`-v`         |`int`   |Game version|
+|`-b`         |`path`  |Path to game binaries (will guess if omitted)|
+|`-ei`        |`string`|Override exe version string|
+|`-ev`        |`uint`  |Override exe version number|
+|`-eh`        |`uint`  |Override exe hash|
 |`-roc`       |`string`|ROC CD-key|
 |`-tft`       |`string`|TFT CD-key|
 |`-create`    |`bool`  |Create account|
