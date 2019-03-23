@@ -22,6 +22,7 @@ Usage
 |`-eh`        |`uint`  |Override exe hash|
 |`-roc`       |`string`|ROC CD-key|
 |`-tft`       |`string`|TFT CD-key|
+|`-verify`    |`bool`  |Verify server signature|
 |`-create`    |`bool`  |Create account|
 |`-changepass`|`bool`  |Change password|
 

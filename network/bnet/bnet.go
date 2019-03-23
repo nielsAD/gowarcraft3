@@ -29,9 +29,10 @@ type Config struct {
 	KeepAliveInterval time.Duration
 	Platform          bncs.AuthInfoReq
 	BinPath           string
-	ExeInformation    string
+	ExeInfo           string
 	ExeVersion        uint32
 	ExeHash           uint32
+	VerifySignature   bool
 	Username          string
 	Password          string
 	CDKeyOwner        string
@@ -234,6 +235,10 @@ func (b *Client) Dial() (*network.BNCSConn, error) {
 	if err != nil {
 		bncsconn.Close()
 		return nil, err
+	}
+
+	if b.VerifySignature && !VerifyNLSSignature(conn.RemoteAddr().(*net.TCPAddr).IP, &authInfo.ServerSignature) {
+		return nil, ErrInvalidServerSig
 	}
 
 	clientToken := uint32(time.Now().Unix())
@@ -453,7 +458,7 @@ func (b *Client) sendAuthInfo(conn *network.BNCSConn) (*bncs.AuthInfoResp, error
 }
 
 func (b *Client) sendAuthCheck(conn *network.BNCSConn, clientToken uint32, authinfo *bncs.AuthInfoResp) (*bncs.AuthCheckResp, error) {
-	var exeInfo = b.ExeInformation
+	var exeInfo = b.ExeInfo
 	var exeVers = b.ExeVersion
 	var exeHash = b.ExeHash
 

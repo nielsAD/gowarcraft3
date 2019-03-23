@@ -17,6 +17,7 @@ var (
 	ErrKeyDecoder         = errors.New("bnet: BNCSUtil call to keyDecoder failed")
 	ErrNLS                = errors.New("bnet: BNCSUtil call to NLS failed")
 	ErrUnexpectedPacket   = errors.New("bnet: Received unexpected packet")
+	ErrInvalidServerSig   = errors.New("bnet: Invalid server signature")
 	ErrAuthFail           = errors.New("bnet: Authentication failed")
 	ErrInvalidGameVersion = errors.New("bnet: Authentication failed (game version invalid)")
 	ErrCDKeyInvalid       = errors.New("bnet: Authentication failed (CD key invalid)")

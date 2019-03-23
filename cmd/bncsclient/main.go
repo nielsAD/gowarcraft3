@@ -33,6 +33,7 @@ var (
 	username    = flag.String("u", "", "Username")
 	password    = flag.String("p", "", "Password")
 	newpassword = flag.String("np", "", "New password")
+	verify      = flag.Bool("verify", false, "Verify server signature")
 	create      = flag.Bool("create", false, "Create account")
 	changepass  = flag.Bool("changepass", false, "Change password")
 )
@@ -45,10 +46,10 @@ func main() {
 	flag.Parse()
 
 	c, err := bnet.NewClient(&bnet.Config{
-		BinPath:        *binpath,
-		ExeInformation: *exeinfo,
-		ExeVersion:     uint32(*exevers),
-		ExeHash:        uint32(*exehash),
+		BinPath:    *binpath,
+		ExeInfo:    *exeinfo,
+		ExeVersion: uint32(*exevers),
+		ExeHash:    uint32(*exehash),
 	})
 	if err != nil {
 		logErr.Fatal("NewClient error: ", err)

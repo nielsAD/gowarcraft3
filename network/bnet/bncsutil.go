@@ -14,6 +14,8 @@ import (
 	"C"
 )
 import (
+	"encoding/binary"
+	"net"
 	"unsafe"
 
 	"github.com/nielsAD/gowarcraft3/protocol/bncs"
@@ -84,6 +86,12 @@ func CreateBNCSKeyInfo(cdkey string, clientToken uint32, serverToken uint32) (*b
 		KeyPublicValue:  uint32(publicValue),
 		HashedKeyData:   buf,
 	}, nil
+}
+
+// VerifyNLSSignature received in SID_AUTH_INFO (0x50)
+func VerifyNLSSignature(ip net.IP, sig *[128]byte) bool {
+	var aton = binary.LittleEndian.Uint32(ip.To4())
+	return C.nls_check_signature(C.uint32_t(aton), (*C.char)(unsafe.Pointer(&sig[0]))) != 0
 }
 
 // NLS password hashing helper
