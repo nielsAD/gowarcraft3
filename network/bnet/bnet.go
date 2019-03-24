@@ -238,6 +238,7 @@ func (b *Client) Dial() (*network.BNCSConn, error) {
 	}
 
 	if b.VerifySignature && !VerifyNLSSignature(conn.RemoteAddr().(*net.TCPAddr).IP, &authInfo.ServerSignature) {
+		bncsconn.Close()
 		return nil, ErrInvalidServerSig
 	}
 
@@ -318,6 +319,11 @@ func (b *Client) Logon() error {
 	default:
 		bncsconn.Close()
 		return LogonProofResultToError(proof.Result)
+	}
+
+	if !nls.VerifyPassword(&proof.ServerPasswordProof) {
+		bncsconn.Close()
+		return ErrPasswordVerification
 	}
 
 	chat, err := b.sendEnterChat(bncsconn)
@@ -421,6 +427,10 @@ func (b *Client) ChangePassword(newPassword string) error {
 
 	if proof.Result != bncs.LogonProofSuccess {
 		return LogonProofResultToError(proof.Result)
+	}
+
+	if !oldNLS.VerifyPassword(&proof.ServerPasswordProof) {
+		return ErrPasswordVerification
 	}
 
 	b.Password = newPassword
@@ -565,7 +575,7 @@ func (b *Client) sendLogon(conn *network.BNCSConn, nls *NLS) (*bncs.AuthAccountL
 
 func (b *Client) sendLogonProof(conn *network.BNCSConn, nls *NLS, logon *bncs.AuthAccountLogonResp) (*bncs.AuthAccountLogonProofResp, error) {
 	var req = &bncs.AuthAccountLogonProofReq{
-		ClientPasswordProof: nls.SessionKey(&logon.ServerKey, &logon.Salt),
+		ClientPasswordProof: nls.PasswordProof(&logon.ServerKey, &logon.Salt),
 	}
 
 	if _, err := conn.Send(req); err != nil {
@@ -641,7 +651,7 @@ func (b *Client) sendChangePassProof(conn *network.BNCSConn, oldNLS *NLS, newNLS
 	}
 
 	var req = &bncs.AuthAccountChangePassProofReq{
-		ClientPasswordProof: oldNLS.SessionKey(&resp.ServerKey, &resp.Salt),
+		ClientPasswordProof: oldNLS.PasswordProof(&resp.ServerKey, &resp.Salt),
 	}
 	copy(req.NewSalt[:], salt)
 	copy(req.NewVerifier[:], verifier)

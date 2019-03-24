@@ -139,8 +139,13 @@ func (n *NLS) ClientKey() (res [32]byte) {
 	return res
 }
 
-// SessionKey for NLS exchange
-func (n *NLS) SessionKey(serverKey *[32]byte, salt *[32]byte) (res [20]byte) {
+// PasswordProof for NLS exchange
+func (n *NLS) PasswordProof(serverKey *[32]byte, salt *[32]byte) (res [20]byte) {
 	C.nls_get_M1(n.n, (*C.char)(unsafe.Pointer(&res[0])), (*C.char)(unsafe.Pointer(&serverKey[0])), (*C.char)(unsafe.Pointer(&salt[0])))
 	return res
+}
+
+// VerifyPassword after NLS exchange
+func (n *NLS) VerifyPassword(proof *[20]byte) bool {
+	return C.nls_check_M2(n.n, (*C.char)(unsafe.Pointer(&proof[0])), nil, nil) != 0
 }
