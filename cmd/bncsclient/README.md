@@ -23,11 +23,14 @@ Usage
 |`-roc`       |`string`|ROC CD-key|
 |`-tft`       |`string`|TFT CD-key|
 |`-verify`    |`bool`  |Verify server signature|
+|`-sha1`      |`bool`  |SHA1 password authentication (used in old PvPGN servers)|
 |`-create`    |`bool`  |Create account|
 |`-changepass`|`bool`  |Change password|
 
 Example
 -------
+
+Loading version and CD-key info from the default Warcraft III installation directory:
 
 ```bash
 ➜ ./bncsclient -u niels europe.battle.net
@@ -40,6 +43,17 @@ Enter password:
 # Type "hello" in terminal
 12:00:05 [CHAT] niels: hello
 12:00:05 [INFO] No one hears you.
+```
+
+Preset version and CD-key info, SHA1 (PvPGN) password authentication:
+
+```bash
+➜ ./bncsclient -sha1 -u niels -roc FFFFFFFFFFFFFFFFFFFFFFFFFF -tft FFFFFFFFFFFFFFFFFFFFFFFFFF -ev 0x011b01ad -eh 0xaaaba048 rubattle.net
+12:00:00 Succesfully logged onto niels@rubattle.net:6112
+12:00:00 Joined channel 'Warcraft III RUS-1'
+12:00:00 niels has joined the channel (ping: 41ms)
+12:00:00 [INFO] Obey the law, rules are the law!
+12:00:00 [INFO] Hello niels, welcome to Rubattle.net!
 ```
 
 Download

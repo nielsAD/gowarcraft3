@@ -88,18 +88,27 @@ func CreateBNCSKeyInfo(cdkey string, clientToken uint32, serverToken uint32) (*b
 	}, nil
 }
 
-// VerifyNLSSignature received in SID_AUTH_INFO (0x50)
-func VerifyNLSSignature(ip net.IP, sig *[128]byte) bool {
+// VerifyServerSignature received in SID_AUTH_INFO (0x50)
+func VerifyServerSignature(ip net.IP, sig *[128]byte) bool {
 	var aton = binary.LittleEndian.Uint32(ip.To4())
 	return C.nls_check_signature(C.uint32_t(aton), (*C.char)(unsafe.Pointer(&sig[0]))) != 0
 }
 
-// NLS password hashing helper
+// SRP password helper
+type SRP interface {
+	AccountCreate() ([]byte, []byte, error)
+	ClientKey() [32]byte
+	PasswordProof(serverKey *[32]byte, salt *[32]byte) [20]byte
+	VerifyPassword(proof *[20]byte) bool
+	Free()
+}
+
+// NLS provider for SRP
 type NLS struct {
 	n *C.nls_t
 }
 
-// NewNLS initializes a new NLS struct
+// NewNLS initializes a new NLS provider for SRP
 func NewNLS(username string, password string) (*NLS, error) {
 	var cstru = C.CString(username)
 	defer C.free(unsafe.Pointer(cstru))
@@ -133,19 +142,58 @@ func (n *NLS) AccountCreate() ([]byte, []byte, error) {
 	return buf[0:32], buf[32:64], nil
 }
 
-// ClientKey for NLS exchange
+// ClientKey for SRP exchange
 func (n *NLS) ClientKey() (res [32]byte) {
 	C.nls_get_A(n.n, (*C.char)(unsafe.Pointer(&res[0])))
 	return res
 }
 
-// PasswordProof for NLS exchange
+// PasswordProof for SRP exchange
 func (n *NLS) PasswordProof(serverKey *[32]byte, salt *[32]byte) (res [20]byte) {
 	C.nls_get_M1(n.n, (*C.char)(unsafe.Pointer(&res[0])), (*C.char)(unsafe.Pointer(&serverKey[0])), (*C.char)(unsafe.Pointer(&salt[0])))
 	return res
 }
 
-// VerifyPassword after NLS exchange
+// VerifyPassword after SRP exchange
 func (n *NLS) VerifyPassword(proof *[20]byte) bool {
 	return C.nls_check_M2(n.n, (*C.char)(unsafe.Pointer(&proof[0])), nil, nil) != 0
+}
+
+// SHA1 provider for SRP
+type SHA1 struct {
+	password string
+}
+
+// NewSHA1 initializes a new SHA1 provider for SRP
+func NewSHA1(password string) *SHA1 {
+	return &SHA1{
+		password: password,
+	}
+}
+
+// Free SHA1 struct
+func (p *SHA1) Free() {}
+
+// AccountCreate generates the content for an SID_AUTH_ACCOUNTCREATE packet
+func (p *SHA1) AccountCreate() ([]byte, []byte, error) {
+	return nil, []byte(p.password), nil
+}
+
+// ClientKey for SRP exchange
+func (p *SHA1) ClientKey() (res [32]byte) {
+	return res
+}
+
+// PasswordProof for SRP exchange
+func (p *SHA1) PasswordProof(serverKey *[32]byte, salt *[32]byte) (res [20]byte) {
+	var cstrp = C.CString(p.password)
+	defer C.free(unsafe.Pointer(cstrp))
+
+	C.hashPassword(cstrp, (*C.char)(unsafe.Pointer(&res[0])))
+	return res
+}
+
+// VerifyPassword after SRP exchange
+func (p *SHA1) VerifyPassword(proof *[20]byte) bool {
+	return true
 }

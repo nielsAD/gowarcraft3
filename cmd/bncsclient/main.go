@@ -34,6 +34,7 @@ var (
 	password    = flag.String("p", "", "Password")
 	newpassword = flag.String("np", "", "New password")
 	verify      = flag.Bool("verify", false, "Verify server signature")
+	sha1        = flag.Bool("sha1", false, "SHA1 password authentication (used in old PvPGN servers)")
 	create      = flag.Bool("create", false, "Create account")
 	changepass  = flag.Bool("changepass", false, "Change password")
 )
@@ -46,10 +47,12 @@ func main() {
 	flag.Parse()
 
 	c, err := bnet.NewClient(&bnet.Config{
-		BinPath:    *binpath,
-		ExeInfo:    *exeinfo,
-		ExeVersion: uint32(*exevers),
-		ExeHash:    uint32(*exehash),
+		BinPath:         *binpath,
+		ExeInfo:         *exeinfo,
+		ExeVersion:      uint32(*exevers),
+		ExeHash:         uint32(*exehash),
+		VerifySignature: *verify,
+		SHA1Auth:        *sha1,
 	})
 	if err != nil {
 		logErr.Fatal("NewClient error: ", err)

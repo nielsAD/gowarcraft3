@@ -33,6 +33,7 @@ type Config struct {
 	ExeVersion        uint32
 	ExeHash           uint32
 	VerifySignature   bool
+	SHA1Auth          bool
 	Username          string
 	Password          string
 	CDKeyOwner        string
@@ -237,7 +238,7 @@ func (b *Client) Dial() (*network.BNCSConn, error) {
 		return nil, err
 	}
 
-	if b.VerifySignature && !VerifyNLSSignature(conn.RemoteAddr().(*net.TCPAddr).IP, &authInfo.ServerSignature) {
+	if b.VerifySignature && !VerifyServerSignature(conn.RemoteAddr().(*net.TCPAddr).IP, &authInfo.ServerSignature) {
 		bncsconn.Close()
 		return nil, ErrInvalidServerSig
 	}
@@ -261,7 +262,7 @@ func (b *Client) Dial() (*network.BNCSConn, error) {
 //
 // Logon sequence:
 //   1. Client starts with Dial sequence ([0x50] SID_AUTH_INFO and [0x51] SID_AUTH_CHECK)
-//   2. Client waits for user to enter account information (standard logon shown, uses NLS):
+//   2. Client waits for user to enter account information (standard logon shown, uses SRP):
 //     1. C > S [0x53] SID_AUTH_ACCOUNTLOGON
 //     2. S > C [0x53] SID_AUTH_ACCOUNTLOGON
 //     3. C > S [0x54] SID_AUTH_ACCOUNTLOGONPROOF
@@ -279,19 +280,19 @@ func (b *Client) Dial() (*network.BNCSConn, error) {
 //  13. A sequence of chat events for entering chat follow.
 //
 func (b *Client) Logon() error {
-	nls, err := NewNLS(b.Username, b.Password)
+	srp, err := b.newSRP(b.Password)
 	if err != nil {
 		return err
 	}
 
-	defer nls.Free()
+	defer srp.Free()
 
 	bncsconn, err := b.Dial()
 	if err != nil {
 		return err
 	}
 
-	logon, err := b.sendLogon(bncsconn, nls)
+	logon, err := b.sendLogon(bncsconn, srp)
 	if err != nil {
 		bncsconn.Close()
 		return err
@@ -302,7 +303,7 @@ func (b *Client) Logon() error {
 		return LogonResultToError(logon.Result)
 	}
 
-	proof, err := b.sendLogonProof(bncsconn, nls, logon)
+	proof, err := b.sendLogonProof(bncsconn, srp, logon)
 	if err != nil {
 		bncsconn.Close()
 		return err
@@ -321,7 +322,7 @@ func (b *Client) Logon() error {
 		return LogonProofResultToError(proof.Result)
 	}
 
-	if !nls.VerifyPassword(&proof.ServerPasswordProof) {
+	if !srp.VerifyPassword(&proof.ServerPasswordProof) {
 		bncsconn.Close()
 		return ErrPasswordVerification
 	}
@@ -352,12 +353,12 @@ func (b *Client) Logon() error {
 //  3. Client can continue with logon ([0x53] SID_AUTH_ACCOUNTLOGON)
 //
 func (b *Client) CreateAccount() error {
-	nls, err := NewNLS(b.Username, b.Password)
+	srp, err := b.newSRP(b.Password)
 	if err != nil {
 		return err
 	}
 
-	defer nls.Free()
+	defer srp.Free()
 
 	bncsconn, err := b.Dial()
 	if err != nil {
@@ -366,7 +367,7 @@ func (b *Client) CreateAccount() error {
 
 	defer bncsconn.Close()
 
-	create, err := b.sendCreateAccount(bncsconn, nls)
+	create, err := b.sendCreateAccount(bncsconn, srp)
 	if err != nil {
 		return err
 	}
@@ -390,19 +391,19 @@ func (b *Client) CreateAccount() error {
 //  3. Client can continue with logon ([0x53] SID_AUTH_ACCOUNTLOGON)
 //
 func (b *Client) ChangePassword(newPassword string) error {
-	oldNLS, err := NewNLS(b.Username, b.Password)
+	oldSRP, err := b.newSRP(b.Password)
 	if err != nil {
 		return err
 	}
 
-	defer oldNLS.Free()
+	defer oldSRP.Free()
 
-	newNLS, err := NewNLS(b.Username, newPassword)
+	newSRP, err := b.newSRP(newPassword)
 	if err != nil {
 		return err
 	}
 
-	defer newNLS.Free()
+	defer newSRP.Free()
 
 	bncsconn, err := b.Dial()
 	if err != nil {
@@ -411,7 +412,7 @@ func (b *Client) ChangePassword(newPassword string) error {
 
 	defer bncsconn.Close()
 
-	resp, err := b.sendChangePass(bncsconn, oldNLS)
+	resp, err := b.sendChangePass(bncsconn, oldSRP)
 	if err != nil {
 		return err
 	}
@@ -420,7 +421,7 @@ func (b *Client) ChangePassword(newPassword string) error {
 		return LogonResultToError(resp.Result)
 	}
 
-	proof, err := b.sendChangePassProof(bncsconn, oldNLS, newNLS, resp)
+	proof, err := b.sendChangePassProof(bncsconn, oldSRP, newSRP, resp)
 	if err != nil {
 		return err
 	}
@@ -429,12 +430,19 @@ func (b *Client) ChangePassword(newPassword string) error {
 		return LogonProofResultToError(proof.Result)
 	}
 
-	if !oldNLS.VerifyPassword(&proof.ServerPasswordProof) {
+	if !oldSRP.VerifyPassword(&proof.ServerPasswordProof) {
 		return ErrPasswordVerification
 	}
 
 	b.Password = newPassword
 	return nil
+}
+
+func (b *Client) newSRP(password string) (SRP, error) {
+	if b.SHA1Auth {
+		return NewSHA1(password), nil
+	}
+	return NewNLS(b.Username, password)
 }
 
 func (b *Client) sendAuthInfo(conn *network.BNCSConn) (*bncs.AuthInfoResp, error) {
@@ -551,9 +559,9 @@ func (b *Client) sendAuthCheck(conn *network.BNCSConn, clientToken uint32, authi
 	}
 }
 
-func (b *Client) sendLogon(conn *network.BNCSConn, nls *NLS) (*bncs.AuthAccountLogonResp, error) {
+func (b *Client) sendLogon(conn *network.BNCSConn, srp SRP) (*bncs.AuthAccountLogonResp, error) {
 	var req = &bncs.AuthAccountLogonReq{
-		ClientKey: nls.ClientKey(),
+		ClientKey: srp.ClientKey(),
 		Username:  b.Username,
 	}
 
@@ -573,9 +581,9 @@ func (b *Client) sendLogon(conn *network.BNCSConn, nls *NLS) (*bncs.AuthAccountL
 	}
 }
 
-func (b *Client) sendLogonProof(conn *network.BNCSConn, nls *NLS, logon *bncs.AuthAccountLogonResp) (*bncs.AuthAccountLogonProofResp, error) {
+func (b *Client) sendLogonProof(conn *network.BNCSConn, srp SRP, logon *bncs.AuthAccountLogonResp) (*bncs.AuthAccountLogonProofResp, error) {
 	var req = &bncs.AuthAccountLogonProofReq{
-		ClientPasswordProof: nls.PasswordProof(&logon.ServerKey, &logon.Salt),
+		ClientPasswordProof: srp.PasswordProof(&logon.ServerKey, &logon.Salt),
 	}
 
 	if _, err := conn.Send(req); err != nil {
@@ -594,8 +602,8 @@ func (b *Client) sendLogonProof(conn *network.BNCSConn, nls *NLS, logon *bncs.Au
 	}
 }
 
-func (b *Client) sendCreateAccount(conn *network.BNCSConn, nls *NLS) (*bncs.AuthAccountCreateResp, error) {
-	salt, verifier, err := nls.AccountCreate()
+func (b *Client) sendCreateAccount(conn *network.BNCSConn, srp SRP) (*bncs.AuthAccountCreateResp, error) {
+	salt, verifier, err := srp.AccountCreate()
 	if err != nil {
 		return nil, err
 	}
@@ -620,10 +628,10 @@ func (b *Client) sendCreateAccount(conn *network.BNCSConn, nls *NLS) (*bncs.Auth
 	}
 }
 
-func (b *Client) sendChangePass(conn *network.BNCSConn, nls *NLS) (*bncs.AuthAccountChangePassResp, error) {
+func (b *Client) sendChangePass(conn *network.BNCSConn, srp SRP) (*bncs.AuthAccountChangePassResp, error) {
 	var req = &bncs.AuthAccountChangePassReq{
 		AuthAccountLogonReq: bncs.AuthAccountLogonReq{
-			ClientKey: nls.ClientKey(),
+			ClientKey: srp.ClientKey(),
 			Username:  b.Username,
 		},
 	}
@@ -644,14 +652,14 @@ func (b *Client) sendChangePass(conn *network.BNCSConn, nls *NLS) (*bncs.AuthAcc
 	}
 }
 
-func (b *Client) sendChangePassProof(conn *network.BNCSConn, oldNLS *NLS, newNLS *NLS, resp *bncs.AuthAccountChangePassResp) (*bncs.AuthAccountChangePassProofResp, error) {
-	salt, verifier, err := newNLS.AccountCreate()
+func (b *Client) sendChangePassProof(conn *network.BNCSConn, oldSRP SRP, newSRP SRP, resp *bncs.AuthAccountChangePassResp) (*bncs.AuthAccountChangePassProofResp, error) {
+	salt, verifier, err := newSRP.AccountCreate()
 	if err != nil {
 		return nil, err
 	}
 
 	var req = &bncs.AuthAccountChangePassProofReq{
-		ClientPasswordProof: oldNLS.PasswordProof(&resp.ServerKey, &resp.Salt),
+		ClientPasswordProof: oldSRP.PasswordProof(&resp.ServerKey, &resp.Salt),
 	}
 	copy(req.NewSalt[:], salt)
 	copy(req.NewVerifier[:], verifier)
