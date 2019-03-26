@@ -66,9 +66,18 @@ type Listener interface {
 	OffAll(a EventArg)
 }
 
+type topicLiteral string
+
+// Topic literal
+func Topic(s string) interface{} {
+	return topicLiteral(s)
+}
+
 func topic(a EventArg) string {
 	if a == nil {
 		return "*"
+	} else if s, ok := a.(topicLiteral); ok {
+		return (string)(s)
 	}
 	return reflect.TypeOf(a).String()
 }

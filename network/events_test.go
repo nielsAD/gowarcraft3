@@ -154,6 +154,25 @@ func TestEmitterRecursive(t *testing.T) {
 	}
 }
 
+func TestLiteralTopic(t *testing.T) {
+	var e network.EventEmitter
+	var fired bool
+
+	e.On(network.Topic("hello world"), func(ev *network.Event) {
+		fired = true
+	})
+
+	e.Fire("Foo")
+	if fired {
+		t.Fatal("Topic fired too early")
+	}
+
+	e.Fire(network.Topic("hello world"))
+	if !fired {
+		t.Fatal("Topic not fired")
+	}
+}
+
 func TestCatchAll(t *testing.T) {
 	var e network.EventEmitter
 	var fired int
