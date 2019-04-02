@@ -5,8 +5,12 @@
 package w3m
 
 import (
+	"bytes"
+	"encoding/base64"
 	"errors"
 	"fmt"
+	"image"
+	"image/png"
 )
 
 // Errors
@@ -335,4 +339,55 @@ func (u UpgradeAvailability) String() string {
 	default:
 		return fmt.Sprintf("UpgradeAvailability(0x%02X)", uint32(u))
 	}
+}
+
+// MinimapIcon enum
+type MinimapIcon uint32
+
+// MinimapIcon for preview
+const (
+	IconGold MinimapIcon = iota
+	IconNeutral
+	IconCross
+)
+
+func decodePNG(s string) image.Image {
+	b, err := base64.StdEncoding.DecodeString(s)
+	if err != nil {
+		panic(err)
+	}
+
+	i, err := png.Decode(bytes.NewBuffer(b))
+	if err != nil {
+		panic(err)
+	}
+
+	return i
+}
+
+var minimapIcons = []image.Image{
+	decodePNG("iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAACXBIWXMAAC4jAAAuIwF4pT92AAAAuElEQVQ4y2NkQID/DKQBRgYGBgYmBgoBI8xmCRGIQJQPhA71gNAw8bW7IHTfAgj97BWEptgFLDBGiDuEjvGD0KoGEJqHB0IX20JoVlYInd9KJRfAw2BhO0RATRFCiwpCw0AUQnNDxT/dhtD8ZtQOg99/IPS3H1CbvkL9DFXBJgahn79GNYB6Ljh9BUKLQ+OdBc3o31ch9PwNtHLBxr3QaGGE0OZ6EJqdDUKfvAShV22nsgsYBzw3AgDVICMT7NZMOgAAAABJRU5ErkJggg=="),
+	decodePNG("iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAACXBIWXMAAC4jAAAuIwF4pT92AAAAU0lEQVQ4y2NkwA3+o/EZsSliYqAQMOKy+f8HNIUC2PVQ1QVYbcbQgOYSqriAkJ8Z8MlT7AIWdBNJCAPquYARR8ojKgapFwYYyfEDcQZQPyXSPQwAljMSIhzGkQQAAAAASUVORK5CYII="),
+	decodePNG("iVBORw0KGgoAAAANSUhEUgAAABAAAAAQCAYAAAAf8/9hAAAABHNCSVQICAgIfAhkiAAAAJtJREFUOI2VU0ESAyEIQ+vD8rPAz/Rl7aXsULoWm5MjgUAGRBJUVfPfr1g/TS45qqrPN+5Iu3j3IElW6g6S9CIPfwCAEwCgtdbmnHMnsNZaADByu1UnZmZeVERkxBl3hUgyJ5aoTHX0XeAUI3+4Wmw7jpO7+fLAyWZmkZzNvUzMiRVuedGwk02MnGsTfd4T5PE+VKprLPfg33N+AWWYpOCBd4mNAAAAAElFTkSuQmCC"),
+}
+
+func (i MinimapIcon) String() string {
+	switch i {
+	case IconGold:
+		return "GoldMine"
+	case IconNeutral:
+		return "NeutralBuilding"
+	case IconCross:
+		return "StartLoc"
+	default:
+		return fmt.Sprintf("MinimapIcon(0x%02X)", uint32(i))
+	}
+}
+
+// Icon image
+func (i MinimapIcon) Icon() image.Image {
+	if i < 0 || int(i) >= len(minimapIcons) {
+		return nil
+	}
+	return minimapIcons[i]
 }

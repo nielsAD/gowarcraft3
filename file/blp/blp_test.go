@@ -16,7 +16,7 @@ import (
 )
 
 func TestJPEG(t *testing.T) {
-	var TEST_SHA = "NOrg3TQ0Ii6z5GgGg7pWJpNQSwbW6vB6tzC6hkQsDV9raZpuKkRM/HbIpq9TdJviLURPqGLvntrzIHOopUcRaw"
+	var TEST_SHA = "cF03T1FzQzhwZwm3F/yp0fo8uDbHe/3qqqOQyJLKcg5HEHQTtk5M08L6mbDoRvzdbWd8SgWNQ+Fb3qSaovCuYg"
 
 	f, err := os.Open("./test.blp")
 	if err != nil {

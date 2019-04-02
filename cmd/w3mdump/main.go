@@ -77,7 +77,7 @@ func main() {
 	if *preview != "" {
 		img, err := m.Preview()
 		if err == os.ErrNotExist {
-			img, err = m.Minimap()
+			img, err = m.MenuMinimap()
 		}
 		if err != nil {
 			logErr.Fatal(err)
@@ -87,6 +87,8 @@ func main() {
 		if err != nil {
 			logErr.Fatal(err)
 		}
+		defer out.Close()
+
 		if err := png.Encode(out, img); err != nil {
 			logErr.Fatal(err)
 		}

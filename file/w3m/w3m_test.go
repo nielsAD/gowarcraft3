@@ -79,7 +79,7 @@ func TestInfo(t *testing.T) {
 				CustomTechAvailabilities:    []w3m.CustomTechAvailability{},
 			},
 			"",
-			"eFgUj6ZD1iWaQgZxBfUahFy8szz9lv/j+smSnJg9DrJs998fLOiBHG1WHgDR/mqFCVNof+yg3Kvir3ZezAOLXA",
+			"rEfl+K13/fxgOhjUqXxjPjsoLb7JulvzFvNpMab101cr8V9wKLNZFQcUD+TFSH2j7mgMoSb9bAyBkYA6sZU0Cg",
 			"0xDD4E3EBE|P5c/izfa1qstJu5zYYVyc2FD2gE",
 		},
 		{
@@ -134,7 +134,7 @@ func TestInfo(t *testing.T) {
 				CustomTechAvailabilities:    []w3m.CustomTechAvailability{},
 			},
 			"",
-			"NOrg3TQ0Ii6z5GgGg7pWJpNQSwbW6vB6tzC6hkQsDV9raZpuKkRM/HbIpq9TdJviLURPqGLvntrzIHOopUcRaw",
+			"cF03T1FzQzhwZwm3F/yp0fo8uDbHe/3qqqOQyJLKcg5HEHQTtk5M08L6mbDoRvzdbWd8SgWNQ+Fb3qSaovCuYg",
 			"0x7F321A74|/1ndO+WvBCWiQutD9VyCefo3GYM",
 		},
 	}
