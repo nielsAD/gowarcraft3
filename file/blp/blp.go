@@ -8,6 +8,7 @@ package blp
 import (
 	"errors"
 	"image"
+	"image/draw"
 	"image/jpeg"
 	"io"
 	"strings"
@@ -83,7 +84,7 @@ func Decode(r io.Reader) (image.Image, error) {
 		b.Skip(offset)
 		imgBuf = append(imgBuf, b.ReadBlob(int(mmSize[0]))...)
 
-		img, err := jpeg.Decode(&protocol.Buffer{Bytes: imgBuf})
+		jpg, err := jpeg.Decode(&protocol.Buffer{Bytes: imgBuf})
 
 		// Workaround for CMYK image without APP14 marker
 		if err != nil && strings.Contains(err.Error(), "Adobe APP14") {
@@ -93,10 +94,22 @@ func Decode(r io.Reader) (image.Image, error) {
 				'A', 'd', 'o', 'b', 'e',
 				0, 0, 0, 0, 0, 0, 0,
 			}, imgBuf[2:]...)
-			img, err = jpeg.Decode(&protocol.Buffer{Bytes: imgBuf})
+			jpg, err = jpeg.Decode(&protocol.Buffer{Bytes: imgBuf})
 		}
 
-		return img, err
+		if err != nil {
+			return nil, err
+		}
+
+		// BGR to RGB
+		var img = image.NewRGBA(jpg.Bounds())
+		draw.Draw(img, img.Rect, jpg, img.Rect.Min, draw.Src)
+
+		for i, m := 0, img.Rect.Dx()*img.Rect.Dy(); i < m; i++ {
+			img.Pix[i*4+0], img.Pix[i*4+2] = img.Pix[i*4+2], img.Pix[i*4+0]
+		}
+
+		return img, nil
 
 	// case 0x01: PALETTE
 	default:
