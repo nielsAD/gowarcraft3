@@ -33,7 +33,7 @@ Example
         CamBounds:[-9728 -5120 9728 3584 -9728 3584 9728 -5120]
         CamBoundsCompl:[18 14 8 16]
         Width:160 Height:72
-        Flags:Melee|RevealTerrain|WaterWavesOnCliffShoes|WaterWavesOnSlopeShores|MapFlags(0x8400)
+        Flags:Melee|RevealTerrain|WaterWavesOnCliffShores|WaterWavesOnSlopeShores|MapFlags(0x8400)
         Tileset:LordaeronSummer
         LsBackground:4294967295
         LsPath:

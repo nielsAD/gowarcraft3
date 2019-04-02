@@ -138,7 +138,7 @@ const (
 	MapFlagCustomTechTree          MapFlags = 0x0080
 	MapFlagCustomAbilities         MapFlags = 0x0100
 	MapFlagCustomUpgrades          MapFlags = 0x0200
-	MapFlagWaterWavesOnCliffShoes  MapFlags = 0x0800
+	MapFlagWaterWavesOnCliffShores MapFlags = 0x0800
 	MapFlagWaterWavesOnSlopeShores MapFlags = 0x1000
 )
 
@@ -180,9 +180,9 @@ func (f MapFlags) String() string {
 		res += "|CustomUpgrades"
 		f &= ^MapFlagCustomUpgrades
 	}
-	if f&MapFlagWaterWavesOnCliffShoes != 0 {
-		res += "|WaterWavesOnCliffShoes"
-		f &= ^MapFlagWaterWavesOnCliffShoes
+	if f&MapFlagWaterWavesOnCliffShores != 0 {
+		res += "|WaterWavesOnCliffShores"
+		f &= ^MapFlagWaterWavesOnCliffShores
 	}
 	if f&MapFlagWaterWavesOnSlopeShores != 0 {
 		res += "|WaterWavesOnSlopeShores"

@@ -57,7 +57,7 @@ func TestInfo(t *testing.T) {
 				CamBoundsCompl:   [4]uint32{6, 6, 4, 8},
 				Width:            20,
 				Height:           20,
-				Flags:            w3m.MapFlagRevealTerrain | w3m.MapFlagWaterWavesOnCliffShoes | w3m.MapFlagWaterWavesOnSlopeShores | w3m.MapFlags(0x8400),
+				Flags:            w3m.MapFlagRevealTerrain | w3m.MapFlagWaterWavesOnCliffShores | w3m.MapFlagWaterWavesOnSlopeShores | w3m.MapFlags(0x8400),
 				Tileset:          w3m.TileLordaeronSummer,
 				LsBackground:     0xFFFFFFFF,
 				Players: []w3m.Player{
@@ -98,7 +98,7 @@ func TestInfo(t *testing.T) {
 				CamBoundsCompl:   [4]uint32{1, 1, 1, 5},
 				Width:            30,
 				Height:           26,
-				Flags:            w3m.MapFlagRevealTerrain | w3m.MapFlagWaterWavesOnCliffShoes | w3m.MapFlagWaterWavesOnSlopeShores | w3m.MapFlags(0xC400),
+				Flags:            w3m.MapFlagRevealTerrain | w3m.MapFlagWaterWavesOnCliffShores | w3m.MapFlagWaterWavesOnSlopeShores | w3m.MapFlags(0xC400),
 				Tileset:          w3m.TileLordaeronSummer,
 				LsBackground:     0xFFFFFFFF,
 				FogStart:         3000,
