@@ -50,7 +50,7 @@ func (m *Map) MinimapIcons() (image.Image, error) {
 		return nil, err
 	}
 
-	// File format
+	// Format version
 	if b.ReadUInt32() != 0 {
 		return nil, ErrBadFormat
 	}
@@ -85,15 +85,7 @@ func (m *Map) MinimapIcons() (image.Image, error) {
 		if (rgba == color.RGBA{255, 255, 255, 255}) {
 			draw.Draw(img, orect, i, irect.Min, draw.Over)
 		} else {
-			// Create mask to color icon
-			var mask = image.NewRGBA(irect)
-			for x := irect.Min.X; x < irect.Max.X; x++ {
-				for y := irect.Min.Y; y < irect.Max.Y; y++ {
-					mask.SetRGBA(x, y, rgba)
-				}
-			}
-
-			draw.DrawMask(img, orect, mask, irect.Min, i, irect.Min, draw.Over)
+			draw.DrawMask(img, orect, &image.Uniform{rgba}, irect.Min, i, irect.Min, draw.Over)
 		}
 	}
 
