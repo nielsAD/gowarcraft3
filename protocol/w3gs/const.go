@@ -89,10 +89,11 @@ const (
 	LayoutMelee               SlotLayout = 0x00
 	LayoutCustomForces        SlotLayout = 0x01
 	LayoutFixedPlayerSettings SlotLayout = 0x02
+	LayoutLadder              SlotLayout = 0xCC
 )
 
 func (s SlotLayout) String() string {
-	if s&(LayoutMelee|LayoutCustomForces|LayoutFixedPlayerSettings) != s {
+	if s&(LayoutMelee|LayoutCustomForces|LayoutFixedPlayerSettings|LayoutLadder) != s {
 		return fmt.Sprintf("SlotLayout(0x%02X)", uint8(s))
 	}
 
@@ -104,6 +105,9 @@ func (s SlotLayout) String() string {
 	}
 	if s&LayoutFixedPlayerSettings != 0 {
 		res += "(Fixed)"
+	}
+	if s&LayoutLadder != 0 {
+		res += "(Ladder)"
 	}
 	return res
 }
@@ -291,6 +295,32 @@ func (m MessageType) String() string {
 		return "ChatExtra"
 	default:
 		return fmt.Sprintf("MessageType(0x%02X)", uint8(m))
+	}
+}
+
+// MessageScope enum
+type MessageScope uint32
+
+// Message scope
+const (
+	ScopeAll       MessageScope = 0x00
+	ScopeAllies    MessageScope = 0x01
+	ScopeObservers MessageScope = 0x02
+
+	// Directed chat to player N = Scope - ChatDirected, if Scope >= ChatDirected
+	ScopeDirected MessageScope = 0x03
+)
+
+func (s MessageScope) String() string {
+	switch s {
+	case ScopeAll:
+		return "All"
+	case ScopeAllies:
+		return "Allies"
+	case ScopeObservers:
+		return "Observers"
+	default:
+		return fmt.Sprintf("ToPlayer(%d)", uint32(s-ScopeDirected))
 	}
 }
 

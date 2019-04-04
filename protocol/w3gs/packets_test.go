@@ -211,7 +211,7 @@ func TestPackets(t *testing.T) {
 				RecipientIDs: []uint8{1, 2},
 				SenderID:     4,
 				Type:         w3gs.MsgChatExtra,
-				ExtraFlags:   5,
+				Scope:        w3gs.ScopeAllies,
 				Content:      "Pitiful",
 			},
 		},
