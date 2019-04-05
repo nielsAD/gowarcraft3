@@ -157,7 +157,7 @@ func (d *Decompressor) ForEach(f func(r Record) error) error {
 	var b = bufio.NewReaderSize(d, 8192)
 	var buf DeserializationBuffer
 
-	for true {
+	for {
 		r, _, err := DeserializeRecordWithBuffer(b, &buf)
 		switch err {
 		case nil:
@@ -170,7 +170,6 @@ func (d *Decompressor) ForEach(f func(r Record) error) error {
 			return err
 		}
 	}
-	return nil
 }
 
 // Close DataDecoder

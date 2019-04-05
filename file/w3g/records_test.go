@@ -107,9 +107,7 @@ func TestRecords(t *testing.T) {
 		},
 		&w3g.TimeSlotAck{},
 		&w3g.TimeSlotAck{
-			TimeSlotAck: w3gs.TimeSlotAck{
-				Checksum: 456,
-			},
+			Checksum: []byte{4, 5, 6},
 		},
 		&w3g.Desync{},
 		&w3g.Desync{
@@ -160,8 +158,8 @@ func TestRecords(t *testing.T) {
 		}
 
 		err = rec.Deserialize(&protocol.Buffer{Bytes: make([]byte, 0)})
-		if err != w3g.ErrBadFormat {
-			t.Fatalf("ErrBadFormat expected for %v", reflect.TypeOf(rec))
+		if err != w3g.ErrBufferTooShort {
+			t.Fatalf("ErrBufferTooShort expected for %v", reflect.TypeOf(rec))
 		}
 	}
 }

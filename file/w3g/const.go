@@ -11,6 +11,7 @@ import (
 // Errors
 var (
 	ErrBadFormat       = errors.New("w3g: Invalid file format")
+	ErrBufferTooShort  = errors.New("w3g: Buffer too short")
 	ErrInvalidChecksum = errors.New("w3g: Checksum invalid")
 	ErrUnexpectedConst = errors.New("w3g: Unexpected constant value")
 	ErrUnknownRecord   = errors.New("w3g: Unknown record ID")

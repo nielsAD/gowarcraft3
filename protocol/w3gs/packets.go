@@ -1708,7 +1708,9 @@ func (gs *GameSettings) DeserializeContent(buf *protocol.Buffer) error {
 	var size = b.Size()
 	gs.GameSettingFlags = GameSettingFlags(b.ReadUInt32())
 
-	if b.ReadUInt8() != 0 {
+	switch b.ReadUInt8() {
+	case 0, 2:
+	default:
 		return ErrUnexpectedConst
 	}
 

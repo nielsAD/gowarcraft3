@@ -2,7 +2,7 @@
 // Project: gowarcraft3 (https://github.com/nielsAD/gowarcraft3)
 // License: Mozilla Public License, v2.0
 
-// w3gsdump is a tool that decodes and dumps w3m/w3x files.
+// w3mdump is a tool that decodes and dumps w3m/w3x files.
 package main
 
 import (
@@ -32,12 +32,12 @@ func main() {
 
 	m, err := w3m.Open(filename)
 	if err != nil {
-		logErr.Fatal(filename, " ", err)
+		logErr.Fatal("Open error: ", err)
 	}
 
 	info, err := m.Info()
 	if err != nil {
-		logErr.Fatal(filename, " ", err)
+		logErr.Fatal("Info error: ", err)
 	}
 
 	var defaultFiles = make(map[string]io.Reader)
@@ -54,7 +54,7 @@ func main() {
 
 	hash, err := m.Checksum(defaultFiles)
 	if err != nil {
-		logErr.Fatal(filename, " ", err)
+		logErr.Fatal("Checksum error: ", err)
 	}
 
 	var print = struct {
@@ -80,17 +80,17 @@ func main() {
 			img, err = m.MenuMinimap()
 		}
 		if err != nil {
-			logErr.Fatal(err)
+			logErr.Fatal("Preview error: ", err)
 		}
 
 		out, err := os.Create(*preview)
 		if err != nil {
-			logErr.Fatal(err)
+			logErr.Fatal("os.Create error: ", err)
 		}
 		defer out.Close()
 
 		if err := png.Encode(out, img); err != nil {
-			logErr.Fatal(err)
+			logErr.Fatal("png.Encode error: ", err)
 		}
 	}
 }

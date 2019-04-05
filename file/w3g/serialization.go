@@ -46,7 +46,7 @@ type DeserializationBuffer struct {
 // DeserializeRecordWithBufferRaw reads exactly one record from buf and returns it in the proper (deserialized) record type.
 func DeserializeRecordWithBufferRaw(r []byte, b *DeserializationBuffer) (Record, int, error) {
 	var pbuf = protocol.Buffer{Bytes: r}
-	if pbuf.Size() < 5 {
+	if pbuf.Size() < 2 {
 		return nil, 0, io.ErrUnexpectedEOF
 	}
 
@@ -126,22 +126,44 @@ type Peeker interface {
 
 // DeserializeRecordWithBuffer reads exactly one record from r and returns it in the proper (deserialized) record type.
 func DeserializeRecordWithBuffer(r Peeker, b *DeserializationBuffer) (Record, int, error) {
-	bytes, err := r.Peek(2048)
-	if len(bytes) == 0 {
-		if err != nil {
+	var peek = 1024
+
+	for {
+		bytes, peekErr := r.Peek(peek)
+		if len(bytes) == 0 {
+			return nil, 0, peekErr
+		}
+
+		// Skip padding
+		if bytes[0] == 0 {
+			var n = 1
+			var l = len(bytes)
+			for n < l && bytes[n] == 0 {
+				n++
+			}
+
+			if d, err := r.Discard(n); err != nil {
+				return nil, d, err
+			}
+			continue
+		}
+
+		rec, n, err := DeserializeRecordWithBufferRaw(bytes, b)
+		switch err {
+		case nil:
+			if d, err := r.Discard(n); err != nil {
+				return nil, d, err
+			}
+			return rec, n, nil
+		case ErrBufferTooShort:
+			if peekErr != nil {
+				return nil, 0, peekErr
+			}
+			peek *= 2
+		default:
 			return nil, 0, err
 		}
-		return nil, 0, io.ErrUnexpectedEOF
 	}
-
-	rec, n, err := DeserializeRecordWithBufferRaw(bytes, b)
-	if err != nil {
-		return nil, 0, err
-	}
-	if d, err := r.Discard(n); err != nil {
-		return nil, d, err
-	}
-	return rec, n, nil
 }
 
 // DeserializeRecordRaw reads exactly one record from r and returns it in the proper (deserialized) record type.

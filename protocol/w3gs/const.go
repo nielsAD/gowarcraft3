@@ -430,12 +430,12 @@ type GameFlags uint32
 // Game flags
 const (
 	GameFlagCustomGame   GameFlags = 0x000001
-	GameFlagOfficialGame GameFlags = 0x000009 // Blizzard signed map
-	GameFlagSinglePlayer GameFlags = 0x00001D
+	GameFlagSinglePlayer GameFlags = 0x000005
 	GameFlagTeamLadder   GameFlags = 0x000020
 	GameFlagSavedGame    GameFlags = 0x000200
-	GameFlagTypeMask     GameFlags = 0x0002FF
+	GameFlagTypeMask     GameFlags = 0x000225
 
+	GameFlagSignedMap   GameFlags = 0x000008
 	GameFlagPrivateGame GameFlags = 0x000800
 
 	GameFlagCreatorUser     GameFlags = 0x002000
@@ -466,8 +466,6 @@ func (f GameFlags) String() string {
 	switch f & GameFlagTypeMask {
 	case GameFlagCustomGame:
 		res = "|Custom"
-	case GameFlagOfficialGame:
-		res = "|Official"
 	case GameFlagSinglePlayer:
 		res = "|SinglePlayer"
 	case GameFlagTeamLadder:
@@ -480,6 +478,9 @@ func (f GameFlags) String() string {
 		return fmt.Sprintf("GameFlags(0x%06X)", uint32(f))
 	}
 
+	if f&GameFlagSignedMap != 0 {
+		res += "|SignedMap"
+	}
 	if f&GameFlagPrivateGame != 0 {
 		res += "|Private"
 	}
@@ -540,7 +541,7 @@ func (f GameFlags) String() string {
 		return fmt.Sprintf("GameFlags(0x%06X)", uint32(f))
 	}
 
-	f &= ^(GameFlagTypeMask | GameFlagPrivateGame | GameFlagCreatorMask | GameFlagSizeMask | GameFlagMapTypeMask | GameFlagObsMask)
+	f &= ^(GameFlagTypeMask | GameFlagSignedMap | GameFlagPrivateGame | GameFlagCreatorMask | GameFlagSizeMask | GameFlagMapTypeMask | GameFlagObsMask)
 
 	if f != 0 {
 		res += fmt.Sprintf("|GameFlags(0x%02X)", uint32(f))

@@ -10,9 +10,8 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/nielsAD/gowarcraft3/protocol/w3gs"
-
 	"github.com/nielsAD/gowarcraft3/file/w3g"
+	"github.com/nielsAD/gowarcraft3/protocol/w3gs"
 )
 
 func b64(s string) []byte {
@@ -47,7 +46,7 @@ func TestFiles(t *testing.T) {
 						MapPath:          "Maps\\(4)LostTemple.w3m",
 						HostName:         "Go4WC3.Sapor",
 					},
-					GameFlags:  w3gs.GameFlagOfficialGame | w3gs.GameFlagPrivateGame,
+					GameFlags:  w3gs.GameFlagCustomGame | w3gs.GameFlagSignedMap | w3gs.GameFlagPrivateGame,
 					NumSlots:   12,
 					LanguageID: 7206592,
 				},
@@ -77,8 +76,8 @@ func TestFiles(t *testing.T) {
 				},
 				Records: []w3g.Record{
 					&w3g.TimeSlot{w3gs.TimeSlot{Fragment: true, TimeIncrementMS: 100}},
-					&w3g.TimeSlot{w3gs.TimeSlot{Fragment: true, TimeIncrementMS: 100, Actions: []w3gs.PlayerAction{w3gs.PlayerAction{PlayerID: 10, Data: b64("AAAAFgAAAAAWAAAAAAAWAAAAABYAAAAAABYAAAAAFgAAAAAAFgAAAAAWAAAAAAAWAAAAABYAAAA=")}}}},
-					&w3g.TimeSlot{w3gs.TimeSlot{Fragment: true, TimeIncrementMS: 100, Actions: []w3gs.PlayerAction{w3gs.PlayerAction{PlayerID: 9, Data: b64("AAAAABYAAAAAABYAAAAAFgAAAAAAFgAAAAAWAAAAAAAWAAAAABYAAAAAABYAAAAAFgAAAAAAFgAAAA==")}, w3gs.PlayerAction{PlayerID: 10, Data: b64("AAAAABYAAAAAFgAAAAAAFgAAAAAWAA==")}}}},
+					&w3g.TimeSlot{w3gs.TimeSlot{Fragment: true, TimeIncrementMS: 100, Actions: []w3gs.PlayerAction{w3gs.PlayerAction{PlayerID: 10, Data: b64("FgIBAIlLAACMSwAAFgEFAKtLAACuSwAAw0sAAMZLAADbSwAA3ksAAPNLAAD2SwAAC0wAAA5MAAA=")}}}},
+					&w3g.TimeSlot{w3gs.TimeSlot{Fragment: true, TimeIncrementMS: 100, Actions: []w3gs.PlayerAction{w3gs.PlayerAction{PlayerID: 9, Data: b64("FgIBAMBKAADASgAAFgEFABRLAAAXSwAAKksAAC1LAABASwAAQ0sAAFZLAABZSwAAbEsAAG9LAAAZAA==")}, w3gs.PlayerAction{PlayerID: 10, Data: b64("EggDAA0AAACAxAAA2EXfQAAA30AAAA==")}}}},
 				},
 			},
 		},
@@ -138,8 +137,8 @@ func TestFiles(t *testing.T) {
 					},
 				},
 				Records: []w3g.Record{
-					&w3g.TimeSlot{w3gs.TimeSlot{TimeIncrementMS: 251, Actions: []w3gs.PlayerAction{w3gs.PlayerAction{PlayerID: 1, Data: b64("AAEHAAAABQAAAAAABQAAAAAAhTcAAOiWAAAiBCabVw==")}}}},
-					&w3g.TimeSlot{w3gs.TimeSlot{TimeIncrementMS: 250, Actions: []w3gs.PlayerAction{w3gs.PlayerAction{PlayerID: 1, Data: b64("AAkBIgSvhXaPHwIA+gAiBGJpFT4fAgD5ACIEqiwIwQ==")}, w3gs.PlayerAction{PlayerID: 1, Data: b64("+gAiBExiuDsfAgAJASIEIDYoaR8CAAkBIgQECteeHw==")}}}},
+					&w3g.TimeSlot{w3gs.TimeSlot{TimeIncrementMS: 251, Actions: []w3gs.PlayerAction{w3gs.PlayerAction{PlayerID: 1, Data: b64("EgAAAwANAP//////////AAAgxQAApEU3QQAAQ0EAAA==")}}}},
+					&w3g.TimeSlot{w3gs.TimeSlot{TimeIncrementMS: 250, Actions: []w3gs.PlayerAction{w3gs.PlayerAction{PlayerID: 1, Data: b64("EgAAAwANAP//////////AAAgxQAApEU3QQAAQ0EAAA==")}, w3gs.PlayerAction{PlayerID: 1, Data: b64("EgAAAwANAP//////////AAAgxQAApEU3QQAAQ0EAAA==")}}}},
 					&w3g.TimeSlot{w3gs.TimeSlot{TimeIncrementMS: 250}},
 				},
 			},
@@ -168,7 +167,7 @@ func TestFiles(t *testing.T) {
 						HostName:         "niels",
 						MapSha1:          [20]byte{107, 111, 100, 67, 248, 197, 26, 44, 89, 111, 217, 78, 123, 106, 91, 101, 208, 6, 70, 129},
 					},
-					GameFlags:  w3gs.GameFlagOfficialGame,
+					GameFlags:  w3gs.GameFlagCustomGame | w3gs.GameFlagSignedMap,
 					NumSlots:   24,
 					LanguageID: 0,
 				},
@@ -198,7 +197,7 @@ func TestFiles(t *testing.T) {
 					},
 				},
 				Records: []w3g.Record{
-					&w3g.TimeSlot{w3gs.TimeSlot{TimeIncrementMS: 0, Actions: []w3gs.PlayerAction{w3gs.PlayerAction{PlayerID: 1, Data: b64("AAQAAAAAAAQAAAAABAAAAAAABAAAAAAEAAAAAAAEAA==")}}}},
+					&w3g.TimeSlot{w3gs.TimeSlot{TimeIncrementMS: 0, Actions: []w3gs.PlayerAction{w3gs.PlayerAction{PlayerID: 1, Data: b64("EhgAAwANAP//////////AACwxQAAYEXMMQAAzDEAAA==")}}}},
 					&w3g.TimeSlot{w3gs.TimeSlot{TimeIncrementMS: 100}},
 					&w3g.TimeSlot{w3gs.TimeSlot{TimeIncrementMS: 100}},
 				},
@@ -221,7 +220,8 @@ func TestFiles(t *testing.T) {
 		rep.Records = rep.Records[20:23]
 
 		if !reflect.DeepEqual(&f.replay, rep) {
-			t.Log(fmt.Sprintf("%+v\n", *rep))
+			t.Log(fmt.Sprintf("REF: %+v\n", f.replay))
+			t.Log(fmt.Sprintf("OUT: %+v\n", *rep))
 			t.Fatal(f.file, "Replay is not deep equal")
 		}
 	}

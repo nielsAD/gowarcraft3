@@ -182,7 +182,15 @@ func Decode(r io.Reader) (*Replay, error) {
 			res.Players = append(res.Players, *v)
 		case *TimeSlot:
 			var cpy = *v
-			cpy.Actions = append(([]w3gs.PlayerAction)(nil), cpy.Actions...)
+
+			cpy.Actions = nil
+			for _, a := range v.Actions {
+				cpy.Actions = append(cpy.Actions, w3gs.PlayerAction{
+					PlayerID: a.PlayerID,
+					Data:     append(([]byte)(nil), a.Data...),
+				})
+			}
+
 			res.Records = append(res.Records, &cpy)
 		case *ChatMessage:
 			var cpy = *v
