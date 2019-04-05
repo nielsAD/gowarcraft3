@@ -58,7 +58,7 @@ func main() {
 		logErr.Fatal("NewClient error: ", err)
 	}
 
-	c.ServerAddr = strings.Join(flag.Args(), " ")
+	c.ServerAddr = strings.Join(flag.Args(), ":")
 	if c.ServerAddr == "" {
 		c.ServerAddr = "uswest.battle.net:6112"
 	}

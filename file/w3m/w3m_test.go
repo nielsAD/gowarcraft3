@@ -31,7 +31,7 @@ func shaImage(img image.Image) string {
 	return base64.RawStdEncoding.EncodeToString(sha[:])
 }
 
-func TestInfo(t *testing.T) {
+func TestFiles(t *testing.T) {
 	var files = []struct {
 		file       string
 		signed     bool

@@ -638,7 +638,7 @@ func (gs *GameSettings) Serialize(buf *protocol.Buffer) {
 	strconv.AppendInt(b[:0], int64(c), 16)
 	buf.WriteBlob(b)
 
-	gs.GameSettings.Serialize(buf)
+	gs.GameSettings.SerializeContent(buf)
 }
 
 // Deserialize GameSettings from StatString
@@ -659,7 +659,7 @@ func (gs *GameSettings) Deserialize(buf *protocol.Buffer) error {
 		return err
 	}
 
-	if err := gs.GameSettings.Deserialize(buf); err != nil {
+	if err := gs.GameSettings.DeserializeContent(buf); err != nil {
 		return err
 	}
 
@@ -1153,7 +1153,7 @@ func (pkt *NotifyJoin) Serialize(buf *protocol.Buffer) error {
 	buf.WriteUInt8(ProtocolSig)
 	buf.WriteUInt8(PidNotifyJoin)
 	buf.WriteUInt16(uint16(14 + len(pkt.GameName)))
-	pkt.GameVersion.Serialize(buf)
+	pkt.GameVersion.SerializeContent(buf)
 	buf.WriteCString(pkt.GameName)
 	buf.WriteUInt8(0)
 	return nil
@@ -1166,7 +1166,7 @@ func (pkt *NotifyJoin) Deserialize(buf *protocol.Buffer) error {
 		return ErrInvalidPacketSize
 	}
 
-	pkt.GameVersion.Deserialize(buf)
+	pkt.GameVersion.DeserializeContent(buf)
 
 	var err error
 	if pkt.GameName, err = buf.ReadCString(); err != nil {
@@ -1350,7 +1350,7 @@ func (pkt *AuthInfoReq) Serialize(buf *protocol.Buffer) error {
 
 	buf.WriteUInt32(0)
 	buf.WriteBEDString(pkt.PlatformCode)
-	pkt.GameVersion.Serialize(buf)
+	pkt.GameVersion.SerializeContent(buf)
 	buf.WriteBEDString(pkt.LanguageCode)
 
 	if err := buf.WriteIP(pkt.LocalIP); err != nil {
@@ -1378,7 +1378,7 @@ func (pkt *AuthInfoReq) Deserialize(buf *protocol.Buffer) error {
 	}
 
 	pkt.PlatformCode = buf.ReadBEDString()
-	pkt.GameVersion.Deserialize(buf)
+	pkt.GameVersion.DeserializeContent(buf)
 	pkt.LanguageCode = buf.ReadBEDString()
 	pkt.LocalIP = buf.ReadIP()
 	pkt.TimeZoneBias = buf.ReadUInt32()

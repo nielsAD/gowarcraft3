@@ -69,7 +69,7 @@ func main() {
 			logErr.Fatal(err)
 		}
 	} else {
-		var addr = strings.Join(flag.Args(), " ")
+		var addr = strings.Join(flag.Args(), ":")
 		if addr == "" {
 			addr = "127.0.0.1:6112"
 		}
@@ -164,7 +164,7 @@ func main() {
 			return
 		}
 
-		var cmd = strings.Split(chat.Content, " ")
+		var cmd = strings.Fields(chat.Content)
 		switch strings.ToLower(cmd[0]) {
 		case "!say":
 			d.Say(strings.Join(cmd[1:], " "))
