@@ -13,6 +13,7 @@ Usage
 
 |   Flag   |  Type  | Description |
 |----------|--------|-------------|
+|`-header` |`bool`  |Decode header only|
 |`-json`   |`bool`  |Print machine readable format|
 
 Example
@@ -20,10 +21,20 @@ Example
 
 ```bash
 ➜ ./w3gdump "lastreplay.w3g"
-{
 Header         {GameVersion:{Product:W3XP Version:10030} BuildNumber:6061 DurationMS:640650 SinglePlayer:true}
 GameInfo       {HostPlayer:{ID:1 Name:niels Race:RacePref(0x00) JoinCounter:0} GameName:Local Game GameSettings:{GameSettingFlags:SpeedFast|TerrainDefault|ObsNone|TeamsTogether|TeamsFixed MapWidth:116 MapHeight:84 MapXoro:2599102717 MapPath:Maps/FrozenThrone//(2)EchoIsles.w3x HostName:niels MapSha1:[]} GameFlags:Custom|SignedMap NumSlots:24 LanguageID:0}
 SlotInfo       {SlotInfo:{Slots:[{PlayerID:1 DownloadStatus:100 SlotStatus:Occupied Computer:false Team:0 Color:0 Race:Random(Selectable) ComputerType:Normal Handicap:100} {PlayerID:0 DownloadStatus:100 SlotStatus:Occupied Computer:true Team:1 Color:1 Race:Random(Selectable) ComputerType:Normal Handicap:100}] RandomSeed:40053178 SlotLayout:Melee NumPlayers:2}}
+CountDownStart {GameStart:{}}
+CountDownEnd   {GameStart:{}}
+GameStart      {}
+TimeSlot       {TimeSlot:{Fragment:false TimeIncrementMS:100 Actions:[]}}
+TimeSlotAck    {Checksum:[3 171 6 32]}
+
+...
+
+TimeSlot       {TimeSlot:{Fragment:false TimeIncrementMS:101 Actions:[]}}
+TimeSlotAck    {Checksum:[69 44 194 113]}
+PlayerLeft     {Local:true PlayerID:1 Reason:Lost Counter:4}
 ```
 
 Download
