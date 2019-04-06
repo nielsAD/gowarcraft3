@@ -17,6 +17,7 @@ Tools
 |[w3gsclient](./cmd/w3gsclient)|A mocked Warcraft III game client that can be used to add dummy players to games.|
 |  [bncsdump](./cmd/bncsdump)  |A tool that decodes and dumps BNCS packets via pcap (on the wire or from a file).|
 |  [w3gsdump](./cmd/w3gsdump)  |A tool that decodes and dumps W3GS packets via pcap (on the wire or from a file).|
+|   [w3gdump](./cmd/w3gdump)   |A tool that decodes and dumps w3g/nwg files.|
 |   [w3mdump](./cmd/w3mdump)   |A tool that decodes and dumps w3m/w3x files.|
 
 ### Download
