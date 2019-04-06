@@ -5,6 +5,9 @@
 package w3g
 
 import (
+	"strings"
+	"unicode"
+
 	"github.com/nielsAD/gowarcraft3/protocol"
 	"github.com/nielsAD/gowarcraft3/protocol/w3gs"
 )
@@ -201,15 +204,8 @@ func (rec *PlayerInfo) DeserializeContent(buf *protocol.Buffer) error {
 	}
 
 	switch len {
-	case 0x02:
-		if buf.ReadUInt8() != 0 {
-			return ErrUnexpectedConst
-		}
-		fallthrough
-	case 0x01:
-		if buf.ReadUInt8() != 0 {
-			return ErrUnexpectedConst
-		}
+	case 0x01, 0x02:
+		buf.Skip(int(len))
 		fallthrough
 	case 0x00:
 		rec.JoinCounter = 0
@@ -491,7 +487,7 @@ func (rec *TimeSlot) Deserialize(buf *protocol.Buffer) error {
 	size -= 2
 
 	rec.Actions = rec.Actions[:0]
-	for size > 3 {
+	for size >= 3 {
 		var action = w3gs.PlayerAction{
 			PlayerID: buf.ReadUInt8(),
 		}
@@ -599,7 +595,24 @@ func (rec *ChatMessage) Deserialize(buf *protocol.Buffer) error {
 		if rec.Content, err = buf.ReadCString(); err != nil {
 			return err
 		}
-		if size != 2+len(rec.Content) {
+
+		// Parse extra strings (nwg quirk)
+		size -= 2 + len(rec.Content)
+		for size > 0 {
+			s, err := buf.ReadCString()
+			if err != nil {
+				return err
+			}
+
+			if strings.IndexFunc(s, func(r rune) bool { return !unicode.IsPrint(r) }) != -1 {
+				return ErrBadFormat
+			}
+
+			rec.Content += s
+			size -= len(s) + 1
+		}
+
+		if size != 0 {
 			return ErrBadFormat
 		}
 	default:
@@ -663,17 +676,13 @@ func (rec *TimeSlotAck) Deserialize(buf *protocol.Buffer) error {
 //      1 byte  | unknown (always 0?)
 //
 type Desync struct {
-	Unknown1 uint32
-	Checksum uint32
+	w3gs.Desync
 }
 
 // Serialize encodes the struct into its binary form.
 func (rec *Desync) Serialize(buf *protocol.Buffer) error {
 	buf.WriteUInt8(RidDesync)
-	buf.WriteUInt32(rec.Unknown1)
-	buf.WriteUInt8(4)
-	buf.WriteUInt32(rec.Checksum)
-	buf.WriteUInt8(0)
+	rec.SerializeContent(buf)
 	return nil
 }
 
@@ -686,17 +695,7 @@ func (rec *Desync) Deserialize(buf *protocol.Buffer) error {
 	// Skip record ID
 	buf.Skip(1)
 
-	rec.Unknown1 = buf.ReadUInt32()
-	if buf.ReadUInt8() != 4 {
-		return ErrUnexpectedConst
-	}
-
-	rec.Checksum = buf.ReadUInt32()
-	if buf.ReadUInt8() != 0 {
-		return ErrUnexpectedConst
-	}
-
-	return nil
+	return rec.DeserializeContent(buf)
 }
 
 // EndTimer record [0x2F]

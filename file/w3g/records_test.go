@@ -111,8 +111,11 @@ func TestRecords(t *testing.T) {
 		},
 		&w3g.Desync{},
 		&w3g.Desync{
-			Unknown1: 234,
-			Checksum: 567,
+			Desync: w3gs.Desync{
+				Unknown1:       234,
+				Checksum:       567,
+				PlayersInState: []uint8{1, 2, 3},
+			},
 		},
 		&w3g.EndTimer{},
 		&w3g.EndTimer{

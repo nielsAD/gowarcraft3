@@ -180,6 +180,7 @@ func TestPackets(t *testing.T) {
 		},
 		&w3gs.Desync{},
 		&w3gs.Desync{
+			Unknown1:       987,
 			Checksum:       789,
 			PlayersInState: []uint8{1, 2, 3},
 		},

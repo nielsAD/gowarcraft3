@@ -47,6 +47,8 @@
 package w3g
 
 import (
+	"bufio"
+	"bytes"
 	"hash/crc32"
 	"io"
 	"io/ioutil"
@@ -130,16 +132,7 @@ func DecodeHeader(r io.Reader) (*Header, *Decompressor, int, error) {
 	}
 
 	hdr.BuildNumber = pbuf.ReadUInt16()
-
-	switch pbuf.ReadUInt16() {
-	case 0x0000:
-		hdr.SinglePlayer = true
-	case 0x8000:
-		hdr.SinglePlayer = false
-	default:
-		return nil, nil, n, ErrUnexpectedConst
-	}
-
+	hdr.SinglePlayer = pbuf.ReadUInt16() == 0
 	hdr.DurationMS = pbuf.ReadUInt32()
 
 	var crc = pbuf.ReadUInt32()
@@ -160,6 +153,30 @@ func DecodeHeader(r io.Reader) (*Header, *Decompressor, int, error) {
 	}
 
 	return &hdr, NewDecompressor(r, numBlocks, sizeBlocks), n, err
+}
+
+// FindHeader in r
+func FindHeader(r Peeker) (int, error) {
+	var n = 0
+
+	for {
+		b, err := r.Peek(2048)
+		if len(b) == 0 {
+			return n, err
+		}
+
+		var idx = bytes.Index(b, []byte(Signature))
+		var del = idx
+		if del < 0 {
+			del = 2048 - len(Signature) + 1
+		}
+		nn, err := r.Discard(del)
+		n += nn
+
+		if idx >= 0 || err != nil {
+			return n, err
+		}
+	}
 }
 
 // Decode a w3g file
@@ -236,9 +253,13 @@ func Open(name string) (*Replay, error) {
 	if err != nil {
 		return nil, err
 	}
+	defer f.Close()
 
-	rep, err := Decode(f)
-	f.Close()
+	var b = bufio.NewReaderSize(f, 8192)
+	if _, err := FindHeader(b); err != nil {
+		return nil, ErrBadFormat
+	}
 
+	rep, err := Decode(b)
 	return rep, err
 }
