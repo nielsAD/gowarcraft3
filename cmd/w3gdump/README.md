@@ -11,10 +11,11 @@ Usage
 
 `./w3gdump [options] [path]`
 
-|   Flag   |  Type  | Description |
-|----------|--------|-------------|
-|`-header` |`bool`  |Decode header only|
-|`-json`   |`bool`  |Print machine readable format|
+|    Flag   |  Type  | Description |
+|-----------|--------|-------------|
+|`-sanitize`|`string`|Dump cleaned up replay to this file (no chat, sane colors)|
+|`-header`  |`bool`  |Decode header only|
+|`-json`    |`bool`  |Print machine readable format|
 
 Example
 -------

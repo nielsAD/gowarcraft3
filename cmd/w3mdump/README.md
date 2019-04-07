@@ -13,8 +13,8 @@ Usage
 
 |   Flag   |  Type  | Description |
 |----------|--------|-------------|
-|`-json`   |`bool`  |Print machine readable format|
 |`-preview`|`path`  |Dump preview image to this file|
+|`-json`   |`bool`  |Print machine readable format|
 
 Example
 -------

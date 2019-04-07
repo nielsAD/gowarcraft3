@@ -276,6 +276,8 @@ func Decode(r io.Reader) (*Replay, error) {
 			res.Records = append(res.Records, &cpy)
 		case *Desync:
 			var cpy = *v
+			cpy.PlayersInState = append(([]byte)(nil), cpy.PlayersInState...)
+
 			res.Records = append(res.Records, &cpy)
 		case *EndTimer:
 			var cpy = *v

@@ -20,8 +20,9 @@ import (
 )
 
 var (
-	header  = flag.Bool("header", false, "Decode header only")
-	jsonout = flag.Bool("json", false, "Print machine readable format")
+	sanitize = flag.String("sanitize", "", "Dump cleaned up replay to this file (no chat, sane colors)")
+	header   = flag.Bool("header", false, "Decode header only")
+	jsonout  = flag.Bool("json", false, "Print machine readable format")
 )
 
 var logOut = log.New(os.Stdout, "", 0)
@@ -61,17 +62,74 @@ func main() {
 		logErr.Fatal("DecodeHeader error: ", err)
 	}
 
+	var e *w3g.Encoder
+	if *sanitize != "" {
+		o, err := os.Create(*sanitize)
+		if err != nil {
+			logErr.Fatal("Open error: ", err)
+		}
+		defer o.Close()
+
+		e, err = w3g.NewEncoder(o)
+		if err != nil {
+			logErr.Fatal("NewEncoder error: ", err)
+		}
+		e.Header = *hdr
+	}
+
+	var skip = false
+	var maxp = uint8(24)
+	if hdr.GameVersion.Version < 29 {
+		maxp = uint8(12)
+	}
+
 	print(hdr)
 	if err := data.ForEach(func(r w3g.Record) error {
-		if *header {
-			switch r.(type) {
-			case *w3g.CountDownStart, *w3g.CountDownEnd, *w3g.GameStart:
-				return errBreakEarly
+		if e != nil {
+			var write = true
+
+			switch v := r.(type) {
+			case *w3g.ChatMessage:
+				write = false
+			case *w3g.SlotInfo:
+				var c = uint8(0)
+				for i := range v.Slots {
+					if v.Slots[i].Team >= maxp {
+						continue
+					}
+					v.Slots[i].Color = c
+					c++
+				}
+			}
+
+			if write {
+				if _, err := e.WriteRecord(r); err != nil {
+					return err
+				}
 			}
 		}
-		print(r)
+		if !skip && *header {
+			switch r.(type) {
+			case *w3g.CountDownStart, *w3g.CountDownEnd, *w3g.GameStart:
+				if e == nil {
+					return errBreakEarly
+				}
+
+				skip = true
+			}
+		}
+
+		if !skip {
+			print(r)
+		}
 		return nil
 	}); err != nil && err != errBreakEarly {
 		logErr.Fatal("Data error: ", err)
+	}
+
+	if e != nil {
+		if err := e.Close(); err != nil {
+			logErr.Fatal("Save error: ", err)
+		}
 	}
 }
