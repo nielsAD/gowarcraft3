@@ -155,7 +155,7 @@ func DeserializeRecordWithBuffer(r Peeker, b *DeserializationBuffer) (Record, in
 				return nil, d, err
 			}
 			return rec, n, nil
-		case ErrBufferTooShort:
+		case io.ErrShortBuffer:
 			if peekErr != nil {
 				return nil, 0, peekErr
 			}

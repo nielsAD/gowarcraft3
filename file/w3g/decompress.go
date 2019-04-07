@@ -17,13 +17,12 @@ import (
 
 // Decompressor is an io.Reader that decompresses data blocks
 type Decompressor struct {
-	Size      uint32
-	BlockSize uint16
+	SizeRead  uint32 // Compressed size read in total
+	SizeTotal uint32 // Decompressed size left to read in total
+	SizeBlock uint16 // Decompressed size left to read current block
+	NumBlocks uint32 // Blocks left to read
 
 	r   io.Reader
-	idx uint32
-	len uint32
-
 	dec io.ReadCloser
 	lim io.LimitedReader
 
@@ -32,34 +31,35 @@ type Decompressor struct {
 }
 
 // NewDecompressor for compressed w3g data
-func NewDecompressor(r io.Reader, numBlocks uint32, size uint32) *Decompressor {
+func NewDecompressor(r io.Reader, numBlocks uint32, sizeTotal uint32) *Decompressor {
 	return &Decompressor{
-		r:    r,
-		len:  numBlocks,
-		Size: size,
+		r:         r,
+		SizeTotal: sizeTotal,
+		NumBlocks: numBlocks,
 	}
 }
 
 func (d *Decompressor) nextBlock() error {
-	if d.idx >= d.len {
+	if d.NumBlocks == 0 {
 		return io.EOF
 	}
-	if d.idx > 0 {
-		if err := d.closeBlock(); err != nil {
-			return err
-		}
+	if err := d.closeBlock(); err != nil {
+		return err
 	}
-	d.idx++
+
+	d.NumBlocks--
 
 	var buf [8]byte
-	_, err := io.ReadFull(d.r, buf[:8])
+	n, err := io.ReadFull(d.r, buf[:8])
+
+	d.SizeRead += uint32(n)
 	if err != nil {
 		return err
 	}
 
 	var pbuf = protocol.Buffer{Bytes: buf[:]}
 	var lenDeflate = pbuf.ReadUInt16()
-	d.BlockSize = pbuf.ReadUInt16()
+	d.SizeBlock = pbuf.ReadUInt16()
 
 	var crcHead = pbuf.ReadUInt16()
 	d.crcData = pbuf.ReadUInt16()
@@ -82,6 +82,8 @@ func (d *Decompressor) nextBlock() error {
 
 	// Tee to hash to calculate crc while decompressing
 	d.dec, err = zlib.NewReader(io.TeeReader(&d.lim, d.crc))
+	d.SizeRead += uint32(lenDeflate - uint16(d.lim.N))
+
 	return err
 }
 
@@ -89,11 +91,9 @@ func (d *Decompressor) closeBlock() error {
 	if d.dec == nil {
 		return nil
 	}
-
-	d.dec.Close()
 	d.dec = nil
 
-	if d.BlockSize > 0 || d.lim.N > 0 {
+	if d.SizeBlock > 0 || d.lim.N > 0 {
 		return io.ErrUnexpectedEOF
 	}
 
@@ -107,14 +107,14 @@ func (d *Decompressor) closeBlock() error {
 
 // Read implements the io.Reader interface.
 func (d *Decompressor) Read(b []byte) (int, error) {
-	if d.Size == 0 {
+	if d.SizeTotal == 0 || d.NumBlocks == 0 {
 		return 0, io.EOF
 	}
 
 	var n = 0
 	var l = len(b)
-	if uint32(l) > d.Size {
-		b = b[:d.Size]
+	if uint32(l) > d.SizeTotal {
+		b = b[:d.SizeTotal]
 		l = len(b)
 	}
 
@@ -125,18 +125,20 @@ func (d *Decompressor) Read(b []byte) (int, error) {
 			}
 		}
 
+		var r = d.lim.N
 		nn, err := io.ReadFull(d.dec, b[n:])
-		d.Size -= uint32(nn)
-		d.BlockSize -= uint16(nn)
+		d.SizeRead += uint32(r - d.lim.N)
+		d.SizeTotal -= uint32(nn)
+		d.SizeBlock -= uint16(nn)
 		n += nn
 
 		switch err {
 		case nil:
-			if d.Size == 0 && d.BlockSize > 0 {
+			if d.SizeTotal == 0 && d.SizeBlock > 0 {
 				nn, _ := io.Copy(ioutil.Discard, d.dec)
-				d.BlockSize -= uint16(nn)
+				d.SizeBlock -= uint16(nn)
 			}
-			if d.BlockSize > 0 {
+			if d.SizeBlock > 0 {
 				continue
 			}
 			fallthrough
@@ -169,12 +171,5 @@ func (d *Decompressor) ForEach(f func(r Record) error) error {
 		default:
 			return err
 		}
-	}
-}
-
-// Close DataDecoder
-func (d *Decompressor) Close() {
-	if d.dec != nil {
-		d.dec.Close()
 	}
 }

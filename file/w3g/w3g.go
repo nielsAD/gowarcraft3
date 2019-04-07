@@ -185,7 +185,6 @@ func Decode(r io.Reader) (*Replay, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer data.Close()
 
 	var res = Replay{Header: *hdr}
 	if err := data.ForEach(func(r Record) error {

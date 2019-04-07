@@ -5,6 +5,7 @@ package w3g_test
 
 import (
 	"bytes"
+	"io"
 	"reflect"
 	"testing"
 
@@ -161,8 +162,8 @@ func TestRecords(t *testing.T) {
 		}
 
 		err = rec.Deserialize(&protocol.Buffer{Bytes: make([]byte, 0)})
-		if err != w3g.ErrBufferTooShort {
-			t.Fatalf("ErrBufferTooShort expected for %v", reflect.TypeOf(rec))
+		if err != io.ErrShortBuffer {
+			t.Fatalf("ErrShortBuffer expected for %v", reflect.TypeOf(rec))
 		}
 	}
 }

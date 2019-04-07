@@ -60,7 +60,6 @@ func main() {
 	if err != nil {
 		logErr.Fatal("DecodeHeader error: ", err)
 	}
-	defer data.Close()
 
 	print(hdr)
 	if err := data.ForEach(func(r w3g.Record) error {
