@@ -107,7 +107,7 @@ func (d *Decompressor) closeBlock() error {
 
 // Read implements the io.Reader interface.
 func (d *Decompressor) Read(b []byte) (int, error) {
-	if d.SizeTotal == 0 || d.NumBlocks == 0 {
+	if d.SizeTotal == 0 {
 		return 0, io.EOF
 	}
 

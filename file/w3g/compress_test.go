@@ -12,6 +12,7 @@ import (
 
 	"github.com/nielsAD/gowarcraft3/file/w3g"
 	"github.com/nielsAD/gowarcraft3/protocol"
+	"github.com/nielsAD/gowarcraft3/protocol/w3gs"
 )
 
 func TestCompress(t *testing.T) {
@@ -61,5 +62,50 @@ func TestCompress(t *testing.T) {
 	}
 	if n, err := d.Read(buf[:]); err != io.EOF || n != 0 {
 		t.Fatalf("Expected d.Read() to be EOF, but got %s", err.Error())
+	}
+}
+
+func TestCompressBuffer(t *testing.T) {
+	var b protocol.Buffer
+	var c = w3g.NewBufferedCompressor(&b)
+	for i := 0; i < 10000; i++ {
+		if _, err := c.WriteRecord(&w3g.TimeSlot{TimeSlot: w3gs.TimeSlot{
+			TimeIncrementMS: 100,
+			Actions: []w3gs.PlayerAction{
+				w3gs.PlayerAction{
+					PlayerID: byte(i),
+					Data:     []byte{2, 3, 4, 5, 6},
+				},
+			},
+		}}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if err := c.Close(); err != nil {
+		t.Fatal(err)
+	}
+
+	if c.NumBlocks != 16 {
+		t.Fatalf("Expected 16 blocks, but got %d", c.NumBlocks)
+	}
+
+	var i = 0
+	var d = w3g.NewDecompressor(&b, c.NumBlocks, c.SizeTotal)
+	if err := d.ForEach(func(r w3g.Record) error {
+		ts, ok := r.(*w3g.TimeSlot)
+		if !ok {
+			t.Fatal("Expected TimeSlot")
+		}
+		if ts.TimeIncrementMS != 100 || len(ts.Actions) != 1 || ts.Actions[0].PlayerID != byte(i) || len(ts.Actions[0].Data) != 5 {
+			t.Fatal("Corrupt data")
+		}
+		i++
+		return nil
+	}); err != nil {
+		t.Fatal(err)
+	}
+
+	if i != 10000 {
+		t.Fatalf("Expected 10000 records, but got %d", i)
 	}
 }

@@ -85,17 +85,18 @@ func (d *Compressor) Write(b []byte) (int, error) {
 
 // BufferedCompressor is an io.Writer that compresses data blocks
 type BufferedCompressor struct {
-	bufio.Writer
-	Compressor
+	*bufio.Writer
+	*Compressor
+	b SerializationBuffer
 }
 
 // NewBufferedCompressorSize for compressed w3g with specified buffer size
 func NewBufferedCompressorSize(w io.Writer, size int) *BufferedCompressor {
-	var res = BufferedCompressor{
-		Compressor: *NewCompressor(w),
+	var c = NewCompressor(w)
+	return &BufferedCompressor{
+		Compressor: c,
+		Writer:     bufio.NewWriterSize(c, size),
 	}
-	res.Writer = *bufio.NewWriterSize(&res.Compressor, size)
-	return &res
 }
 
 // NewBufferedCompressor for compressed w3g with default buffer size
@@ -108,11 +109,31 @@ func (d *BufferedCompressor) Write(p []byte) (int, error) {
 	return d.Writer.Write(p)
 }
 
-// Flush writes any buffered data
-func (d *BufferedCompressor) Flush() error {
+// WriteRecord serializes r and writes it to d
+func (d *BufferedCompressor) WriteRecord(r Record) (int, error) {
+	return SerializeRecordWithBuffer(d, &d.b, r)
+}
+
+// WriteRecords serializes r and writes to d
+func (d *BufferedCompressor) WriteRecords(r ...Record) (int, error) {
+	var n = 0
+	for _, v := range r {
+		nn, err := d.WriteRecord(v)
+		n += nn
+
+		if err != nil {
+			return n, err
+		}
+	}
+	return n, nil
+}
+
+// Close adds padding to fill last block and flushes any buffered data
+func (d *BufferedCompressor) Close() error {
 	var a = d.Available()
-	if a > 0 {
-		d.Writer.Write(make([]byte, a))
+	if a > 0 && d.Buffered() > 0 {
+		n, _ := d.Writer.Write(make([]byte, a))
+		d.SizeTotal -= uint32(n)
 	}
 	return d.Writer.Flush()
 }

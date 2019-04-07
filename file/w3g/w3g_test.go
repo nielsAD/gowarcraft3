@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	"github.com/nielsAD/gowarcraft3/file/w3g"
+	"github.com/nielsAD/gowarcraft3/protocol"
 	"github.com/nielsAD/gowarcraft3/protocol/w3gs"
 )
 
@@ -68,8 +69,8 @@ func TestFiles(t *testing.T) {
 						NumPlayers: 4,
 					},
 				},
-				Players: []w3g.PlayerInfo{
-					w3g.PlayerInfo{
+				Players: []*w3g.PlayerInfo{
+					&w3g.PlayerInfo{
 						ID:   2,
 						Name: "Go4WC3.Desann",
 					},
@@ -128,8 +129,8 @@ func TestFiles(t *testing.T) {
 						NumPlayers: 4,
 					},
 				},
-				Players: []w3g.PlayerInfo{
-					w3g.PlayerInfo{
+				Players: []*w3g.PlayerInfo{
+					&w3g.PlayerInfo{
 						ID:          2,
 						Name:        "Fighting-",
 						Race:        w3gs.RaceUndead,
@@ -190,8 +191,8 @@ func TestFiles(t *testing.T) {
 						NumPlayers: 2,
 					},
 				},
-				Players: []w3g.PlayerInfo{
-					w3g.PlayerInfo{
+				Players: []*w3g.PlayerInfo{
+					&w3g.PlayerInfo{
 						ID:   1,
 						Name: "niels",
 					},
@@ -211,18 +212,33 @@ func TestFiles(t *testing.T) {
 			t.Fatal("Loading file", err)
 		}
 
-		if len(rep.Players) > 1 {
-			rep.Players = rep.Players[1:2]
+		var trunc = *rep
+		if len(trunc.Players) > 1 {
+			trunc.Players = trunc.Players[1:2]
 		}
-		if len(rep.Slots) > 1 {
-			rep.Slots = rep.Slots[1:2]
+		if len(trunc.Slots) > 1 {
+			trunc.Slots = trunc.Slots[1:2]
 		}
-		rep.Records = rep.Records[20:23]
+		trunc.Records = trunc.Records[20:23]
 
-		if !reflect.DeepEqual(&f.replay, rep) {
+		if !reflect.DeepEqual(f.replay, trunc) {
 			t.Log(fmt.Sprintf("REF: %+v\n", f.replay))
-			t.Log(fmt.Sprintf("OUT: %+v\n", *rep))
+			t.Log(fmt.Sprintf("OUT: %+v\n", trunc))
 			t.Fatal(f.file, "Replay is not deep equal")
+		}
+
+		var b protocol.Buffer
+		if err := rep.Encode(&b); err != nil {
+			t.Fatal("Encode", err)
+		}
+
+		rep2, err := w3g.Decode(&b)
+		if err != nil {
+			t.Fatal("Decode", err)
+		}
+
+		if !reflect.DeepEqual(rep, rep2) {
+			t.Fatal(f.file, "Replays not deep equal after encode/decode")
 		}
 	}
 }

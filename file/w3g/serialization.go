@@ -13,10 +13,10 @@ import (
 // SerializationBuffer is used by SerializeRecordWithBuffer to bring amortized allocs to 0 for repeated calls
 type SerializationBuffer = protocol.Buffer
 
-// SerializeRecordWithBuffer serializes p and writes it to w.
-func SerializeRecordWithBuffer(w io.Writer, b *SerializationBuffer, p Record) (int, error) {
+// SerializeRecordWithBuffer serializes r and writes it to w.
+func SerializeRecordWithBuffer(w io.Writer, b *SerializationBuffer, r Record) (int, error) {
 	b.Truncate()
-	if err := p.Serialize(b); err != nil {
+	if err := r.Serialize(b); err != nil {
 		return 0, err
 	}
 	return w.Write(b.Bytes)

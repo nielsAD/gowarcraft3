@@ -77,8 +77,91 @@ type Replay struct {
 	Header
 	GameInfo
 	SlotInfo
-	Players []PlayerInfo
+	Players []*PlayerInfo
 	Records []Record
+}
+
+// Open a w3g file
+func Open(name string) (*Replay, error) {
+	f, err := os.Open(name)
+	if err != nil {
+		return nil, err
+	}
+	defer f.Close()
+
+	var b = bufio.NewReaderSize(f, 8192)
+	if _, err := FindHeader(b); err != nil {
+		return nil, ErrBadFormat
+	}
+
+	rep, err := Decode(b)
+	return rep, err
+}
+
+// Save a w3g file
+func (r *Replay) Save(name string) error {
+	f, err := os.Create(name)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+
+	return r.Encode(f)
+}
+
+// Encode to w
+func (r *Replay) Encode(w io.Writer) error {
+	e, err := NewEncoder(w)
+	if err != nil {
+		return err
+	}
+
+	if _, err := e.WriteRecords(&r.GameInfo, &r.SlotInfo); err != nil {
+		return err
+	}
+	for _, p := range r.Players {
+		if p.ID == r.HostPlayer.ID {
+			// Skip host
+			continue
+		}
+		if _, err := e.WriteRecord(p); err != nil {
+			return err
+		}
+	}
+	if _, err := e.WriteRecords(&CountDownStart{}, &CountDownEnd{}, &GameStart{}); err != nil {
+		return err
+	}
+
+	if _, err := e.WriteRecords(r.Records...); err != nil {
+		return err
+	}
+
+	e.Header = r.Header
+	return e.Close()
+}
+
+// FindHeader in r
+func FindHeader(r Peeker) (int, error) {
+	var n = 0
+
+	for {
+		b, err := r.Peek(2048)
+		if len(b) == 0 {
+			return n, err
+		}
+
+		var idx = bytes.Index(b, []byte(Signature))
+		var del = idx
+		if del < 0 {
+			del = 2048 - len(Signature) + 1
+		}
+		nn, err := r.Discard(del)
+		n += nn
+
+		if idx >= 0 || err != nil {
+			return n, err
+		}
+	}
 }
 
 // DecodeHeader a w3g file, returns header and a Decompressor to read compressed records
@@ -155,30 +238,6 @@ func DecodeHeader(r io.Reader) (*Header, *Decompressor, int, error) {
 	return &hdr, NewDecompressor(r, numBlocks, sizeBlocks), n, err
 }
 
-// FindHeader in r
-func FindHeader(r Peeker) (int, error) {
-	var n = 0
-
-	for {
-		b, err := r.Peek(2048)
-		if len(b) == 0 {
-			return n, err
-		}
-
-		var idx = bytes.Index(b, []byte(Signature))
-		var del = idx
-		if del < 0 {
-			del = 2048 - len(Signature) + 1
-		}
-		nn, err := r.Discard(del)
-		n += nn
-
-		if idx >= 0 || err != nil {
-			return n, err
-		}
-	}
-}
-
 // Decode a w3g file
 func Decode(r io.Reader) (*Replay, error) {
 	hdr, data, _, err := DecodeHeader(r)
@@ -191,11 +250,12 @@ func Decode(r io.Reader) (*Replay, error) {
 		switch v := r.(type) {
 		case *GameInfo:
 			res.GameInfo = *v
-			res.Players = []PlayerInfo{res.GameInfo.HostPlayer}
+			res.Players = []*PlayerInfo{&res.GameInfo.HostPlayer}
 		case *SlotInfo:
 			res.SlotInfo = *v
 		case *PlayerInfo:
-			res.Players = append(res.Players, *v)
+			var cpy = *v
+			res.Players = append(res.Players, &cpy)
 		case *TimeSlot:
 			var cpy = *v
 
@@ -246,19 +306,86 @@ func Decode(r io.Reader) (*Replay, error) {
 	return &res, nil
 }
 
-// Open a w3g file
-func Open(name string) (*Replay, error) {
-	f, err := os.Open(name)
-	if err != nil {
-		return nil, err
-	}
-	defer f.Close()
+// Encoder compresses records and updates header on close
+type Encoder struct {
+	Header
+	*BufferedCompressor
 
-	var b = bufio.NewReaderSize(f, 8192)
-	if _, err := FindHeader(b); err != nil {
-		return nil, ErrBadFormat
+	b protocol.Buffer
+	w io.Writer
+}
+
+// NewEncoder for replay file
+func NewEncoder(w io.Writer) (*Encoder, error) {
+	var res = Encoder{
+		w: w,
 	}
 
-	rep, err := Decode(b)
-	return rep, err
+	if _, ok := w.(io.Seeker); ok {
+		// Write placeholder for header
+		var h [68]byte
+		if _, err := w.Write(h[:]); err != nil {
+			return nil, err
+		}
+
+		res.BufferedCompressor = NewBufferedCompressor(w)
+	} else {
+		res.BufferedCompressor = NewBufferedCompressor(&res.b)
+	}
+
+	return &res, nil
+}
+
+// Close writer, flush data, and update header.
+// Does not close underlying writer.
+func (e *Encoder) Close() error {
+	if err := e.BufferedCompressor.Close(); err != nil {
+		return err
+	}
+
+	var buf [68]byte
+	var pbuf = protocol.Buffer{Bytes: buf[:0]}
+	pbuf.WriteCString(Signature)
+	pbuf.WriteUInt32(68)
+	pbuf.WriteUInt32(e.SizeWritten + 68)
+	pbuf.WriteUInt32(1)
+	pbuf.WriteUInt32(e.SizeTotal)
+	pbuf.WriteUInt32(e.NumBlocks)
+	e.GameVersion.SerializeContent(&pbuf)
+	pbuf.WriteUInt16(e.BuildNumber)
+	if e.SinglePlayer {
+		pbuf.WriteUInt16(0x0000)
+	} else {
+		pbuf.WriteUInt16(0x8000)
+	}
+	pbuf.WriteUInt32(e.DurationMS)
+	pbuf.WriteUInt32(0)
+	pbuf.WriteUInt32At(64, crc32.ChecksumIEEE(pbuf.Bytes))
+
+	s, seeker := e.w.(io.Seeker)
+	if seeker {
+		// Seek to beginning
+		if _, err := s.Seek(-int64(e.BufferedCompressor.SizeWritten+68), io.SeekCurrent); err != nil {
+			return err
+		}
+		// Overwrite header
+		if n, err := e.w.Write(pbuf.Bytes); err != nil {
+			s.Seek(-int64(e.BufferedCompressor.SizeWritten+68-uint32(n)), io.SeekCurrent)
+			return err
+		}
+		// Seek to end
+		if _, err := s.Seek(int64(e.BufferedCompressor.SizeWritten), io.SeekCurrent); err != nil {
+			return err
+		}
+		return nil
+	}
+
+	if _, err := e.w.Write(pbuf.Bytes); err != nil {
+		return err
+	}
+	if _, err := e.w.Write(e.b.Bytes); err != nil {
+		return err
+	}
+
+	return nil
 }
