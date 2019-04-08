@@ -14,6 +14,20 @@ import (
 	"github.com/nielsAD/gowarcraft3/protocol/w3gs"
 )
 
+var ts = w3g.TimeSlot{TimeSlot: w3gs.TimeSlot{
+	TimeIncrementMS: 100,
+	Actions: func() []w3gs.PlayerAction {
+		var res []w3gs.PlayerAction
+		for i := 0; i < 24; i++ {
+			res = append(res, w3gs.PlayerAction{
+				PlayerID: byte(i),
+				Data:     []byte{2, 3, 4, 5, 6},
+			})
+		}
+		return res
+	}(),
+}}
+
 func TestRecords(t *testing.T) {
 	var types = []w3g.Record{
 		&w3g.GameInfo{},
@@ -87,16 +101,7 @@ func TestRecords(t *testing.T) {
 		&w3g.CountDownEnd{},
 		&w3g.GameStart{},
 		&w3g.TimeSlot{},
-		&w3g.TimeSlot{
-			TimeSlot: w3gs.TimeSlot{
-				Fragment:        false,
-				TimeIncrementMS: 50,
-				Actions: []w3gs.PlayerAction{
-					w3gs.PlayerAction{PlayerID: 1, Data: make([]byte, 23)},
-					w3gs.PlayerAction{PlayerID: 12, Data: make([]byte, 3)},
-				},
-			},
-		},
+		&ts,
 		&w3g.ChatMessage{},
 		&w3g.ChatMessage{
 			Message: w3gs.Message{

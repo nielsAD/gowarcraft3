@@ -23,8 +23,9 @@ type Decompressor struct {
 	NumBlocks uint32 // Blocks left to read
 
 	r   io.Reader
-	dec io.ReadCloser
-	lim io.LimitedReader
+	z   io.ReadCloser
+	tee io.Reader
+	lim *io.LimitedReader
 
 	crc     hash.Hash32
 	crcData uint16
@@ -32,10 +33,17 @@ type Decompressor struct {
 
 // NewDecompressor for compressed w3g data
 func NewDecompressor(r io.Reader, numBlocks uint32, sizeTotal uint32) *Decompressor {
+	var lim = io.LimitedReader{R: r}
+	var crc = crc32.NewIEEE()
+	var tee = io.TeeReader(&lim, crc)
+
 	return &Decompressor{
-		r:         r,
 		SizeTotal: sizeTotal,
 		NumBlocks: numBlocks,
+		r:         r,
+		tee:       tee,
+		lim:       &lim,
+		crc:       crc,
 	}
 }
 
@@ -73,26 +81,21 @@ func (d *Decompressor) nextBlock() error {
 	// Use limr to keep track of how many compressed bytes are read
 	d.lim.R = d.r
 	d.lim.N = int64(lenDeflate)
+	d.crc.Reset()
 
-	if d.crc == nil {
-		d.crc = crc32.NewIEEE()
+	if d.z == nil {
+		d.z, err = zlib.NewReader(d.tee)
 	} else {
-		d.crc.Reset()
+		err = d.z.(zlib.Resetter).Reset(d.tee, nil)
 	}
 
-	// Tee to hash to calculate crc while decompressing
-	d.dec, err = zlib.NewReader(io.TeeReader(&d.lim, d.crc))
+	// Account for zlib header
 	d.SizeRead += uint32(lenDeflate - uint16(d.lim.N))
 
 	return err
 }
 
 func (d *Decompressor) closeBlock() error {
-	if d.dec == nil {
-		return nil
-	}
-	d.dec = nil
-
 	if d.SizeBlock > 0 || d.lim.N > 0 {
 		return io.ErrUnexpectedEOF
 	}
@@ -119,14 +122,14 @@ func (d *Decompressor) Read(b []byte) (int, error) {
 	}
 
 	for n != l {
-		if d.dec == nil {
+		if d.SizeBlock == 0 {
 			if err := d.nextBlock(); err != nil {
 				return n, err
 			}
 		}
 
 		var r = d.lim.N
-		nn, err := io.ReadFull(d.dec, b[n:])
+		nn, err := io.ReadFull(d.z, b[n:])
 		d.SizeRead += uint32(r - d.lim.N)
 		d.SizeTotal -= uint32(nn)
 		d.SizeBlock -= uint16(nn)
@@ -135,7 +138,7 @@ func (d *Decompressor) Read(b []byte) (int, error) {
 		switch err {
 		case nil:
 			if d.SizeTotal == 0 && d.SizeBlock > 0 {
-				nn, _ := io.Copy(ioutil.Discard, d.dec)
+				nn, _ := io.Copy(ioutil.Discard, d.z)
 				d.SizeBlock -= uint16(nn)
 			}
 			if d.SizeBlock > 0 {

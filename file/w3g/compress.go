@@ -24,12 +24,15 @@ type Compressor struct {
 
 	w io.Writer
 	b protocol.Buffer
+	z *zlib.Writer
 }
 
 // NewCompressor for compressed w3g data
 func NewCompressor(w io.Writer) *Compressor {
+	z, _ := zlib.NewWriterLevelDict(nil, zlib.BestCompression, nil)
 	return &Compressor{
 		w: w,
+		z: z,
 	}
 }
 
@@ -48,14 +51,14 @@ func (d *Compressor) Write(b []byte) (int, error) {
 		d.b.WriteUInt16(uint16(l))
 		d.b.WriteUInt32(0)
 
-		var zw = zlib.NewWriter(&d.b)
-		zn, err := zw.Write(b[:l])
+		d.z.Reset(&d.b)
+		zn, err := d.z.Write(b[:l])
 		n += zn
 
 		if err != nil {
 			return n, err
 		}
-		if err := zw.Flush(); err != nil {
+		if err := d.z.Flush(); err != nil {
 			return n, err
 		}
 

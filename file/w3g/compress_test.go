@@ -8,6 +8,7 @@ import (
 	"bytes"
 	"io"
 	"math"
+	"reflect"
 	"testing"
 
 	"github.com/nielsAD/gowarcraft3/file/w3g"
@@ -68,15 +69,10 @@ func TestCompress(t *testing.T) {
 func TestCompressBuffer(t *testing.T) {
 	var b protocol.Buffer
 	var c = w3g.NewBufferedCompressor(&b)
-	for i := 0; i < 10000; i++ {
+	for i := 0; i < 100; i++ {
 		if _, err := c.WriteRecord(&w3g.TimeSlot{TimeSlot: w3gs.TimeSlot{
-			TimeIncrementMS: 100,
-			Actions: []w3gs.PlayerAction{
-				w3gs.PlayerAction{
-					PlayerID: byte(i),
-					Data:     []byte{2, 3, 4, 5, 6},
-				},
-			},
+			TimeIncrementMS: uint16(i),
+			Actions:         ts.Actions,
 		}}); err != nil {
 			t.Fatal(err)
 		}
@@ -85,18 +81,18 @@ func TestCompressBuffer(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if c.NumBlocks != 16 {
-		t.Fatalf("Expected 16 blocks, but got %d", c.NumBlocks)
+	if c.NumBlocks != 3 {
+		t.Fatalf("Expected 3 blocks, but got %d", c.NumBlocks)
 	}
 
 	var i = 0
 	var d = w3g.NewDecompressor(&b, c.NumBlocks, c.SizeTotal)
 	if err := d.ForEach(func(r w3g.Record) error {
-		ts, ok := r.(*w3g.TimeSlot)
+		s, ok := r.(*w3g.TimeSlot)
 		if !ok {
 			t.Fatal("Expected TimeSlot")
 		}
-		if ts.TimeIncrementMS != 100 || len(ts.Actions) != 1 || ts.Actions[0].PlayerID != byte(i) || len(ts.Actions[0].Data) != 5 {
+		if s.TimeIncrementMS != uint16(i) || !reflect.DeepEqual(s.Actions, ts.Actions) {
 			t.Fatal("Corrupt data")
 		}
 		i++
@@ -105,7 +101,50 @@ func TestCompressBuffer(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if i != 10000 {
-		t.Fatalf("Expected 10000 records, but got %d", i)
+	if i != 100 {
+		t.Fatalf("Expected 100 records, but got %d", i)
+	}
+	if d.SizeTotal != 0 {
+		t.Fatalf("Expected nothing left to read, but got %d", d.SizeTotal)
+	}
+	if d.SizeRead != c.SizeWritten {
+		t.Fatalf("Expected d.SizeRead to be c.SizeWritten, but got %d != %d", d.SizeRead, c.SizeWritten)
+	}
+}
+
+func BenchmarkCompress(b *testing.B) {
+	var ref [8196]byte
+
+	var w protocol.Buffer
+	var c = w3g.NewCompressor(&w)
+	c.Write(ref[:])
+
+	b.SetBytes(int64(len(ref)))
+	b.ResetTimer()
+
+	for n := 0; n < b.N; n++ {
+		w.Truncate()
+		c.Write(ref[:])
+	}
+}
+
+func BenchmarkDecompress(b *testing.B) {
+	var ref [8196]byte
+
+	var w protocol.Buffer
+	var c = w3g.NewCompressor(&w)
+	c.Write(ref[:])
+
+	var r protocol.Buffer
+	var d = w3g.NewDecompressor(&r, c.NumBlocks, c.SizeTotal)
+
+	b.SetBytes(int64(len(ref)))
+	b.ResetTimer()
+
+	for n := 0; n < b.N; n++ {
+		r.Bytes = w.Bytes
+		d.NumBlocks = c.NumBlocks
+		d.SizeTotal = c.SizeTotal
+		d.Read(ref[:])
 	}
 }
