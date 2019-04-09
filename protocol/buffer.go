@@ -49,6 +49,12 @@ func (b *Buffer) Write(p []byte) (int, error) {
 	return len(p), nil
 }
 
+// WriteByte implements io.ByteWriter interface
+func (b *Buffer) WriteByte(c byte) error {
+	b.WriteUInt8(c)
+	return nil
+}
+
 // WriteBlob appends blob v to the buffer
 func (b *Buffer) WriteBlob(v []byte) {
 	b.Bytes = append(b.Bytes, v...)
@@ -240,6 +246,13 @@ func (b *Buffer) WriteBEDStringAt(p int, v DWordString) {
 	b.WriteUInt32At(p, bits.ReverseBytes32(uint32(v)))
 }
 
+// WriteTo implements io.WriterTo interface
+func (b *Buffer) WriteTo(w io.Writer) (int64, error) {
+	n, err := w.Write(b.Bytes)
+	b.Bytes = b.Bytes[n:]
+	return int64(n), err
+}
+
 // Read implements io.Reader interface
 func (b *Buffer) Read(p []byte) (int, error) {
 	var size = len(b.Bytes)
@@ -254,6 +267,11 @@ func (b *Buffer) Read(p []byte) (int, error) {
 	b.Bytes = b.Bytes[size:]
 
 	return size, nil
+}
+
+// ReadByte implements io.ByteReader interface
+func (b *Buffer) ReadByte() (byte, error) {
+	return b.ReadUInt8(), nil
 }
 
 // ReadBlob consumes a blob of size len and returns (a slice of) its value

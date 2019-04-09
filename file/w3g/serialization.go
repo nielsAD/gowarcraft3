@@ -159,6 +159,9 @@ func DeserializeRecordWithBuffer(r Peeker, b *DeserializationBuffer) (Record, in
 			if peekErr != nil {
 				return nil, 0, peekErr
 			}
+			if len(bytes) < peek {
+				return nil, 0, io.ErrUnexpectedEOF
+			}
 			peek *= 2
 		default:
 			return nil, 0, err
