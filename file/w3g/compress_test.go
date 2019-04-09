@@ -114,6 +114,9 @@ func TestCompressBuffer(t *testing.T) {
 
 func BenchmarkCompress(b *testing.B) {
 	var ref [8196]byte
+	for i := range ref {
+		ref[i] = byte(i)
+	}
 
 	var w protocol.Buffer
 	var c = w3g.NewCompressor(&w)
@@ -130,6 +133,9 @@ func BenchmarkCompress(b *testing.B) {
 
 func BenchmarkDecompress(b *testing.B) {
 	var ref [8196]byte
+	for i := range ref {
+		ref[i] = byte(i)
+	}
 
 	var w protocol.Buffer
 	var c = w3g.NewCompressor(&w)

@@ -29,13 +29,14 @@ type Decompressor struct {
 
 	crc     hash.Hash32
 	crcData uint16
+	buf     [8]byte
 }
 
 // NewDecompressor for compressed w3g data
 func NewDecompressor(r io.Reader, numBlocks uint32, sizeTotal uint32) *Decompressor {
 	var lim = io.LimitedReader{R: r}
 	var crc = crc32.NewIEEE()
-	var tee = io.TeeReader(&lim, crc)
+	var tee = &toByteReader{Reader: io.TeeReader(&lim, crc)}
 
 	return &Decompressor{
 		SizeTotal: sizeTotal,
@@ -45,6 +46,20 @@ func NewDecompressor(r io.Reader, numBlocks uint32, sizeTotal uint32) *Decompres
 		lim:       &lim,
 		crc:       crc,
 	}
+}
+
+// For some reason, zlib wants a flate.Reader (io.Reader + io.ByteReader), otherwise
+// it implicitly uses a bufio.Reader. Use our own straightforward implementation to
+// reduce allocations and prevent reading more than necessary.
+type toByteReader struct {
+	io.Reader
+	b [1]byte
+}
+
+// ReadByte implements io.ByteReader interface
+func (r *toByteReader) ReadByte() (byte, error) {
+	_, err := r.Read(r.b[:])
+	return r.b[0], err
 }
 
 func (d *Decompressor) nextBlock() error {
@@ -57,23 +72,21 @@ func (d *Decompressor) nextBlock() error {
 
 	d.NumBlocks--
 
-	var buf [8]byte
-	n, err := io.ReadFull(d.r, buf[:8])
-
+	n, err := io.ReadFull(d.r, d.buf[:])
 	d.SizeRead += uint32(n)
 	if err != nil {
 		return err
 	}
 
-	var pbuf = protocol.Buffer{Bytes: buf[:]}
+	var pbuf = protocol.Buffer{Bytes: d.buf[:]}
 	var lenDeflate = pbuf.ReadUInt16()
 	d.SizeBlock = pbuf.ReadUInt16()
 
 	var crcHead = pbuf.ReadUInt16()
 	d.crcData = pbuf.ReadUInt16()
 
-	buf[4], buf[5], buf[6], buf[7] = 0, 0, 0, 0
-	var crc = crc32.ChecksumIEEE(buf[:8])
+	d.buf[4], d.buf[5], d.buf[6], d.buf[7] = 0, 0, 0, 0
+	var crc = crc32.ChecksumIEEE(d.buf[:])
 	if crcHead != uint16(crc^crc>>16) {
 		return ErrInvalidChecksum
 	}
