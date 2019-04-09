@@ -58,12 +58,6 @@ import (
 	"github.com/nielsAD/gowarcraft3/protocol/w3gs"
 )
 
-// Record interface.
-type Record interface {
-	Serialize(buf *protocol.Buffer) error
-	Deserialize(buf *protocol.Buffer) error
-}
-
 // Header for a Warcraft III recorded game file
 type Header struct {
 	GameVersion  w3gs.GameVersion
@@ -79,6 +73,23 @@ type Replay struct {
 	SlotInfo
 	Players []*PlayerInfo
 	Records []Record
+}
+
+// Record interface.
+type Record interface {
+	Serialize(s *Stream) error
+	Deserialize(s *Stream) error
+}
+
+// StreamOptions for serialization/deserialization
+type StreamOptions struct {
+	ProtocolVersion uint32
+}
+
+// Stream of binary data for serialization/deserialization
+type Stream struct {
+	StreamOptions
+	protocol.Buffer
 }
 
 // Open a w3g file
@@ -111,7 +122,7 @@ func (r *Replay) Save(name string) error {
 
 // Encode to w
 func (r *Replay) Encode(w io.Writer) error {
-	e, err := NewEncoder(w)
+	e, err := NewEncoder(w, r.StreamOptions())
 	if err != nil {
 		return err
 	}
@@ -182,9 +193,7 @@ func DecodeHeader(r io.Reader) (*Header, *Decompressor, int, error) {
 	}
 
 	var sizeHeader = pbuf.ReadUInt32()
-
-	// File size
-	pbuf.Skip(4)
+	var sizeFile = pbuf.ReadUInt32()
 
 	var headerVersion = pbuf.ReadUInt32()
 	switch headerVersion {
@@ -224,7 +233,7 @@ func DecodeHeader(r io.Reader) (*Header, *Decompressor, int, error) {
 		return nil, nil, n, ErrInvalidChecksum
 	}
 
-	if uint32(n) > sizeHeader {
+	if uint32(n) > sizeHeader || uint32(n) > sizeFile {
 		return nil, nil, n, ErrBadFormat
 	}
 
@@ -235,7 +244,14 @@ func DecodeHeader(r io.Reader) (*Header, *Decompressor, int, error) {
 		return nil, nil, n, err
 	}
 
-	return &hdr, NewDecompressor(r, numBlocks, sizeBlocks), n, err
+	return &hdr, NewDecompressor(r, numBlocks, sizeBlocks, hdr.StreamOptions()), n, err
+}
+
+// StreamOptions for encoding/decoding
+func (h *Header) StreamOptions() StreamOptions {
+	return StreamOptions{
+		ProtocolVersion: h.GameVersion.Version,
+	}
 }
 
 // Decode a w3g file
@@ -318,7 +334,7 @@ type Encoder struct {
 }
 
 // NewEncoder for replay file
-func NewEncoder(w io.Writer) (*Encoder, error) {
+func NewEncoder(w io.Writer, o StreamOptions) (*Encoder, error) {
 	var res = Encoder{
 		w: w,
 	}
@@ -330,9 +346,9 @@ func NewEncoder(w io.Writer) (*Encoder, error) {
 			return nil, err
 		}
 
-		res.BufferedCompressor = NewBufferedCompressor(w)
+		res.BufferedCompressor = NewBufferedCompressor(w, o)
 	} else {
-		res.BufferedCompressor = NewBufferedCompressor(&res.b)
+		res.BufferedCompressor = NewBufferedCompressor(&res.b, o)
 	}
 
 	return &res, nil

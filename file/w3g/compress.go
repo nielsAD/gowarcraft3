@@ -88,23 +88,29 @@ func (d *Compressor) Write(b []byte) (int, error) {
 
 // BufferedCompressor is an io.Writer that compresses data blocks
 type BufferedCompressor struct {
-	*bufio.Writer
 	*Compressor
-	b SerializationBuffer
+	*bufio.Writer
+	enc *RecordEncoder
 }
 
 // NewBufferedCompressorSize for compressed w3g with specified buffer size
-func NewBufferedCompressorSize(w io.Writer, size int) *BufferedCompressor {
+func NewBufferedCompressorSize(w io.Writer, size int, o StreamOptions) *BufferedCompressor {
 	var c = NewCompressor(w)
+	var b = bufio.NewWriterSize(c, size)
+	var e = NewRecordEncoder(Stream{
+		StreamOptions: o,
+	})
+
 	return &BufferedCompressor{
 		Compressor: c,
-		Writer:     bufio.NewWriterSize(c, size),
+		Writer:     b,
+		enc:        e,
 	}
 }
 
 // NewBufferedCompressor for compressed w3g with default buffer size
-func NewBufferedCompressor(w io.Writer) *BufferedCompressor {
-	return NewBufferedCompressorSize(w, defaultBufSize)
+func NewBufferedCompressor(w io.Writer, o StreamOptions) *BufferedCompressor {
+	return NewBufferedCompressorSize(w, defaultBufSize, o)
 }
 
 // Write implements the io.Writer interface.
@@ -114,7 +120,7 @@ func (d *BufferedCompressor) Write(p []byte) (int, error) {
 
 // WriteRecord serializes r and writes it to d
 func (d *BufferedCompressor) WriteRecord(r Record) (int, error) {
-	return SerializeRecordWithBuffer(d, &d.b, r)
+	return d.enc.Serialize(d.Writer, r)
 }
 
 // WriteRecords serializes r and writes to d
@@ -133,8 +139,8 @@ func (d *BufferedCompressor) WriteRecords(r ...Record) (int, error) {
 
 // Close adds padding to fill last block and flushes any buffered data
 func (d *BufferedCompressor) Close() error {
-	var a = d.Available()
-	if a > 0 && d.Buffered() > 0 {
+	var a = d.Writer.Available()
+	if a > 0 && d.Writer.Buffered() > 0 {
 		n, _ := d.Writer.Write(make([]byte, a))
 		d.SizeTotal -= uint32(n)
 	}

@@ -10,7 +10,6 @@ import (
 	"testing"
 
 	"github.com/nielsAD/gowarcraft3/file/w3g"
-	"github.com/nielsAD/gowarcraft3/protocol"
 	"github.com/nielsAD/gowarcraft3/protocol/w3gs"
 )
 
@@ -132,14 +131,14 @@ func TestRecords(t *testing.T) {
 
 	for _, rec := range types {
 		var err error
-		var buf = protocol.Buffer{Bytes: make([]byte, 0, 2048)}
+		var buf = w3g.Stream{}
 
 		if err = rec.Serialize(&buf); err != nil {
 			t.Log(reflect.TypeOf(rec))
 			t.Fatal(err)
 		}
 
-		var buf2 = protocol.Buffer{Bytes: make([]byte, 0, 2048)}
+		var buf2 = w3g.Stream{}
 		if _, err = w3g.SerializeRecord(&buf2, rec); err != nil {
 			t.Log(reflect.TypeOf(rec))
 			t.Fatal(err)
@@ -149,7 +148,7 @@ func TestRecords(t *testing.T) {
 			t.Fatalf("SerializeRecord != Record.Serialize %v", reflect.TypeOf(rec))
 		}
 
-		var rec2, n, e = w3g.DeserializeRecordRaw(buf.Bytes)
+		var rec2, n, e = w3g.DeserializeRecordBytes(buf.Bytes)
 		if e != nil {
 			t.Log(reflect.TypeOf(rec))
 			t.Fatal(e)
@@ -166,7 +165,7 @@ func TestRecords(t *testing.T) {
 			t.Errorf("DeserializeRecord value mismatch for %v", reflect.TypeOf(rec))
 		}
 
-		err = rec.Deserialize(&protocol.Buffer{Bytes: make([]byte, 0)})
+		err = rec.Deserialize(&w3g.Stream{})
 		if err != io.ErrShortBuffer {
 			t.Fatalf("ErrShortBuffer expected for %v", reflect.TypeOf(rec))
 		}
