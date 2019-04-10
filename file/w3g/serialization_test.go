@@ -24,7 +24,6 @@ func TestDeserializeRecord(t *testing.T) {
 	}
 }
 
-// 420MB/s
 func BenchmarkSerializePacket(b *testing.B) {
 	var e = w3g.NewRecordEncoder(w3g.Stream{})
 	var w = &protocol.Buffer{}
@@ -40,7 +39,6 @@ func BenchmarkSerializePacket(b *testing.B) {
 	}
 }
 
-// 700MB
 func BenchmarkDeserializePacket(b *testing.B) {
 	var bytes w3g.Stream
 	ts.Serialize(&bytes)

@@ -9,8 +9,26 @@ import (
 	"strings"
 	"unicode"
 
+	"github.com/nielsAD/gowarcraft3/protocol"
 	"github.com/nielsAD/gowarcraft3/protocol/w3gs"
 )
+
+// Record interface.
+type Record interface {
+	Serialize(s *Stream) error
+	Deserialize(s *Stream) error
+}
+
+// StreamOptions for serialization/deserialization
+type StreamOptions struct {
+	ProtocolVersion uint32
+}
+
+// Stream of binary data for serialization/deserialization
+type Stream struct {
+	StreamOptions
+	protocol.Buffer
+}
 
 // GameInfo record [0x10]
 //
