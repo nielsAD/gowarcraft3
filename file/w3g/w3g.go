@@ -4,6 +4,9 @@
 
 // Package w3g implements a decoder and encoder for w3g files.
 //
+// Each record type is mapped to a struct type that implements the Record
+// interface. To open a file, use w3g.Open().
+//
 // Format:
 //
 //    size/type | Description

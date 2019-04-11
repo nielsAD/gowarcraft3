@@ -7,7 +7,7 @@
 // Based on protocol documentation by https://bnetdocs.org/
 //
 // Each packet type is mapped to a struct type that implements the Packet
-// interface. To deserialize from a binary stream, use DeserializePacket().
+// interface. To deserialize from a binary stream, use w3gs.Read().
 //
 // This package tries to keep ammortized heap memory allocations to 0.
 //

@@ -37,7 +37,7 @@ func TestDeserialize(t *testing.T) {
 	}
 }
 
-func BenchmarkSerializePacket(b *testing.B) {
+func BenchmarkEncoder(b *testing.B) {
 	var pkt = w3gs.SlotInfo{
 		Slots: sd,
 	}
@@ -56,7 +56,7 @@ func BenchmarkSerializePacket(b *testing.B) {
 	}
 }
 
-func BenchmarkDeserializePacket(b *testing.B) {
+func BenchmarkDecoder(b *testing.B) {
 	var pkt = w3gs.SlotInfo{
 		Slots: sd,
 	}

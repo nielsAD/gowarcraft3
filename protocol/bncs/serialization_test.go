@@ -13,14 +13,14 @@ import (
 	"github.com/nielsAD/gowarcraft3/protocol/bncs"
 )
 
-func TestSerializePacket(t *testing.T) {
+func TestSerialize(t *testing.T) {
 	var buf = protocol.Buffer{Bytes: make([]byte, 2048)}
 	if _, e := bncs.Write(&buf, &bncs.AuthInfoReq{LocalIP: net.IP([]byte{0, 0})}, bncs.Encoding{}); e != protocol.ErrInvalidIP4 {
 		t.Fatal("ErrInvalidIP4 expected")
 	}
 }
 
-func TestDeserializeClientPacket(t *testing.T) {
+func TestDeserializeClient(t *testing.T) {
 	if _, _, e := bncs.DeserializeClient([]byte{0, 255, 4, 0}, bncs.Encoding{}); e != bncs.ErrNoProtocolSig {
 		t.Fatal("ErrNoProtocolSig expected if no protocol signature")
 	}
@@ -38,7 +38,7 @@ func TestDeserializeClientPacket(t *testing.T) {
 	}
 }
 
-func TestDeserializeServerPacket(t *testing.T) {
+func TestDeserializeServer(t *testing.T) {
 	if _, _, e := bncs.DeserializeServer([]byte{0, 255, 4, 0}, bncs.Encoding{}); e != bncs.ErrNoProtocolSig {
 		t.Fatal("ErrNoProtocolSig expected if no protocol signature")
 	}

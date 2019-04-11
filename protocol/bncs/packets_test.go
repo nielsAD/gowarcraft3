@@ -136,7 +136,7 @@ func TestClientPackets(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		var buf2 = protocol.Buffer{Bytes: make([]byte, 0, 2048)}
+		var buf2 = protocol.Buffer{}
 		if _, err = bncs.Write(&buf2, pkt, enc); err != nil {
 			t.Log(reflect.TypeOf(pkt))
 			t.Fatal(err)
@@ -308,7 +308,7 @@ func TestServerPackets(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		var buf2 = protocol.Buffer{Bytes: make([]byte, 0, 2048)}
+		var buf2 = protocol.Buffer{}
 		if _, err = bncs.Write(&buf2, pkt, enc); err != nil {
 			t.Log(reflect.TypeOf(pkt))
 			t.Fatal(err)

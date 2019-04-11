@@ -537,7 +537,7 @@ func (c *CAPIConn) Send(pkt *capi.Packet) error {
 
 	w, err := c.conn.NextWriter(websocket.TextMessage)
 	if err == nil {
-		err = capi.SerializePacket(w, pkt)
+		err = capi.Write(w, pkt)
 		w.Close()
 	}
 
@@ -568,7 +568,7 @@ func (c *CAPIConn) NextPacket(timeout time.Duration) (*capi.Packet, error) {
 
 	var pkt *capi.Packet
 	if err == nil {
-		pkt, err = capi.DeserializePacket(r)
+		pkt, err = capi.Read(r)
 		io.Copy(ioutil.Discard, r)
 	}
 

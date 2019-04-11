@@ -10,35 +10,34 @@ import (
 	"strings"
 )
 
-// SerializePacket serializes p and writes it to w.
-func SerializePacket(w io.Writer, p *Packet) error {
+// Serialize packet and returns its byte representation.
+func Serialize(p *Packet) ([]byte, error) {
+	return json.Marshal(p)
+}
+
+// Write serializes p and writes it to w.
+func Write(w io.Writer, p *Packet) error {
 	return json.NewEncoder(w).Encode(p)
 }
 
-// DeserializePacket reads exactly one packet from r and returns it in the proper (deserialized) packet type.
-func DeserializePacket(r io.Reader) (*Packet, error) {
-	type rawPacket struct {
-		Command   string          `json:"command"`
-		RequestID int64           `json:"request_id"`
-		Status    *Status         `json:"status,omitempty"`
-		Payload   json.RawMessage `json:"payload"`
-	}
+type rawPacket struct {
+	Command   string          `json:"command"`
+	RequestID int64           `json:"request_id"`
+	Status    *Status         `json:"status,omitempty"`
+	Payload   json.RawMessage `json:"payload"`
+}
 
-	var raw rawPacket
-	if err := json.NewDecoder(r).Decode(&raw); err != nil {
-		return nil, err
-	}
-
+func (r *rawPacket) toPacket() (*Packet, error) {
 	var p = &Packet{
-		Command:   raw.Command,
-		RequestID: raw.RequestID,
-		Status:    raw.Status,
+		Command:   r.Command,
+		RequestID: r.RequestID,
+		Status:    r.Status,
 	}
 
-	if strings.HasSuffix(raw.Command, CmdResponseSuffix) {
+	if strings.HasSuffix(r.Command, CmdResponseSuffix) {
 		p.Payload = &Response{}
 	} else {
-		switch raw.Command {
+		switch r.Command {
 		case CmdAuthenticate + CmdRequestSuffix:
 			p.Payload = &Authenticate{}
 		case CmdConnect + CmdRequestSuffix:
@@ -74,9 +73,29 @@ func DeserializePacket(r io.Reader) (*Packet, error) {
 		}
 	}
 
-	if err := json.Unmarshal(raw.Payload, p.Payload); err != nil {
+	if err := json.Unmarshal(r.Payload, p.Payload); err != nil {
 		return nil, err
 	}
 
 	return p, nil
+}
+
+// Deserialize reads exactly one packet from b and returns it in the proper (deserialized) packet type.
+func Deserialize(b []byte) (*Packet, error) {
+	var raw rawPacket
+	if err := json.Unmarshal(b, &raw); err != nil {
+		return nil, err
+	}
+
+	return raw.toPacket()
+}
+
+// Read exactly one packet from r and returns it in the proper (deserialized) packet type.
+func Read(r io.Reader) (*Packet, error) {
+	var raw rawPacket
+	if err := json.NewDecoder(r).Decode(&raw); err != nil {
+		return nil, err
+	}
+
+	return raw.toPacket()
 }

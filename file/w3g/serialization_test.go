@@ -24,7 +24,7 @@ func TestDeserializeRecord(t *testing.T) {
 	}
 }
 
-func BenchmarkSerializePacket(b *testing.B) {
+func BenchmarkEncoder(b *testing.B) {
 	var e = w3g.NewRecordEncoder(w3g.Encoding{})
 	var w = &protocol.Buffer{}
 
@@ -39,7 +39,7 @@ func BenchmarkSerializePacket(b *testing.B) {
 	}
 }
 
-func BenchmarkDeserializePacket(b *testing.B) {
+func BenchmarkDecoder(b *testing.B) {
 	var input = protocol.Buffer{}
 	ts.Serialize(&input, &w3g.Encoding{})
 
