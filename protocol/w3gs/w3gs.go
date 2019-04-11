@@ -24,6 +24,11 @@ import "github.com/nielsAD/gowarcraft3/protocol"
 
 // Packet interface.
 type Packet interface {
-	Serialize(buf *protocol.Buffer) error
-	Deserialize(buf *protocol.Buffer) error
+	Serialize(buf *protocol.Buffer, enc *Encoding) error
+	Deserialize(buf *protocol.Buffer, enc *Encoding) error
+}
+
+// Encoding options for (de)serialization
+type Encoding struct {
+	GameVersion uint32
 }

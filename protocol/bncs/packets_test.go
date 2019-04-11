@@ -128,46 +128,47 @@ func TestClientPackets(t *testing.T) {
 
 	for _, pkt := range types {
 		var err error
-		var buf = protocol.Buffer{Bytes: make([]byte, 0, 2048)}
+		var buf = protocol.Buffer{}
+		var enc = bncs.Encoding{}
 
-		if err = pkt.Serialize(&buf); err != nil {
+		if err = pkt.Serialize(&buf, &enc); err != nil {
 			t.Log(reflect.TypeOf(pkt))
 			t.Fatal(err)
 		}
 
 		var buf2 = protocol.Buffer{Bytes: make([]byte, 0, 2048)}
-		if _, err = bncs.SerializePacket(&buf2, pkt); err != nil {
+		if _, err = bncs.Write(&buf2, pkt, enc); err != nil {
 			t.Log(reflect.TypeOf(pkt))
 			t.Fatal(err)
 		}
 
 		if bytes.Compare(buf.Bytes, buf2.Bytes) != 0 {
-			t.Fatalf("SerializePacket != packet.Serialize %v", reflect.TypeOf(pkt))
+			t.Fatalf("encoder.Write != packet.Serialize %v", reflect.TypeOf(pkt))
 		}
 
-		var pkt2, _, e = bncs.DeserializeClientPacket(&buf)
+		var pkt2, _, e = bncs.ReadClient(&buf, enc)
 		if e != nil {
 			t.Log(reflect.TypeOf(pkt))
 			t.Fatal(e)
 		}
 		if buf.Size() > 0 {
-			t.Fatalf("DeserializePacket size mismatch for %v", reflect.TypeOf(pkt))
+			t.Fatalf("decoder.Read size mismatch for %v", reflect.TypeOf(pkt))
 		}
 		if reflect.TypeOf(pkt2) != reflect.TypeOf(pkt) {
-			t.Fatalf("DeserializePacket type mismatch %v != %v", reflect.TypeOf(pkt2), reflect.TypeOf(pkt))
+			t.Fatalf("decoder.Read type mismatch %v != %v", reflect.TypeOf(pkt2), reflect.TypeOf(pkt))
 		}
 		if !reflect.DeepEqual(pkt, pkt2) {
 			t.Logf("I: %+v", pkt)
 			t.Logf("O: %+v", pkt2)
-			t.Errorf("DeserializePacket value mismatch for %v", reflect.TypeOf(pkt))
+			t.Errorf("decoder.Read value mismatch for %v", reflect.TypeOf(pkt))
 		}
 
-		err = pkt.Deserialize(&protocol.Buffer{Bytes: make([]byte, 0)})
+		err = pkt.Deserialize(&protocol.Buffer{Bytes: make([]byte, 0)}, &enc)
 		if err != bncs.ErrInvalidPacketSize {
 			t.Fatalf("ErrInvalidPacketSize expected for %v", reflect.TypeOf(pkt))
 		}
 
-		err = pkt.Deserialize(&protocol.Buffer{Bytes: make([]byte, 2048)})
+		err = pkt.Deserialize(&protocol.Buffer{Bytes: make([]byte, 2048)}, &enc)
 		if err != bncs.ErrInvalidPacketSize && err != bncs.ErrInvalidChecksum {
 			switch pkt.(type) {
 			case *bncs.UnknownPacket:
@@ -299,46 +300,47 @@ func TestServerPackets(t *testing.T) {
 
 	for _, pkt := range types {
 		var err error
-		var buf = protocol.Buffer{Bytes: make([]byte, 0, 2048)}
+		var buf = protocol.Buffer{}
+		var enc = bncs.Encoding{}
 
-		if err = pkt.Serialize(&buf); err != nil {
+		if err = pkt.Serialize(&buf, &enc); err != nil {
 			t.Log(reflect.TypeOf(pkt))
 			t.Fatal(err)
 		}
 
 		var buf2 = protocol.Buffer{Bytes: make([]byte, 0, 2048)}
-		if _, err = bncs.SerializePacket(&buf2, pkt); err != nil {
+		if _, err = bncs.Write(&buf2, pkt, enc); err != nil {
 			t.Log(reflect.TypeOf(pkt))
 			t.Fatal(err)
 		}
 
 		if bytes.Compare(buf.Bytes, buf2.Bytes) != 0 {
-			t.Fatalf("SerializePacket != packet.Serialize %v", reflect.TypeOf(pkt))
+			t.Fatalf("encoder.Write != packet.Serialize %v", reflect.TypeOf(pkt))
 		}
 
-		var pkt2, _, e = bncs.DeserializeServerPacket(&buf)
+		var pkt2, _, e = bncs.ReadServer(&buf, enc)
 		if e != nil {
 			t.Log(reflect.TypeOf(pkt))
 			t.Fatal(e)
 		}
 		if buf.Size() > 0 {
-			t.Fatalf("DeserializePacket size mismatch for %v", reflect.TypeOf(pkt))
+			t.Fatalf("decoder.Read size mismatch for %v", reflect.TypeOf(pkt))
 		}
 		if reflect.TypeOf(pkt2) != reflect.TypeOf(pkt) {
-			t.Fatalf("DeserializePacket type mismatch %v != %v", reflect.TypeOf(pkt2), reflect.TypeOf(pkt))
+			t.Fatalf("decoder.Read type mismatch %v != %v", reflect.TypeOf(pkt2), reflect.TypeOf(pkt))
 		}
 		if !reflect.DeepEqual(pkt, pkt2) {
 			t.Logf("I: %+v", pkt)
 			t.Logf("O: %+v", pkt2)
-			t.Errorf("DeserializePacket value mismatch for %v", reflect.TypeOf(pkt))
+			t.Errorf("decoder.Read value mismatch for %v", reflect.TypeOf(pkt))
 		}
 
-		err = pkt.Deserialize(&protocol.Buffer{Bytes: make([]byte, 0)})
+		err = pkt.Deserialize(&protocol.Buffer{Bytes: make([]byte, 0)}, &enc)
 		if err != bncs.ErrInvalidPacketSize {
 			t.Fatalf("ErrInvalidPacketSize expected for %v", reflect.TypeOf(pkt))
 		}
 
-		err = pkt.Deserialize(&protocol.Buffer{Bytes: make([]byte, 2048)})
+		err = pkt.Deserialize(&protocol.Buffer{Bytes: make([]byte, 2048)}, &enc)
 		if err != bncs.ErrInvalidPacketSize && err != bncs.ErrInvalidChecksum {
 			switch pkt.(type) {
 			case *bncs.UnknownPacket:

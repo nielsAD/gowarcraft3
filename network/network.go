@@ -15,7 +15,6 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
-	"github.com/nielsAD/gowarcraft3/protocol"
 	"github.com/nielsAD/gowarcraft3/protocol/bncs"
 	"github.com/nielsAD/gowarcraft3/protocol/capi"
 	"github.com/nielsAD/gowarcraft3/protocol/w3gs"
@@ -37,15 +36,17 @@ type W3GSPacketConn struct {
 	conn net.PacketConn
 
 	smut sync.Mutex
-	sbuf w3gs.SerializationBuffer
+	enc  w3gs.Encoder
 
-	bbuf [2048]byte
-	rbuf w3gs.DeserializationBuffer
+	buf [2048]byte
+	dec w3gs.Decoder
 }
 
 // NewW3GSPacketConn returns conn wrapped in W3GSPacketConn
-func NewW3GSPacketConn(conn net.PacketConn) *W3GSPacketConn {
-	return &W3GSPacketConn{conn: conn}
+func NewW3GSPacketConn(conn net.PacketConn, enc w3gs.Encoding) *W3GSPacketConn {
+	var c = &W3GSPacketConn{}
+	c.SetConn(conn, enc)
+	return c
 }
 
 // Conn returns the underlying net.PacketConn
@@ -57,10 +58,12 @@ func (c *W3GSPacketConn) Conn() net.PacketConn {
 }
 
 // SetConn closes the old connection and starts using the new net.PacketConn
-func (c *W3GSPacketConn) SetConn(conn net.PacketConn) {
+func (c *W3GSPacketConn) SetConn(conn net.PacketConn, enc w3gs.Encoding) {
 	c.Close()
 	c.cmut.Lock()
 	c.conn = conn
+	c.enc.Encoding = enc
+	c.dec.Encoding = enc
 	c.cmut.Unlock()
 }
 
@@ -87,18 +90,17 @@ func (c *W3GSPacketConn) Send(addr net.Addr, pkt w3gs.Packet) (int, error) {
 		return 0, io.EOF
 	}
 
-	var n int
-	var e error
+	var n = 0
 
 	c.smut.Lock()
-	c.sbuf.Truncate()
-	if e = pkt.Serialize(&c.sbuf); e == nil {
-		n, e = c.conn.WriteTo(c.sbuf.Bytes, addr)
+	raw, err := c.enc.Serialize(pkt)
+	if err == nil {
+		n, err = c.conn.WriteTo(raw, addr)
 	}
 	c.smut.Unlock()
 	c.cmut.RUnlock()
 
-	return n, e
+	return n, err
 }
 
 // Broadcast a packet over LAN
@@ -123,13 +125,13 @@ func (c *W3GSPacketConn) NextPacket(timeout time.Duration) (w3gs.Packet, net.Add
 		}
 	}
 
-	size, addr, err := c.conn.ReadFrom(c.bbuf[:])
+	size, addr, err := c.conn.ReadFrom(c.buf[:])
 	if err != nil {
 		c.cmut.RUnlock()
 		return nil, nil, err
 	}
 
-	pkt, _, err := w3gs.DeserializePacketWithBuffer(&protocol.Buffer{Bytes: c.bbuf[:size]}, &c.rbuf)
+	pkt, _, err := c.dec.Deserialize(c.buf[:size])
 	c.cmut.RUnlock()
 
 	if err != nil {
@@ -150,7 +152,7 @@ func (c *W3GSPacketConn) Run(f Emitter, timeout time.Duration) error {
 		if err != nil {
 			switch err {
 			// Connection is still valid after these errors, only deserialization failed
-			case w3gs.ErrInvalidPacketSize, w3gs.ErrInvalidChecksum, w3gs.ErrUnexpectedConst, w3gs.ErrBufferTooSmall:
+			case w3gs.ErrInvalidPacketSize, w3gs.ErrInvalidChecksum, w3gs.ErrUnexpectedConst:
 				f.Fire(&AsyncError{Src: "Run[NextPacket]", Err: err})
 				continue
 			default:
@@ -171,13 +173,15 @@ type W3GSConn struct {
 	conn net.Conn
 
 	smut sync.Mutex
-	sbuf w3gs.SerializationBuffer
-	rbuf w3gs.DeserializationBuffer
+	enc  w3gs.Encoder
+	dec  w3gs.Decoder
 }
 
 // NewW3GSConn returns conn wrapped in W3GSConn
-func NewW3GSConn(conn net.Conn) *W3GSConn {
-	return &W3GSConn{conn: conn}
+func NewW3GSConn(conn net.Conn, enc w3gs.Encoding) *W3GSConn {
+	var c = &W3GSConn{}
+	c.SetConn(conn, enc)
+	return c
 }
 
 // Conn returns the underlying net.Conn
@@ -189,10 +193,12 @@ func (c *W3GSConn) Conn() net.Conn {
 }
 
 // SetConn closes the old connection and starts using the new net.Conn
-func (c *W3GSConn) SetConn(conn net.Conn) {
+func (c *W3GSConn) SetConn(conn net.Conn, enc w3gs.Encoding) {
 	c.Close()
 	c.cmut.Lock()
 	c.conn = conn
+	c.enc.Encoding = enc
+	c.dec.Encoding = enc
 	c.cmut.Unlock()
 }
 
@@ -220,7 +226,7 @@ func (c *W3GSConn) Send(pkt w3gs.Packet) (int, error) {
 	}
 
 	c.smut.Lock()
-	var n, err = w3gs.SerializePacketWithBuffer(c.conn, &c.sbuf, pkt)
+	var n, err = c.enc.Write(c.conn, pkt)
 	c.smut.Unlock()
 	c.cmut.RUnlock()
 
@@ -244,7 +250,7 @@ func (c *W3GSConn) NextPacket(timeout time.Duration) (w3gs.Packet, error) {
 		}
 	}
 
-	pkt, _, err := w3gs.DeserializePacketWithBuffer(c.conn, &c.rbuf)
+	pkt, _, err := c.dec.Read(c.conn)
 	c.cmut.RUnlock()
 
 	return pkt, err
@@ -260,7 +266,7 @@ func (c *W3GSConn) Run(f Emitter, timeout time.Duration) error {
 
 		if err != nil {
 			switch err {
-			case w3gs.ErrInvalidPacketSize, w3gs.ErrInvalidChecksum, w3gs.ErrUnexpectedConst, w3gs.ErrBufferTooSmall:
+			case w3gs.ErrInvalidPacketSize, w3gs.ErrInvalidChecksum, w3gs.ErrUnexpectedConst:
 				// Connection is still valid after these errors, only deserialization failed
 				f.Fire(&AsyncError{Src: "Run[NextPacket]", Err: err})
 				continue
@@ -282,16 +288,18 @@ type BNCSConn struct {
 	conn net.Conn
 
 	smut sync.Mutex
-	sbuf bncs.SerializationBuffer
-	rbuf bncs.DeserializationBuffer
+	enc  bncs.Encoder
+	dec  bncs.Decoder
 
 	lmut sync.Mutex
 	lnxt time.Time
 }
 
 // NewBNCSConn returns conn wrapped in BNCSConn
-func NewBNCSConn(conn net.Conn) *BNCSConn {
-	return &BNCSConn{conn: conn}
+func NewBNCSConn(conn net.Conn, enc bncs.Encoding) *BNCSConn {
+	var c = &BNCSConn{}
+	c.SetConn(conn, enc)
+	return c
 }
 
 // Conn returns the underlying net.Conn
@@ -303,10 +311,12 @@ func (c *BNCSConn) Conn() net.Conn {
 }
 
 // SetConn closes the old connection and starts using the new net.Conn
-func (c *BNCSConn) SetConn(conn net.Conn) {
+func (c *BNCSConn) SetConn(conn net.Conn, enc bncs.Encoding) {
 	c.Close()
 	c.cmut.Lock()
 	c.conn = conn
+	c.enc.Encoding = enc
+	c.dec.Encoding = enc
 	c.cmut.Unlock()
 }
 
@@ -334,7 +344,7 @@ func (c *BNCSConn) Send(pkt bncs.Packet) (int, error) {
 	}
 
 	c.smut.Lock()
-	var n, err = bncs.SerializePacketWithBuffer(c.conn, &c.sbuf, pkt)
+	var n, err = c.enc.Write(c.conn, pkt)
 	c.smut.Unlock()
 	c.cmut.RUnlock()
 
@@ -381,7 +391,7 @@ func (c *BNCSConn) NextClientPacket(timeout time.Duration) (bncs.Packet, error) 
 		}
 	}
 
-	pkt, _, err := bncs.DeserializeClientPacketWithBuffer(c.conn, &c.rbuf)
+	pkt, _, err := c.dec.ReadClient(c.conn)
 	c.cmut.RUnlock()
 
 	return pkt, err
@@ -404,7 +414,7 @@ func (c *BNCSConn) NextServerPacket(timeout time.Duration) (bncs.Packet, error) 
 		}
 	}
 
-	pkt, _, err := bncs.DeserializeServerPacketWithBuffer(c.conn, &c.rbuf)
+	pkt, _, err := c.dec.ReadServer(c.conn)
 	c.cmut.RUnlock()
 
 	return pkt, err
@@ -421,7 +431,7 @@ func (c *BNCSConn) RunServer(f Emitter, timeout time.Duration) error {
 		if err != nil {
 			switch err {
 			// Connection is still valid after these errors, only deserialization failed
-			case bncs.ErrInvalidPacketSize, bncs.ErrInvalidChecksum, bncs.ErrUnexpectedConst, bncs.ErrBufferTooSmall:
+			case bncs.ErrInvalidPacketSize, bncs.ErrInvalidChecksum, bncs.ErrUnexpectedConst:
 				f.Fire(&AsyncError{Src: "RunServer[NextPacket]", Err: err})
 				continue
 			default:
@@ -446,7 +456,7 @@ func (c *BNCSConn) RunClient(f Emitter, timeout time.Duration) error {
 		if err != nil {
 			switch err {
 			// Connection is still valid after these errors, only deserialization failed
-			case bncs.ErrInvalidPacketSize, bncs.ErrInvalidChecksum, bncs.ErrUnexpectedConst, bncs.ErrBufferTooSmall:
+			case bncs.ErrInvalidPacketSize, bncs.ErrInvalidChecksum, bncs.ErrUnexpectedConst:
 				f.Fire(&AsyncError{Src: "RunClient[NextPacket]", Err: err})
 				continue
 			default:
@@ -479,7 +489,9 @@ type CAPIConn struct {
 
 // NewCAPIConn returns conn wrapped in CAPIConn
 func NewCAPIConn(conn *websocket.Conn) *CAPIConn {
-	return &CAPIConn{conn: conn}
+	var c = &CAPIConn{}
+	c.SetConn(conn)
+	return c
 }
 
 // Conn returns the underlying net.Conn

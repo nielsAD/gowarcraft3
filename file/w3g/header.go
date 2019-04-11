@@ -91,7 +91,7 @@ func DecodeHeader(r io.Reader) (*Header, *Decompressor, int, error) {
 		hdr.GameVersion.Product = w3gs.ProductROC
 		hdr.GameVersion.Version = uint32(pbuf.ReadUInt16())
 	case 1:
-		hdr.GameVersion.DeserializeContent(&pbuf)
+		hdr.GameVersion.DeserializeContent(&pbuf, &w3gs.Encoding{})
 	}
 
 	hdr.BuildNumber = pbuf.ReadUInt16()
@@ -115,13 +115,15 @@ func DecodeHeader(r io.Reader) (*Header, *Decompressor, int, error) {
 		return nil, nil, n, err
 	}
 
-	return &hdr, NewDecompressor(r, numBlocks, sizeBlocks, hdr.StreamOptions()), n, err
+	return &hdr, NewDecompressor(r, numBlocks, sizeBlocks, hdr.Encoding()), n, err
 }
 
-// StreamOptions for encoding/decoding
-func (h *Header) StreamOptions() StreamOptions {
-	return StreamOptions{
-		ProtocolVersion: h.GameVersion.Version,
+// Encoding for (de)serialization
+func (h *Header) Encoding() Encoding {
+	return Encoding{
+		Encoding: w3gs.Encoding{
+			GameVersion: h.GameVersion.Version,
+		},
 	}
 }
 
@@ -135,7 +137,7 @@ type Encoder struct {
 }
 
 // NewEncoder for replay file
-func NewEncoder(w io.Writer, o StreamOptions) (*Encoder, error) {
+func NewEncoder(w io.Writer, e Encoding) (*Encoder, error) {
 	var res = Encoder{
 		w: w,
 	}
@@ -147,9 +149,9 @@ func NewEncoder(w io.Writer, o StreamOptions) (*Encoder, error) {
 			return nil, err
 		}
 
-		res.BufferedCompressor = NewBufferedCompressor(w, o)
+		res.BufferedCompressor = NewBufferedCompressor(w, e)
 	} else {
-		res.BufferedCompressor = NewBufferedCompressor(&res.b, o)
+		res.BufferedCompressor = NewBufferedCompressor(&res.b, e)
 	}
 
 	return &res, nil
@@ -170,7 +172,7 @@ func (e *Encoder) Close() error {
 	pbuf.WriteUInt32(1)
 	pbuf.WriteUInt32(e.SizeTotal)
 	pbuf.WriteUInt32(e.NumBlocks)
-	e.GameVersion.SerializeContent(&pbuf)
+	e.GameVersion.SerializeContent(&pbuf, &w3gs.Encoding{})
 	pbuf.WriteUInt16(e.BuildNumber)
 	if e.SinglePlayer {
 		pbuf.WriteUInt16(0x0000)

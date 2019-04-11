@@ -22,7 +22,7 @@ type Decompressor struct {
 	SizeBlock uint16 // Decompressed size left to read current block
 	NumBlocks uint32 // Blocks left to read
 
-	o StreamOptions
+	enc Encoding
 
 	r   io.Reader
 	z   io.ReadCloser
@@ -35,7 +35,7 @@ type Decompressor struct {
 }
 
 // NewDecompressor for compressed w3g data
-func NewDecompressor(r io.Reader, numBlocks uint32, sizeTotal uint32, o StreamOptions) *Decompressor {
+func NewDecompressor(r io.Reader, numBlocks uint32, sizeTotal uint32, e Encoding) *Decompressor {
 	var lim = io.LimitedReader{R: r}
 	var crc = crc32.NewIEEE()
 	var tee = &toByteReader{Reader: io.TeeReader(&lim, crc)}
@@ -43,7 +43,7 @@ func NewDecompressor(r io.Reader, numBlocks uint32, sizeTotal uint32, o StreamOp
 	return &Decompressor{
 		SizeTotal: sizeTotal,
 		NumBlocks: numBlocks,
-		o:         o,
+		enc:       e,
 		r:         r,
 		tee:       tee,
 		lim:       &lim,
@@ -176,13 +176,13 @@ func (d *Decompressor) Read(b []byte) (int, error) {
 // ForEach record call f
 func (d *Decompressor) ForEach(f func(r Record) error) error {
 	var b = bufio.NewReaderSize(d, 8192)
-	var r = NewRecordDecoder(Stream{StreamOptions: d.o})
+	var r = NewRecordDecoder(d.enc)
 
 	for {
-		r, _, err := r.Deserialize(b)
+		rec, _, err := r.Read(b)
 		switch err {
 		case nil:
-			if err := f(r); err != nil {
+			if err := f(rec); err != nil {
 				return err
 			}
 		case io.EOF:

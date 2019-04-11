@@ -40,12 +40,13 @@ type Player struct {
 }
 
 // Join a game lobby as a mocked player
-func Join(addr string, name string, hostCounter uint32, entryKey uint32, listenPort int) (*Player, error) {
+func Join(addr string, name string, hostCounter uint32, entryKey uint32, listenPort int, encoding w3gs.Encoding) (*Player, error) {
 	var p = Player{
 		Host: peer.Host{
 			PlayerInfo: w3gs.PlayerInfo{
 				PlayerName: name,
 			},
+			Encoding:     encoding,
 			EntryKey:     entryKey,
 			PingInterval: 10 * time.Second,
 		},
@@ -83,7 +84,7 @@ func (p *Player) Join() error {
 	conn.SetNoDelay(true)
 	conn.SetLinger(3)
 
-	w3gsconn := network.NewW3GSConn(conn)
+	w3gsconn := network.NewW3GSConn(conn, p.Encoding)
 
 	p.PlayerInfo.JoinCounter++
 	if _, err := w3gsconn.Send(&w3gs.Join{
@@ -115,7 +116,7 @@ func (p *Player) Join() error {
 		return ErrInvalidFirstPacket
 	}
 
-	p.SetConn(conn)
+	p.SetConn(conn, p.Encoding)
 	return nil
 }
 

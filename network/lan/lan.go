@@ -67,7 +67,7 @@ func Broadcast(game *w3gs.GameInfo) (err error) {
 
 	if err == nil {
 		bcbuf.Truncate()
-		if err = game.Serialize(&bcbuf); err == nil {
+		if err = game.Serialize(&bcbuf, &w3gs.Encoding{}); err == nil {
 			_, err = bccon.WriteTo(bcbuf.Bytes, &network.W3GSBroadcastAddr)
 		}
 	}

@@ -133,7 +133,7 @@ func BenchmarkDeserializePacket(b *testing.B) {
 
 	var r = &protocol.Buffer{}
 	for n := 0; n < b.N; n++ {
-		r.Bytes = pbuf.Bytes
+		r.Reset(pbuf.Bytes)
 		capi.DeserializePacket(r)
 	}
 }

@@ -44,7 +44,7 @@ func TestCompress(t *testing.T) {
 	}
 
 	var buf [2048]byte
-	var d = w3g.NewDecompressor(&b, c.NumBlocks, math.MaxUint32, w3g.StreamOptions{})
+	var d = w3g.NewDecompressor(&b, c.NumBlocks, math.MaxUint32, w3g.Encoding{})
 	for i := 0; i < 10; i++ {
 		n, err := d.Read(buf[:])
 		if err != nil {
@@ -68,7 +68,7 @@ func TestCompress(t *testing.T) {
 
 func TestCompressBuffer(t *testing.T) {
 	var b protocol.Buffer
-	var c = w3g.NewBufferedCompressor(&b, w3g.StreamOptions{})
+	var c = w3g.NewBufferedCompressor(&b, w3g.Encoding{})
 	for i := 0; i < 100; i++ {
 		if _, err := c.WriteRecord(&w3g.TimeSlot{TimeSlot: w3gs.TimeSlot{
 			TimeIncrementMS: uint16(i),
@@ -86,7 +86,7 @@ func TestCompressBuffer(t *testing.T) {
 	}
 
 	var i = 0
-	var d = w3g.NewDecompressor(&b, c.NumBlocks, c.SizeTotal, w3g.StreamOptions{})
+	var d = w3g.NewDecompressor(&b, c.NumBlocks, c.SizeTotal, w3g.Encoding{})
 	if err := d.ForEach(func(r w3g.Record) error {
 		s, ok := r.(*w3g.TimeSlot)
 		if !ok {
@@ -142,13 +142,13 @@ func BenchmarkDecompress(b *testing.B) {
 	c.Write(ref[:])
 
 	var r protocol.Buffer
-	var d = w3g.NewDecompressor(&r, c.NumBlocks, c.SizeTotal, w3g.StreamOptions{})
+	var d = w3g.NewDecompressor(&r, c.NumBlocks, c.SizeTotal, w3g.Encoding{})
 
 	b.SetBytes(int64(len(ref)))
 	b.ResetTimer()
 
 	for n := 0; n < b.N; n++ {
-		r.Bytes = w.Bytes
+		r.Reset(w.Bytes)
 		d.NumBlocks = c.NumBlocks
 		d.SizeTotal = c.SizeTotal
 		d.Read(ref[:])

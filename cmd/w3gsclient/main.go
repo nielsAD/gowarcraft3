@@ -75,7 +75,7 @@ func main() {
 		}
 	}
 
-	d, err := dummy.Join(addr, *playername, hc, ek, *listen)
+	d, err := dummy.Join(addr, *playername, hc, ek, *listen, w3gs.Encoding{GameVersion: uint32(*gamevers)})
 	if err != nil {
 		logErr.Fatal("Join error: ", err)
 	}

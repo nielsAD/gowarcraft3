@@ -4,12 +4,14 @@
 package w3g_test
 
 import (
+	"bufio"
 	"bytes"
 	"io"
 	"reflect"
 	"testing"
 
 	"github.com/nielsAD/gowarcraft3/file/w3g"
+	"github.com/nielsAD/gowarcraft3/protocol"
 	"github.com/nielsAD/gowarcraft3/protocol/w3gs"
 )
 
@@ -131,41 +133,42 @@ func TestRecords(t *testing.T) {
 
 	for _, rec := range types {
 		var err error
-		var buf = w3g.Stream{}
+		var buf = protocol.Buffer{}
+		var enc = w3g.Encoding{}
 
-		if err = rec.Serialize(&buf); err != nil {
+		if err = rec.Serialize(&buf, &enc); err != nil {
 			t.Log(reflect.TypeOf(rec))
 			t.Fatal(err)
 		}
 
-		var buf2 = w3g.Stream{}
-		if _, err = w3g.SerializeRecord(&buf2, rec); err != nil {
+		var buf2 = protocol.Buffer{}
+		if _, err = w3g.WriteRecord(&buf2, rec, enc); err != nil {
 			t.Log(reflect.TypeOf(rec))
 			t.Fatal(err)
 		}
 
 		if bytes.Compare(buf.Bytes, buf2.Bytes) != 0 {
-			t.Fatalf("SerializeRecord != Record.Serialize %v", reflect.TypeOf(rec))
+			t.Fatalf("encoder.Write != record.Serialize %v", reflect.TypeOf(rec))
 		}
 
-		var rec2, n, e = w3g.DeserializeRecordBytes(buf.Bytes)
+		var rec2, _, e = w3g.ReadRecord(bufio.NewReader(&buf), enc)
 		if e != nil {
 			t.Log(reflect.TypeOf(rec))
 			t.Fatal(e)
 		}
-		if n != buf.Size() {
-			t.Fatalf("DeserializeRecord size mismatch for %v", reflect.TypeOf(rec))
+		if buf.Size() > 0 {
+			t.Fatalf("decoder.Read size mismatch for %v", reflect.TypeOf(rec))
 		}
 		if reflect.TypeOf(rec2) != reflect.TypeOf(rec) {
-			t.Fatalf("DeserializeRecord type mismatch %v != %v", reflect.TypeOf(rec2), reflect.TypeOf(rec))
+			t.Fatalf("decoder.Read type mismatch %v != %v", reflect.TypeOf(rec2), reflect.TypeOf(rec))
 		}
 		if !reflect.DeepEqual(rec, rec2) {
 			t.Logf("I: %+v", rec)
 			t.Logf("O: %+v", rec2)
-			t.Errorf("DeserializeRecord value mismatch for %v", reflect.TypeOf(rec))
+			t.Errorf("decoder.Read value mismatch for %v", reflect.TypeOf(rec))
 		}
 
-		err = rec.Deserialize(&w3g.Stream{})
+		err = rec.Deserialize(&protocol.Buffer{}, &enc)
 		if err != io.ErrShortBuffer {
 			t.Fatalf("ErrShortBuffer expected for %v", reflect.TypeOf(rec))
 		}

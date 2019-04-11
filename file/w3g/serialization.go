@@ -6,36 +6,59 @@ package w3g
 
 import (
 	"io"
+
+	"github.com/nielsAD/gowarcraft3/protocol"
 )
 
 // RecordEncoder keeps amortized allocs at 0 for repeated Record.Serialize calls
+// Byte slices are valid until the next Serialize() call
 type RecordEncoder struct {
-	s Stream
+	Encoding
+	buf protocol.Buffer
 }
 
 // NewRecordEncoder initialization
-func NewRecordEncoder(s Stream) *RecordEncoder {
-	return &RecordEncoder{s: s}
+func NewRecordEncoder(e Encoding) *RecordEncoder {
+	return &RecordEncoder{
+		Encoding: e,
+	}
 }
 
-// Serialize record
-func (enc *RecordEncoder) Serialize(w io.Writer, r Record) (int, error) {
-	enc.s.Truncate()
-	if err := r.Serialize(&enc.s); err != nil {
+// Serialize record and returns its byte representation.
+// Result is valid until the next Serialize() call.
+func (enc *RecordEncoder) Serialize(r Record) ([]byte, error) {
+	enc.buf.Truncate()
+	if err := r.Serialize(&enc.buf, &enc.Encoding); err != nil {
+		return nil, err
+	}
+	return enc.buf.Bytes, nil
+}
+
+// Write serializes r and writes it to w.
+func (enc *RecordEncoder) Write(w io.Writer, r Record) (int, error) {
+	b, err := enc.Serialize(r)
+	if err != nil {
 		return 0, err
 	}
-	return w.Write(enc.s.Bytes)
+
+	return w.Write(b)
 }
 
-// SerializeRecord serializes p and writes it to w.
-func SerializeRecord(w io.Writer, r Record) (int, error) {
-	return (&RecordEncoder{}).Serialize(w, r)
+// SerializeRecord serializes r and returns its byte representation.
+func SerializeRecord(r Record, e Encoding) ([]byte, error) {
+	return NewRecordEncoder(e).Serialize(r)
 }
 
-// RecordDecoder keeps amortized allocs at 0 for repeated Record.Deserialize calls
+// WriteRecord serializes r and writes it to w.
+func WriteRecord(w io.Writer, r Record, e Encoding) (int, error) {
+	return NewRecordEncoder(e).Write(w, r)
+}
+
+// RecordDecoder keeps amortized allocs at 0 for repeated Record.Deserialize calls.
 // Records are valid until the next Deserialize() call
 type RecordDecoder struct {
-	s Stream
+	Encoding
+	buf protocol.Buffer
 
 	gameInfo       GameInfo
 	playerInfo     PlayerInfo
@@ -52,15 +75,18 @@ type RecordDecoder struct {
 }
 
 // NewRecordDecoder initialization
-func NewRecordDecoder(s Stream) *RecordDecoder {
-	return &RecordDecoder{s: s}
+func NewRecordDecoder(e Encoding) *RecordDecoder {
+	return &RecordDecoder{
+		Encoding: e,
+	}
 }
 
-// DeserializeBytes reads exactly one record from b and returns it in the proper (deserialized) record type.
-func (dec *RecordDecoder) DeserializeBytes(b []byte) (Record, int, error) {
-	dec.s.Bytes = b
+// Deserialize reads exactly one record from b and returns it in the proper (deserialized) record type.
+// Result is valid until the next Deserialize() call.
+func (dec *RecordDecoder) Deserialize(b []byte) (Record, int, error) {
+	dec.buf.Reset(b)
 
-	var size = dec.s.Size()
+	var size = dec.buf.Size()
 	if size < 2 {
 		return nil, 0, io.ErrUnexpectedEOF
 	}
@@ -71,50 +97,50 @@ func (dec *RecordDecoder) DeserializeBytes(b []byte) (Record, int, error) {
 	// Explicitly call deserialize on type instead of interface for compiler optimizations
 	switch b[0] {
 	case RidGameInfo:
-		err = dec.gameInfo.Deserialize(&dec.s)
+		err = dec.gameInfo.Deserialize(&dec.buf, &dec.Encoding)
 		rec = &dec.gameInfo
 	case RidPlayerInfo:
-		err = dec.playerInfo.Deserialize(&dec.s)
+		err = dec.playerInfo.Deserialize(&dec.buf, &dec.Encoding)
 		rec = &dec.playerInfo
 	case RidPlayerLeft:
-		err = dec.playerLeft.Deserialize(&dec.s)
+		err = dec.playerLeft.Deserialize(&dec.buf, &dec.Encoding)
 		rec = &dec.playerLeft
 	case RidSlotInfo:
-		err = dec.slotInfo.Deserialize(&dec.s)
+		err = dec.slotInfo.Deserialize(&dec.buf, &dec.Encoding)
 		rec = &dec.slotInfo
 	case RidCountDownStart:
-		err = dec.countDownStart.Deserialize(&dec.s)
+		err = dec.countDownStart.Deserialize(&dec.buf, &dec.Encoding)
 		rec = &dec.countDownStart
 	case RidCountDownEnd:
-		err = dec.countDownEnd.Deserialize(&dec.s)
+		err = dec.countDownEnd.Deserialize(&dec.buf, &dec.Encoding)
 		rec = &dec.countDownEnd
 	case RidGameStart:
-		err = dec.gameStart.Deserialize(&dec.s)
+		err = dec.gameStart.Deserialize(&dec.buf, &dec.Encoding)
 		rec = &dec.gameStart
 	case RidTimeSlot, RidTimeSlot2:
-		err = dec.timeSlot.Deserialize(&dec.s)
+		err = dec.timeSlot.Deserialize(&dec.buf, &dec.Encoding)
 		rec = &dec.timeSlot
 	case RidChatMessage:
-		if dec.s.ProtocolVersion == 0 || dec.s.ProtocolVersion > 2 {
-			err = dec.chatMessage.Deserialize(&dec.s)
+		if dec.GameVersion == 0 || dec.GameVersion > 2 {
+			err = dec.chatMessage.Deserialize(&dec.buf, &dec.Encoding)
 			rec = &dec.chatMessage
 			break
 		}
 		fallthrough
 	case RidTimeSlotAck:
-		err = dec.timeSlotAck.Deserialize(&dec.s)
+		err = dec.timeSlotAck.Deserialize(&dec.buf, &dec.Encoding)
 		rec = &dec.timeSlotAck
 	case RidDesync:
-		err = dec.desync.Deserialize(&dec.s)
+		err = dec.desync.Deserialize(&dec.buf, &dec.Encoding)
 		rec = &dec.desync
 	case RidEndTimer:
-		err = dec.endTimer.Deserialize(&dec.s)
+		err = dec.endTimer.Deserialize(&dec.buf, &dec.Encoding)
 		rec = &dec.endTimer
 	default:
 		err = ErrUnknownRecord
 	}
 
-	var n = size - dec.s.Size()
+	var n = size - dec.buf.Size()
 	if err != nil {
 		return nil, n, err
 	}
@@ -135,8 +161,8 @@ type Peeker interface {
 	Discard(n int) (discarded int, err error)
 }
 
-// Deserialize reads exactly one record from r and returns it in the proper (deserialized) record type.
-func (dec *RecordDecoder) Deserialize(r Peeker) (Record, int, error) {
+// Read exactly one record from r and returns it in the proper (deserialized) record type.
+func (dec *RecordDecoder) Read(r Peeker) (Record, int, error) {
 	var peek = 1024
 
 	for {
@@ -159,7 +185,7 @@ func (dec *RecordDecoder) Deserialize(r Peeker) (Record, int, error) {
 			continue
 		}
 
-		rec, n, err := dec.DeserializeBytes(bytes)
+		rec, n, err := dec.Deserialize(bytes)
 		switch err {
 		case nil:
 			if d, err := r.Discard(n); err != nil {
@@ -180,12 +206,12 @@ func (dec *RecordDecoder) Deserialize(r Peeker) (Record, int, error) {
 	}
 }
 
-// DeserializeRecordBytes reads exactly one record from b and returns it in the proper (deserialized) record type.
-func DeserializeRecordBytes(b []byte) (Record, int, error) {
-	return (&RecordDecoder{}).DeserializeBytes(b)
+// DeserializeRecord reads exactly one record from b and returns it in the proper (deserialized) record type.
+func DeserializeRecord(b []byte, e Encoding) (Record, int, error) {
+	return NewRecordDecoder(e).Deserialize(b)
 }
 
-// DeserializeRecord reads exactly one record from r and returns it in the proper (deserialized) record type.
-func DeserializeRecord(r Peeker) (Record, int, error) {
-	return (&RecordDecoder{}).Deserialize(r)
+// ReadRecord reads one record from r and returns it in the proper (deserialized) record type.
+func ReadRecord(r Peeker, e Encoding) (Record, int, error) {
+	return NewRecordDecoder(e).Read(r)
 }

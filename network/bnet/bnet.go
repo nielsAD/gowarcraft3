@@ -193,6 +193,13 @@ func (b *Client) Users() map[string]User {
 	return res
 }
 
+//Encoding for bncs packets
+func (b *Client) Encoding() bncs.Encoding {
+	return bncs.Encoding{Encoding: w3gs.Encoding{
+		GameVersion: b.Platform.GameVersion.Version,
+	}}
+}
+
 // Dial opens a new connection to server, verifies game version, and authenticates with CD keys
 //
 // Dial sequence:
@@ -230,7 +237,7 @@ func (b *Client) Dial() (*network.BNCSConn, error) {
 	conn.SetLinger(3)
 	conn.Write([]byte{bncs.ProtocolGreeting})
 
-	bncsconn := network.NewBNCSConn(conn)
+	bncsconn := network.NewBNCSConn(conn, b.Encoding())
 
 	authInfo, err := b.sendAuthInfo(bncsconn)
 	if err != nil {
@@ -339,7 +346,7 @@ func (b *Client) Logon() error {
 	}
 
 	b.UniqueName = chat.UniqueName
-	b.SetConn(bncsconn.Conn())
+	b.SetConn(bncsconn.Conn(), b.Encoding())
 	return nil
 }
 

@@ -15,7 +15,6 @@ var (
 	ErrInvalidPacketSize = errors.New("bncs: Invalid packet size")
 	ErrInvalidChecksum   = errors.New("bncs: Checksum invalid")
 	ErrUnexpectedConst   = errors.New("bncs: Unexpected constant value")
-	ErrBufferTooSmall    = errors.New("bncs: Packet exceeds buffer size")
 )
 
 // ProtocolSig is the BNCS magic number used in the packet header.

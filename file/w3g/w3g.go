@@ -93,7 +93,7 @@ func (r *Replay) Save(name string) error {
 
 // Encode to w
 func (r *Replay) Encode(w io.Writer) error {
-	e, err := NewEncoder(w, r.StreamOptions())
+	e, err := NewEncoder(w, r.Encoding())
 	if err != nil {
 		return err
 	}

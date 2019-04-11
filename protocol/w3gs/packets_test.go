@@ -323,46 +323,47 @@ func TestPackets(t *testing.T) {
 
 	for _, pkt := range types {
 		var err error
-		var buf = protocol.Buffer{Bytes: make([]byte, 0, 2048)}
+		var buf = protocol.Buffer{}
+		var enc = w3gs.Encoding{}
 
-		if err = pkt.Serialize(&buf); err != nil {
+		if err = pkt.Serialize(&buf, &enc); err != nil {
 			t.Log(reflect.TypeOf(pkt))
 			t.Fatal(err)
 		}
 
-		var buf2 = protocol.Buffer{Bytes: make([]byte, 0, 2048)}
-		if _, err = w3gs.SerializePacket(&buf2, pkt); err != nil {
+		var buf2 = protocol.Buffer{}
+		if _, err = w3gs.Write(&buf2, pkt, enc); err != nil {
 			t.Log(reflect.TypeOf(pkt))
 			t.Fatal(err)
 		}
 
 		if bytes.Compare(buf.Bytes, buf2.Bytes) != 0 {
-			t.Fatalf("SerializePacket != packet.Serialize %v", reflect.TypeOf(pkt))
+			t.Fatalf("encoder.Write != packet.Serialize %v", reflect.TypeOf(pkt))
 		}
 
-		var pkt2, _, e = w3gs.DeserializePacket(&buf)
+		var pkt2, _, e = w3gs.Read(&buf, enc)
 		if e != nil {
 			t.Log(reflect.TypeOf(pkt))
 			t.Fatal(e)
 		}
 		if buf.Size() > 0 {
-			t.Fatalf("DeserializePacket size mismatch for %v", reflect.TypeOf(pkt))
+			t.Fatalf("decoder.Read size mismatch for %v", reflect.TypeOf(pkt))
 		}
 		if reflect.TypeOf(pkt2) != reflect.TypeOf(pkt) {
-			t.Fatalf("DeserializePacket type mismatch %v != %v", reflect.TypeOf(pkt2), reflect.TypeOf(pkt))
+			t.Fatalf("decoder.Read type mismatch %v != %v", reflect.TypeOf(pkt2), reflect.TypeOf(pkt))
 		}
 		if !reflect.DeepEqual(pkt, pkt2) {
 			t.Logf("I: %+v", pkt)
 			t.Logf("O: %+v", pkt2)
-			t.Errorf("DeserializePacket value mismatch for %v", reflect.TypeOf(pkt))
+			t.Errorf("decoder.Read value mismatch for %v", reflect.TypeOf(pkt))
 		}
 
-		err = pkt.Deserialize(&protocol.Buffer{Bytes: make([]byte, 0)})
+		err = pkt.Deserialize(&protocol.Buffer{Bytes: make([]byte, 0)}, &enc)
 		if err != w3gs.ErrInvalidPacketSize {
 			t.Fatalf("ErrInvalidPacketSize expected for %v", reflect.TypeOf(pkt))
 		}
 
-		err = pkt.Deserialize(&protocol.Buffer{Bytes: make([]byte, 2048)})
+		err = pkt.Deserialize(&protocol.Buffer{Bytes: make([]byte, 2048)}, &enc)
 		if err != w3gs.ErrInvalidPacketSize && err != w3gs.ErrInvalidChecksum {
 			switch pkt.(type) {
 			case *w3gs.UnknownPacket:
@@ -380,14 +381,15 @@ func BenchmarkSerialize(b *testing.B) {
 		Slots: sd,
 	}
 
-	var buf = protocol.Buffer{Bytes: make([]byte, 0, 2048)}
-	pkt.Serialize(&buf)
+	var buf = protocol.Buffer{}
+	var enc = w3gs.Encoding{}
+	pkt.Serialize(&buf, &enc)
 
 	b.SetBytes(int64(buf.Size()))
 	b.ResetTimer()
 	for n := 0; n < b.N; n++ {
 		buf.Truncate()
-		pkt.Serialize(&buf)
+		pkt.Serialize(&buf, &enc)
 	}
 }
 
@@ -397,19 +399,23 @@ func BenchmarkDeserialize(b *testing.B) {
 	}
 
 	var res w3gs.SlotInfo
-	var buf = protocol.Buffer{Bytes: make([]byte, 0, 2048)}
-	pkt.Serialize(&buf)
+	var buf = protocol.Buffer{}
+	var dec = protocol.Buffer{}
+	var enc = w3gs.Encoding{}
+	pkt.Serialize(&buf, &enc)
 
 	b.SetBytes(int64(buf.Size()))
 	b.ResetTimer()
 	for n := 0; n < b.N; n++ {
-		res.Deserialize(&protocol.Buffer{Bytes: buf.Bytes})
+		dec.Reset(buf.Bytes)
+		res.Deserialize(&dec, &enc)
 	}
 }
 
 func BenchmarkCreateAndSerialize(b *testing.B) {
 	var size = 0
-	var buf = protocol.Buffer{Bytes: make([]byte, 0, 2048)}
+	var buf = protocol.Buffer{}
+	var enc = w3gs.Encoding{}
 
 	b.ResetTimer()
 	for n := 0; n < b.N; n++ {
@@ -418,7 +424,8 @@ func BenchmarkCreateAndSerialize(b *testing.B) {
 		}
 
 		buf.Truncate()
-		pkt.Serialize(&buf)
+		pkt.Serialize(&buf, &enc)
+
 		size = buf.Size()
 	}
 	b.SetBytes(int64(size))
@@ -428,13 +435,17 @@ func BenchmarkCreateAndDeserialize(b *testing.B) {
 	var pkt = w3gs.SlotInfo{
 		Slots: sd,
 	}
-	var buf = protocol.Buffer{Bytes: make([]byte, 0, 2048)}
-	pkt.Serialize(&buf)
+	var buf = protocol.Buffer{}
+	var dec = protocol.Buffer{}
+	var enc = w3gs.Encoding{}
+	pkt.Serialize(&buf, &enc)
 
 	b.SetBytes(int64(buf.Size()))
 	b.ResetTimer()
 	for n := 0; n < b.N; n++ {
 		var res w3gs.SlotInfo
-		res.Deserialize(&protocol.Buffer{Bytes: buf.Bytes})
+
+		dec.Reset(buf.Bytes)
+		res.Deserialize(&dec, &enc)
 	}
 }

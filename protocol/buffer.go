@@ -35,12 +35,17 @@ func (b *Buffer) Size() int {
 
 // Skip consumes len bytes and throws away the result
 func (b *Buffer) Skip(len int) {
-	b.Bytes = b.Bytes[len:]
+	b.Reset(b.Bytes[len:])
 }
 
 // Truncate resets the buffer to size 0
 func (b *Buffer) Truncate() {
-	b.Bytes = b.Bytes[:0]
+	b.Reset(b.Bytes[:0])
+}
+
+// Reset buffer to p
+func (b *Buffer) Reset(p []byte) {
+	b.Bytes = p
 }
 
 // Write implements io.Writer interface
@@ -57,27 +62,27 @@ func (b *Buffer) WriteByte(c byte) error {
 
 // WriteBlob appends blob v to the buffer
 func (b *Buffer) WriteBlob(v []byte) {
-	b.Bytes = append(b.Bytes, v...)
+	b.Reset(append(b.Bytes, v...))
 }
 
 // WriteUInt8 appends uint8 v to the buffer
 func (b *Buffer) WriteUInt8(v byte) {
-	b.Bytes = append(b.Bytes, v)
+	b.Reset(append(b.Bytes, v))
 }
 
 // WriteUInt16 appends uint16 v to the buffer
 func (b *Buffer) WriteUInt16(v uint16) {
-	b.Bytes = append(b.Bytes, byte(v), byte(v>>8))
+	b.Reset(append(b.Bytes, byte(v), byte(v>>8)))
 }
 
 // WriteUInt32 appends uint32 v to the buffer
 func (b *Buffer) WriteUInt32(v uint32) {
-	b.Bytes = append(b.Bytes, byte(v), byte(v>>8), byte(v>>16), byte(v>>24))
+	b.Reset(append(b.Bytes, byte(v), byte(v>>8), byte(v>>16), byte(v>>24)))
 }
 
 // WriteUInt64 appends uint64 v to the buffer
 func (b *Buffer) WriteUInt64(v uint64) {
-	b.Bytes = append(b.Bytes, byte(v), byte(v>>8), byte(v>>16), byte(v>>24), byte(v>>32), byte(v>>40), byte(v>>48), byte(v>>56))
+	b.Reset(append(b.Bytes, byte(v), byte(v>>8), byte(v>>16), byte(v>>24), byte(v>>32), byte(v>>40), byte(v>>48), byte(v>>56)))
 }
 
 // WriteFloat32 appends float32 v to the buffer
@@ -241,7 +246,7 @@ func (b *Buffer) WriteLEDStringAt(p int, v DWordString) {
 	b.WriteUInt32At(p, uint32(v))
 }
 
-// WriteBEDStringAt overwrites position p in the buffer with big-endian dword string v in
+// WriteBEDStringAt overwrites position p in the buffer with big-endian dword string v
 func (b *Buffer) WriteBEDStringAt(p int, v DWordString) {
 	b.WriteUInt32At(p, bits.ReverseBytes32(uint32(v)))
 }
@@ -249,8 +254,41 @@ func (b *Buffer) WriteBEDStringAt(p int, v DWordString) {
 // WriteTo implements io.WriterTo interface
 func (b *Buffer) WriteTo(w io.Writer) (int64, error) {
 	n, err := w.Write(b.Bytes)
-	b.Bytes = b.Bytes[n:]
+	b.Reset(b.Bytes[n:])
 	return int64(n), err
+}
+
+// ReadSizeFrom reads n bytes from r
+func (b *Buffer) ReadSizeFrom(r io.Reader, n int) (int, error) {
+	var s = len(b.Bytes)
+	if s+n <= cap(b.Bytes) {
+		b.Reset(b.Bytes[:s+n])
+	} else {
+		b.Reset(append(b.Bytes, make([]byte, n)...))
+	}
+
+	nn, err := io.ReadFull(r, b.Bytes[s:])
+	b.Reset(b.Bytes[:s+nn])
+
+	return nn, err
+}
+
+// ReadFrom implements io.ReaderFrom interface
+func (b *Buffer) ReadFrom(r io.Reader) (int64, error) {
+	var n = int64(0)
+	for {
+		nn, err := b.ReadSizeFrom(r, 2048)
+		n += int64(nn)
+
+		switch err {
+		case nil:
+			// Success
+		case io.EOF, io.ErrUnexpectedEOF:
+			return n, nil
+		default:
+			return n, err
+		}
+	}
 }
 
 // Read implements io.Reader interface
@@ -264,7 +302,7 @@ func (b *Buffer) Read(p []byte) (int, error) {
 	}
 
 	copy(p[:size], b.Bytes[:size])
-	b.Bytes = b.Bytes[size:]
+	b.Reset(b.Bytes[size:])
 
 	return size, nil
 }
@@ -278,7 +316,7 @@ func (b *Buffer) ReadByte() (byte, error) {
 func (b *Buffer) ReadBlob(len int) []byte {
 	if len > 0 {
 		var res = b.Bytes[:len]
-		b.Bytes = b.Bytes[len:]
+		b.Reset(b.Bytes[len:])
 		return res
 	}
 
@@ -288,28 +326,28 @@ func (b *Buffer) ReadBlob(len int) []byte {
 // ReadUInt8 consumes a uint8 and returns its value
 func (b *Buffer) ReadUInt8() byte {
 	var res = byte(b.Bytes[0])
-	b.Bytes = b.Bytes[1:]
+	b.Reset(b.Bytes[1:])
 	return res
 }
 
 // ReadUInt16 a uint16 and returns its value
 func (b *Buffer) ReadUInt16() uint16 {
 	var res = uint16(b.Bytes[1])<<8 | uint16(b.Bytes[0])
-	b.Bytes = b.Bytes[2:]
+	b.Reset(b.Bytes[2:])
 	return res
 }
 
 // ReadUInt32 consumes a uint32 and returns its value
 func (b *Buffer) ReadUInt32() uint32 {
 	var res = uint32(b.Bytes[3])<<24 | uint32(b.Bytes[2])<<16 | uint32(b.Bytes[1])<<8 | uint32(b.Bytes[0])
-	b.Bytes = b.Bytes[4:]
+	b.Reset(b.Bytes[4:])
 	return res
 }
 
 // ReadUInt64 consumes a uint32 and returns its value
 func (b *Buffer) ReadUInt64() uint64 {
 	var res = uint64(b.Bytes[7])<<56 | uint64(b.Bytes[6])<<48 | uint64(b.Bytes[5])<<40 | uint64(b.Bytes[4])<<32 | uint64(b.Bytes[3])<<24 | uint64(b.Bytes[2])<<16 | uint64(b.Bytes[1])<<8 | uint64(b.Bytes[0])
-	b.Bytes = b.Bytes[8:]
+	b.Reset(b.Bytes[8:])
 	return res
 }
 
@@ -368,12 +406,12 @@ func (b *Buffer) ReadSockAddr() (SockAddr, error) {
 func (b *Buffer) ReadCString() (string, error) {
 	var pos = bytes.IndexByte(b.Bytes, 0)
 	if pos == -1 {
-		b.Bytes = b.Bytes[len(b.Bytes):]
+		b.Reset(b.Bytes[len(b.Bytes):])
 		return "", ErrNoCStringTerminatorFound
 	}
 
 	var res = string(b.Bytes[:pos])
-	b.Bytes = b.Bytes[pos+1:]
+	b.Reset(b.Bytes[pos+1:])
 	return res, nil
 }
 

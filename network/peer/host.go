@@ -31,6 +31,7 @@ type Host struct {
 	gameticks uint32
 
 	// Set once before ListenAndServe(), read-only after that
+	Encoding     w3gs.Encoding
 	PlayerInfo   w3gs.PlayerInfo
 	EntryKey     uint32
 	PingInterval time.Duration
@@ -159,7 +160,7 @@ func (h *Host) Accept(conn net.Conn) (*Player, error) {
 		return nil, ErrAlreadyConnected
 	}
 
-	if _, err := network.NewW3GSConn(conn).Send(&w3gs.PeerConnect{
+	if _, err := network.NewW3GSConn(conn, h.Encoding).Send(&w3gs.PeerConnect{
 		JoinCounter: peer.PlayerInfo.JoinCounter,
 		EntryKey:    h.EntryKey,
 		PlayerID:    h.PlayerInfo.PlayerID,
@@ -187,7 +188,7 @@ func (h *Host) Accept(conn net.Conn) (*Player, error) {
 		done <- struct{}{}
 	})
 
-	peer.SetConn(conn)
+	peer.SetConn(conn, h.Encoding)
 
 	h.wg.Add(1)
 	go func() {
@@ -229,7 +230,7 @@ func (h *Host) Dial(playerID uint8) (*Player, error) {
 	conn.SetNoDelay(true)
 	conn.SetLinger(3)
 
-	if _, err := network.NewW3GSConn(conn).Send(&w3gs.PeerConnect{
+	if _, err := network.NewW3GSConn(conn, h.Encoding).Send(&w3gs.PeerConnect{
 		JoinCounter: peer.PlayerInfo.JoinCounter,
 		EntryKey:    h.EntryKey,
 		PlayerID:    h.PlayerInfo.PlayerID,
@@ -275,7 +276,7 @@ func (h *Host) Dial(playerID uint8) (*Player, error) {
 		ev.PreventNext()
 	})
 
-	peer.SetConn(conn)
+	peer.SetConn(conn, h.Encoding)
 
 	h.wg.Add(1)
 	go func() {
@@ -332,7 +333,7 @@ func (h *Host) Close() {
 }
 
 func (h *Host) connectPlayer(conn net.Conn) (*w3gs.PeerConnect, error) {
-	pkt, err := network.NewW3GSConn(conn).NextPacket(5 * time.Second)
+	pkt, err := network.NewW3GSConn(conn, h.Encoding).NextPacket(5 * time.Second)
 	if err != nil {
 		return nil, err
 	}
@@ -358,7 +359,7 @@ func (h *Host) disconnectPlayer(conn net.Conn, peer *Player) {
 	conn.Close()
 	var dc = peer.W3GSConn.Conn() == conn
 	if dc {
-		peer.W3GSConn.SetConn(nil)
+		peer.W3GSConn.SetConn(nil, h.Encoding)
 		atomic.StoreUint32(&peer.peerset, 0)
 		atomic.StoreUint32(&peer.rtt, 0)
 		h.peerset.Clear(uint(peer.PlayerInfo.PlayerID))

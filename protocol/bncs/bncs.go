@@ -23,10 +23,18 @@
 //
 package bncs
 
-import "github.com/nielsAD/gowarcraft3/protocol"
+import (
+	"github.com/nielsAD/gowarcraft3/protocol"
+	"github.com/nielsAD/gowarcraft3/protocol/w3gs"
+)
 
 // Packet interface.
 type Packet interface {
-	Serialize(buf *protocol.Buffer) error
-	Deserialize(buf *protocol.Buffer) error
+	Serialize(buf *protocol.Buffer, enc *Encoding) error
+	Deserialize(buf *protocol.Buffer, enc *Encoding) error
+}
+
+// Encoding options for (de)serialization
+type Encoding struct {
+	w3gs.Encoding
 }

@@ -17,7 +17,6 @@ var (
 	ErrInvalidPacketSize = errors.New("w3gs: Invalid packet size")
 	ErrInvalidChecksum   = errors.New("w3gs: Checksum invalid")
 	ErrUnexpectedConst   = errors.New("w3gs: Unexpected constant value")
-	ErrBufferTooSmall    = errors.New("w3gs: Packet exceeds buffer size")
 )
 
 // CurrentGameVersion used by stable release

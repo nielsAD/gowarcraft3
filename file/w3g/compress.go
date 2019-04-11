@@ -94,23 +94,21 @@ type BufferedCompressor struct {
 }
 
 // NewBufferedCompressorSize for compressed w3g with specified buffer size
-func NewBufferedCompressorSize(w io.Writer, size int, o StreamOptions) *BufferedCompressor {
+func NewBufferedCompressorSize(w io.Writer, size int, e Encoding) *BufferedCompressor {
 	var c = NewCompressor(w)
 	var b = bufio.NewWriterSize(c, size)
-	var e = NewRecordEncoder(Stream{
-		StreamOptions: o,
-	})
+	var r = NewRecordEncoder(e)
 
 	return &BufferedCompressor{
 		Compressor: c,
 		Writer:     b,
-		enc:        e,
+		enc:        r,
 	}
 }
 
 // NewBufferedCompressor for compressed w3g with default buffer size
-func NewBufferedCompressor(w io.Writer, o StreamOptions) *BufferedCompressor {
-	return NewBufferedCompressorSize(w, defaultBufSize, o)
+func NewBufferedCompressor(w io.Writer, e Encoding) *BufferedCompressor {
+	return NewBufferedCompressorSize(w, defaultBufSize, e)
 }
 
 // Write implements the io.Writer interface.
@@ -120,7 +118,7 @@ func (d *BufferedCompressor) Write(p []byte) (int, error) {
 
 // WriteRecord serializes r and writes it to d
 func (d *BufferedCompressor) WriteRecord(r Record) (int, error) {
-	return d.enc.Serialize(d.Writer, r)
+	return d.enc.Write(d.Writer, r)
 }
 
 // WriteRecords serializes r and writes to d

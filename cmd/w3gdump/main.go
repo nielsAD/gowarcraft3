@@ -70,7 +70,7 @@ func main() {
 		}
 		defer o.Close()
 
-		e, err = w3g.NewEncoder(o, hdr.StreamOptions())
+		e, err = w3g.NewEncoder(o, hdr.Encoding())
 		if err != nil {
 			logErr.Fatal("NewEncoder error: ", err)
 		}

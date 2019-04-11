@@ -40,26 +40,29 @@ var logOut = log.New(os.Stdout, "", log.Ltime)
 var logErr = log.New(os.Stderr, "", log.Ltime)
 
 func dumpPackets(layer string, netFlow, transFlow gopacket.Flow, r io.Reader) error {
-	var buf w3gs.DeserializationBuffer
+	var dec = w3gs.NewDecoder(w3gs.Encoding{})
 
 	var src = netFlow.Src().String() + ":" + transFlow.Src().String()
 	var dst = netFlow.Dst().String() + ":" + transFlow.Dst().String()
 	var prf = fmt.Sprintf("[%-3v] %21v->%-21v", layer, src, dst)
 
 	for {
-		var pkt, size, err = w3gs.DeserializePacketWithBuffer(r, &buf)
+		var pkt w3gs.Packet
+
+		var raw, _, err = dec.ReadRaw(r)
+		if err == nil {
+			pkt, _, err = dec.Deserialize(raw)
+		}
+
 		if err == io.EOF || err == w3gs.ErrNoProtocolSig {
 			return err
 		} else if err != nil {
 			logErr.Printf("%v %-14v %v\n", prf, "ERROR", err)
-
-			if size > len(buf.Buffer) {
-				size = len(buf.Buffer)
+			if len(raw) > 0 {
+				logErr.Printf("Payload:\n%v", hex.Dump(raw))
 			}
 
-			logErr.Printf("Payload:\n%v", hex.Dump(buf.Buffer[:size]))
-
-			if err == w3gs.ErrBufferTooSmall || err == w3gs.ErrInvalidPacketSize || err == w3gs.ErrInvalidChecksum || err == w3gs.ErrUnexpectedConst {
+			if err == w3gs.ErrInvalidPacketSize || err == w3gs.ErrInvalidChecksum || err == w3gs.ErrUnexpectedConst {
 				continue
 			} else {
 				return err

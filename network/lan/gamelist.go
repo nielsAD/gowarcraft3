@@ -45,8 +45,15 @@ func NewGameList(gv w3gs.GameVersion, port int) (*GameList, error) {
 	}
 
 	g.InitDefaultHandlers()
-	g.SetConn(conn)
+	g.SetConn(conn, g.Encoding())
 	return &g, nil
+}
+
+//Encoding for w3gs packets
+func (g *GameList) Encoding() w3gs.Encoding {
+	return w3gs.Encoding{
+		GameVersion: g.GameVersion.Version,
+	}
 }
 
 // Games returns the current list of LAN games. Map key is the remote address.

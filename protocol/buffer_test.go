@@ -25,19 +25,46 @@ func reverse(numbers []byte) []byte {
 }
 
 func TestReaderWriter(t *testing.T) {
-	var blob = []byte{1, 2, 3, 4, 5, 6, 7, 8, 9, 10}
-	var reader = protocol.Buffer{Bytes: blob}
+	var reader protocol.Buffer
 	var writer protocol.Buffer
 
-	io.Copy(&writer, &reader)
+	var blob = []byte{1, 2, 3, 4, 5, 6, 7, 8, 9, 10}
+	reader.Write(blob)
+
+	var out [10]byte
+	reader.Read(out[:])
 	if reader.Size() != 0 {
-		t.Fatalf("reader.size != 0")
+		t.Fatalf("reader.size != 0 after Read")
+	}
+	if bytes.Compare(out[:], blob) != 0 {
+		t.Fatalf("Reader/Writer (Read): %v != %v", writer.Bytes, blob)
+	}
+
+	reader.Write(blob)
+	writer.ReadFrom(&reader)
+
+	if reader.Size() != 0 {
+		t.Fatalf("reader.size != 0 after ReadFrom")
 	}
 	if writer.Size() != len(blob) {
-		t.Fatalf("writer.size != blob")
+		t.Fatalf("writer.size != blob after ReadFrom")
 	}
 	if bytes.Compare(writer.Bytes, blob) != 0 {
-		t.Fatalf("Reader/Writer: %v != %v", writer.Bytes, blob)
+		t.Fatalf("Reader/Writer (ReadFrom): %v != %v", writer.Bytes, blob)
+	}
+
+	reader.Write(blob)
+	writer.Truncate()
+	io.Copy(&writer, &reader)
+
+	if reader.Size() != 0 {
+		t.Fatalf("reader.size != 0 after Copy")
+	}
+	if writer.Size() != len(blob) {
+		t.Fatalf("writer.size != blob after Copy")
+	}
+	if bytes.Compare(writer.Bytes, blob) != 0 {
+		t.Fatalf("Reader/Writer (Copy): %v != %v", writer.Bytes, blob)
 	}
 }
 

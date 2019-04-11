@@ -41,7 +41,7 @@ var logOut = log.New(os.Stdout, "", log.Ltime)
 var logErr = log.New(os.Stderr, "", log.Ltime)
 
 func dumpPackets(layer string, netFlow, transFlow gopacket.Flow, r io.Reader) error {
-	var buf bncs.DeserializationBuffer
+	var dec = bncs.NewDecoder(bncs.Encoding{})
 
 	var srv = strconv.Itoa(*port)
 	var src = netFlow.Src().String() + ":" + transFlow.Src().String()
@@ -58,25 +58,25 @@ func dumpPackets(layer string, netFlow, transFlow gopacket.Flow, r io.Reader) er
 
 	for {
 		var pkt bncs.Packet
-		var size int
-		var err error
-		if transFlow.Src().String() == srv {
-			pkt, size, err = bncs.DeserializeServerPacketWithBuffer(r, &buf)
-		} else {
-			pkt, size, err = bncs.DeserializeClientPacketWithBuffer(r, &buf)
+
+		var raw, _, err = dec.ReadRaw(r)
+		if err == nil {
+			if transFlow.Src().String() == srv {
+				pkt, _, err = dec.DeserializeServer(raw)
+			} else {
+				pkt, _, err = dec.DeserializeClient(raw)
+			}
 		}
+
 		if err == io.EOF || err == bncs.ErrNoProtocolSig {
 			return err
 		} else if err != nil {
 			logErr.Printf("%v %-14v %v\n", prf, "ERROR", err)
-
-			if size > len(buf.Buffer) {
-				size = len(buf.Buffer)
+			if len(raw) > 0 {
+				logErr.Printf("Payload:\n%v", hex.Dump(raw))
 			}
 
-			logErr.Printf("Payload:\n%v", hex.Dump(buf.Buffer[:size]))
-
-			if err == bncs.ErrBufferTooSmall || err == bncs.ErrInvalidPacketSize || err == bncs.ErrInvalidChecksum || err == bncs.ErrUnexpectedConst {
+			if err == bncs.ErrInvalidPacketSize || err == bncs.ErrInvalidChecksum || err == bncs.ErrUnexpectedConst {
 				continue
 			} else {
 				return err
