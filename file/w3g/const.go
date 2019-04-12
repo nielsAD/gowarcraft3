@@ -19,7 +19,7 @@ var (
 // Signature constant for w3g files
 var Signature = "Warcraft III recorded game\x1A"
 
-//Record identifiers
+// Record type identifiers
 const (
 	RidGameInfo       = 0x10
 	RidPlayerInfo     = 0x16 // w3gs.PlayerInfo

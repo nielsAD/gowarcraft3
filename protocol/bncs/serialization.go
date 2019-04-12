@@ -11,7 +11,6 @@ import (
 )
 
 // Encoder keeps amortized allocs at 0 for repeated Packet.Serialize calls.
-// Byte slices are valid until the next Serialize() call.
 type Encoder struct {
 	Encoding
 	buf protocol.Buffer
@@ -44,68 +43,24 @@ func (enc *Encoder) Write(w io.Writer, p Packet) (int, error) {
 	return w.Write(b)
 }
 
-// Serialize serializes p and returns its byte representation.
-func Serialize(p Packet, e Encoding) ([]byte, error) {
-	return NewEncoder(e).Serialize(p)
-}
-
-// Write serializes p and writes it to w.
-func Write(w io.Writer, p Packet, e Encoding) (int, error) {
-	return NewEncoder(e).Write(w, p)
-}
-
 // Decoder keeps amortized allocs at 0 for repeated Packet.Deserialize calls.
-// Packets are valid until the next Deserialize() call.
 type Decoder struct {
 	Encoding
+	PacketFactory
 	bufRaw protocol.Buffer
 	bufDes protocol.Buffer
-
-	keepAlive                      KeepAlive
-	ping                           Ping
-	enterChatReq                   EnterChatReq
-	enterChatResp                  EnterChatResp
-	joinChannel                    JoinChannel
-	chatCommand                    ChatCommand
-	chatEvent                      ChatEvent
-	floodDetected                  FloodDetected
-	messageBox                     MessageBox
-	getAdvListResp                 GetAdvListResp
-	getAdvListReq                  GetAdvListReq
-	startAdvex3Resp                StartAdvex3Resp
-	startAdvex3Req                 StartAdvex3Req
-	stopAdv                        StopAdv
-	notifyJoin                     NotifyJoin
-	netGamePort                    NetGamePort
-	authInfoResp                   AuthInfoResp
-	authInfoReq                    AuthInfoReq
-	authCheckResp                  AuthCheckResp
-	authCheckReq                   AuthCheckReq
-	authAccountCreateResp          AuthAccountCreateResp
-	authAccountCreateReq           AuthAccountCreateReq
-	authAccountLogonResp           AuthAccountLogonResp
-	authAccountLogonReq            AuthAccountLogonReq
-	authAccountLogonProofResp      AuthAccountLogonProofResp
-	authAccountLogonProofReq       AuthAccountLogonProofReq
-	authAccountChangePassResp      AuthAccountChangePassResp
-	authAccountChangePassReq       AuthAccountChangePassReq
-	authAccountChangePassProofResp AuthAccountChangePassProofResp
-	authAccountChangePassProofReq  AuthAccountChangePassProofReq
-	setEmail                       SetEmail
-	clanInfo                       ClanInfo
-	unknownPacket                  UnknownPacket
 }
 
 // NewDecoder initialization
-func NewDecoder(e Encoding) *Decoder {
+func NewDecoder(e Encoding, f PacketFactory) *Decoder {
 	return &Decoder{
-		Encoding: e,
+		PacketFactory: f,
+		Encoding:      e,
 	}
 }
 
-// DeserializeClient reads exactly one client packet from b and returns it in the proper (deserialized) packet type.
-// Result is valid until the next Deserialize() call.
-func (dec *Decoder) DeserializeClient(b []byte) (Packet, int, error) {
+// Deserialize reads exactly one packet from b and returns it in the proper (deserialized) packet type.
+func (dec *Decoder) Deserialize(b []byte) (Packet, int, error) {
 	dec.bufDes.Reset(b)
 
 	var size = dec.bufDes.Size()
@@ -113,145 +68,17 @@ func (dec *Decoder) DeserializeClient(b []byte) (Packet, int, error) {
 		return nil, 0, ErrNoProtocolSig
 	}
 
-	var pkt Packet
-	var err error
-
-	// Explicitly call deserialize on type instead of interface for compiler optimizations
-	switch b[1] {
-	case PidNull:
-		err = dec.keepAlive.Deserialize(&dec.bufDes, &dec.Encoding)
-		pkt = &dec.keepAlive
-	case PidStopAdv:
-		err = dec.stopAdv.Deserialize(&dec.bufDes, &dec.Encoding)
-		pkt = &dec.stopAdv
-	case PidGetAdvListEx:
-		err = dec.getAdvListReq.Deserialize(&dec.bufDes, &dec.Encoding)
-		pkt = &dec.getAdvListReq
-	case PidEnterChat:
-		err = dec.enterChatReq.Deserialize(&dec.bufDes, &dec.Encoding)
-		pkt = &dec.enterChatReq
-	case PidJoinChannel:
-		err = dec.joinChannel.Deserialize(&dec.bufDes, &dec.Encoding)
-		pkt = &dec.joinChannel
-	case PidChatCommand:
-		err = dec.chatCommand.Deserialize(&dec.bufDes, &dec.Encoding)
-		pkt = &dec.chatCommand
-	case PidStartAdvex3:
-		err = dec.startAdvex3Req.Deserialize(&dec.bufDes, &dec.Encoding)
-		pkt = &dec.startAdvex3Req
-	case PidNotifyJoin:
-		err = dec.notifyJoin.Deserialize(&dec.bufDes, &dec.Encoding)
-		pkt = &dec.notifyJoin
-	case PidPing:
-		err = dec.ping.Deserialize(&dec.bufDes, &dec.Encoding)
-		pkt = &dec.ping
-	case PidNetGamePort:
-		err = dec.netGamePort.Deserialize(&dec.bufDes, &dec.Encoding)
-		pkt = &dec.netGamePort
-	case PidAuthInfo:
-		err = dec.authInfoReq.Deserialize(&dec.bufDes, &dec.Encoding)
-		pkt = &dec.authInfoReq
-	case PidAuthCheck:
-		err = dec.authCheckReq.Deserialize(&dec.bufDes, &dec.Encoding)
-		pkt = &dec.authCheckReq
-	case PidAuthAccountCreate:
-		err = dec.authAccountCreateReq.Deserialize(&dec.bufDes, &dec.Encoding)
-		pkt = &dec.authAccountCreateReq
-	case PidAuthAccountLogon:
-		err = dec.authAccountLogonReq.Deserialize(&dec.bufDes, &dec.Encoding)
-		pkt = &dec.authAccountLogonReq
-	case PidAuthAccountLogonProof:
-		err = dec.authAccountLogonProofReq.Deserialize(&dec.bufDes, &dec.Encoding)
-		pkt = &dec.authAccountLogonProofReq
-	case PidAuthAccountChange:
-		err = dec.authAccountChangePassReq.Deserialize(&dec.bufDes, &dec.Encoding)
-		pkt = &dec.authAccountChangePassReq
-	case PidAuthAccountChangeProof:
-		err = dec.authAccountChangePassProofReq.Deserialize(&dec.bufDes, &dec.Encoding)
-		pkt = &dec.authAccountChangePassProofReq
-	case PidSetEmail:
-		err = dec.setEmail.Deserialize(&dec.bufDes, &dec.Encoding)
-		pkt = &dec.setEmail
-	default:
-		err = dec.unknownPacket.Deserialize(&dec.bufDes, &dec.Encoding)
-		pkt = &dec.unknownPacket
+	var fac = dec.PacketFactory
+	if fac == nil {
+		fac = DefaultFactory
 	}
 
-	var n = size - dec.bufDes.Size()
-	if err != nil {
-		return nil, n, err
+	var pkt = fac.NewPacket(b[1], &dec.Encoding)
+	if pkt == nil {
+		return nil, 0, ErrNoFactory
 	}
 
-	return pkt, n, nil
-}
-
-// DeserializeServer reads exactly one server packet from b and returns it in the proper (deserialized) packet type.
-// Result is valid until the next Deserialize() call.
-func (dec *Decoder) DeserializeServer(b []byte) (Packet, int, error) {
-	dec.bufDes.Reset(b)
-
-	var size = dec.bufDes.Size()
-	if size < 4 || b[0] != ProtocolSig {
-		return nil, 0, ErrNoProtocolSig
-	}
-
-	var pkt Packet
-	var err error
-
-	// Explicitly call deserialize on type instead of interface for compiler optimizations
-	switch b[1] {
-	case PidNull:
-		err = dec.keepAlive.Deserialize(&dec.bufDes, &dec.Encoding)
-		pkt = &dec.keepAlive
-	case PidGetAdvListEx:
-		err = dec.getAdvListResp.Deserialize(&dec.bufDes, &dec.Encoding)
-		pkt = &dec.getAdvListResp
-	case PidEnterChat:
-		err = dec.enterChatResp.Deserialize(&dec.bufDes, &dec.Encoding)
-		pkt = &dec.enterChatResp
-	case PidChatEvent:
-		err = dec.chatEvent.Deserialize(&dec.bufDes, &dec.Encoding)
-		pkt = &dec.chatEvent
-	case PidFloodDetected:
-		err = dec.floodDetected.Deserialize(&dec.bufDes, &dec.Encoding)
-		pkt = &dec.floodDetected
-	case PidMessageBox:
-		err = dec.messageBox.Deserialize(&dec.bufDes, &dec.Encoding)
-		pkt = &dec.messageBox
-	case PidStartAdvex3:
-		err = dec.startAdvex3Resp.Deserialize(&dec.bufDes, &dec.Encoding)
-		pkt = &dec.startAdvex3Resp
-	case PidPing:
-		err = dec.ping.Deserialize(&dec.bufDes, &dec.Encoding)
-		pkt = &dec.ping
-	case PidAuthInfo:
-		err = dec.authInfoResp.Deserialize(&dec.bufDes, &dec.Encoding)
-		pkt = &dec.authInfoResp
-	case PidAuthCheck:
-		err = dec.authCheckResp.Deserialize(&dec.bufDes, &dec.Encoding)
-		pkt = &dec.authCheckResp
-	case PidAuthAccountCreate:
-		err = dec.authAccountCreateResp.Deserialize(&dec.bufDes, &dec.Encoding)
-		pkt = &dec.authAccountCreateResp
-	case PidAuthAccountLogon:
-		err = dec.authAccountLogonResp.Deserialize(&dec.bufDes, &dec.Encoding)
-		pkt = &dec.authAccountLogonResp
-	case PidAuthAccountLogonProof:
-		err = dec.authAccountLogonProofResp.Deserialize(&dec.bufDes, &dec.Encoding)
-		pkt = &dec.authAccountLogonProofResp
-	case PidAuthAccountChange:
-		err = dec.authAccountChangePassResp.Deserialize(&dec.bufDes, &dec.Encoding)
-		pkt = &dec.authAccountChangePassResp
-	case PidAuthAccountChangeProof:
-		err = dec.authAccountChangePassProofResp.Deserialize(&dec.bufDes, &dec.Encoding)
-		pkt = &dec.authAccountChangePassProofResp
-	case PidClanInfo:
-		err = dec.clanInfo.Deserialize(&dec.bufDes, &dec.Encoding)
-		pkt = &dec.clanInfo
-	default:
-		err = dec.unknownPacket.Deserialize(&dec.bufDes, &dec.Encoding)
-		pkt = &dec.unknownPacket
-	}
+	var err = pkt.Deserialize(&dec.bufDes, &dec.Encoding)
 
 	var n = size - dec.bufDes.Size()
 	if err != nil {
@@ -293,14 +120,14 @@ func (dec *Decoder) ReadRaw(r io.Reader) ([]byte, int, error) {
 	return dec.bufRaw.Bytes, size, nil
 }
 
-// ReadClient exactly one client packet from r and returns it in the proper (deserialized) packet type.
-func (dec *Decoder) ReadClient(r io.Reader) (Packet, int, error) {
+// ReadClient exactly one packet from r and returns it in the proper (deserialized) packet type.
+func (dec *Decoder) Read(r io.Reader) (Packet, int, error) {
 	b, n, err := dec.ReadRaw(r)
 	if err != nil {
 		return nil, n, err
 	}
 
-	p, m, err := dec.DeserializeClient(b)
+	p, m, err := dec.Deserialize(b)
 	if err != nil {
 		return nil, n, err
 	}
@@ -311,40 +138,22 @@ func (dec *Decoder) ReadClient(r io.Reader) (Packet, int, error) {
 	return p, n, nil
 }
 
-// ReadServer exactly one server packet from r and returns it in the proper (deserialized) packet type.
-func (dec *Decoder) ReadServer(r io.Reader) (Packet, int, error) {
-	b, n, err := dec.ReadRaw(r)
-	if err != nil {
-		return nil, n, err
-	}
-
-	p, m, err := dec.DeserializeServer(b)
-	if err != nil {
-		return nil, n, err
-	}
-	if m != n {
-		return nil, n, ErrInvalidPacketSize
-	}
-
-	return p, n, nil
+// Serialize serializes p and returns its byte representation.
+func Serialize(p Packet, e Encoding) ([]byte, error) {
+	return NewEncoder(e).Serialize(p)
 }
 
-// DeserializeClient reads exactly one client packet from b and returns it in the proper (deserialized) packet type.
-func DeserializeClient(b []byte, e Encoding) (Packet, int, error) {
-	return NewDecoder(e).DeserializeClient(b)
+// Deserialize reads exactly one packet from b and returns it in the proper (deserialized) packet type.
+func Deserialize(b []byte, e Encoding) (Packet, int, error) {
+	return NewDecoder(e, nil).Deserialize(b)
 }
 
-// DeserializeServer reads exactly one server packet from b and returns it in the proper (deserialized) packet type.
-func DeserializeServer(b []byte, e Encoding) (Packet, int, error) {
-	return NewDecoder(e).DeserializeServer(b)
+// Read exactly one packet from r and returns it in the proper (deserialized) packet type.
+func Read(r io.Reader, e Encoding) (Packet, int, error) {
+	return NewDecoder(e, nil).Read(r)
 }
 
-// ReadClient exactly one client packet from r and returns it in the proper (deserialized) packet type.
-func ReadClient(r io.Reader, e Encoding) (Packet, int, error) {
-	return NewDecoder(e).ReadClient(r)
-}
-
-// ReadServer exactly one server packet from r and returns it in the proper (deserialized) packet type.
-func ReadServer(r io.Reader, e Encoding) (Packet, int, error) {
-	return NewDecoder(e).ReadServer(r)
+// Write serializes p and writes it to w.
+func Write(w io.Writer, p Packet, e Encoding) (int, error) {
+	return NewEncoder(e).Write(w, p)
 }

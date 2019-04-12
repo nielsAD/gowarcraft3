@@ -20,38 +20,20 @@ func TestSerialize(t *testing.T) {
 	}
 }
 
-func TestDeserializeClient(t *testing.T) {
-	if _, _, e := bncs.DeserializeClient([]byte{0, 255, 4, 0}, bncs.Encoding{}); e != bncs.ErrNoProtocolSig {
+func TestDeserialize(t *testing.T) {
+	if _, _, e := bncs.Deserialize([]byte{0, 255, 4, 0}, bncs.Encoding{}); e != bncs.ErrNoProtocolSig {
 		t.Fatal("ErrNoProtocolSig expected if no protocol signature")
 	}
-	if _, _, e := bncs.DeserializeClient([]byte{bncs.ProtocolSig, 255}, bncs.Encoding{}); e != bncs.ErrNoProtocolSig {
+	if _, _, e := bncs.Deserialize([]byte{bncs.ProtocolSig, 255}, bncs.Encoding{}); e != bncs.ErrNoProtocolSig {
 		t.Fatal("ErrNoProtocolSig expected if no size")
 	}
-	if _, _, e := bncs.DeserializeClient([]byte{bncs.ProtocolSig, 3, 0}, bncs.Encoding{}); e != bncs.ErrNoProtocolSig {
+	if _, _, e := bncs.Deserialize([]byte{bncs.ProtocolSig, 3, 0}, bncs.Encoding{}); e != bncs.ErrNoProtocolSig {
 		t.Fatal("ErrNoProtocolSig expected if size < 4")
 	}
-	if _, _, e := bncs.DeserializeClient([]byte{bncs.ProtocolSig, 255, 255, 0}, bncs.Encoding{}); e != bncs.ErrInvalidPacketSize {
+	if _, _, e := bncs.Deserialize([]byte{bncs.ProtocolSig, 255, 255, 0}, bncs.Encoding{}); e != bncs.ErrInvalidPacketSize {
 		t.Fatal("ErrUnexpectedEOF expected if bytes invalid size", e)
 	}
-	if _, _, e := bncs.ReadClient(&protocol.Buffer{Bytes: []byte{bncs.ProtocolSig, 255, 255, 0}}, bncs.Encoding{}); e != io.ErrUnexpectedEOF {
-		t.Fatal("ErrUnexpectedEOF expected if reader invalid size", e)
-	}
-}
-
-func TestDeserializeServer(t *testing.T) {
-	if _, _, e := bncs.DeserializeServer([]byte{0, 255, 4, 0}, bncs.Encoding{}); e != bncs.ErrNoProtocolSig {
-		t.Fatal("ErrNoProtocolSig expected if no protocol signature")
-	}
-	if _, _, e := bncs.DeserializeServer([]byte{bncs.ProtocolSig, 255}, bncs.Encoding{}); e != bncs.ErrNoProtocolSig {
-		t.Fatal("ErrNoProtocolSig expected if no size")
-	}
-	if _, _, e := bncs.DeserializeServer([]byte{bncs.ProtocolSig, 3, 0}, bncs.Encoding{}); e != bncs.ErrNoProtocolSig {
-		t.Fatal("ErrNoProtocolSig expected if size < 4")
-	}
-	if _, _, e := bncs.DeserializeServer([]byte{bncs.ProtocolSig, 255, 255, 0}, bncs.Encoding{}); e != bncs.ErrInvalidPacketSize {
-		t.Fatal("ErrUnexpectedEOF expected if bytes invalid size", e)
-	}
-	if _, _, e := bncs.ReadServer(&protocol.Buffer{Bytes: []byte{bncs.ProtocolSig, 255, 255, 0}}, bncs.Encoding{}); e != io.ErrUnexpectedEOF {
+	if _, _, e := bncs.Read(&protocol.Buffer{Bytes: []byte{bncs.ProtocolSig, 255, 255, 0}}, bncs.Encoding{}); e != io.ErrUnexpectedEOF {
 		t.Fatal("ErrUnexpectedEOF expected if reader invalid size", e)
 	}
 }

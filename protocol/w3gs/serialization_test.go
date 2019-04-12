@@ -67,7 +67,7 @@ func BenchmarkDecoder(b *testing.B) {
 	b.SetBytes(int64(input.Size()))
 	b.ResetTimer()
 
-	var d = w3gs.NewDecoder(w3gs.Encoding{})
+	var d = w3gs.NewDecoder(w3gs.Encoding{}, w3gs.NewFactoryCache(w3gs.DefaultFactory))
 	var r = &protocol.Buffer{}
 	for n := 0; n < b.N; n++ {
 		r.Reset(input.Bytes)

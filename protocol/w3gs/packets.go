@@ -53,7 +53,7 @@ func (pkt *UnknownPacket) Deserialize(buf *protocol.Buffer, enc *Encoding) error
 	}
 
 	pkt.ID = pid
-	pkt.Blob = buf.ReadBlob(size - 4)
+	pkt.Blob = append(pkt.Blob[:0], buf.ReadBlob(size-4)...)
 
 	return nil
 }
@@ -1128,7 +1128,7 @@ func (pkt *GameAction) Deserialize(buf *protocol.Buffer, enc *Encoding) error {
 	}
 
 	var crc = buf.ReadUInt32()
-	pkt.Data = buf.ReadBlob(size - 8)
+	pkt.Data = append(pkt.Data[:0], buf.ReadBlob(size-8)...)
 
 	if crc != uint32(crc32.ChecksumIEEE(pkt.Data)) {
 		return ErrInvalidChecksum
@@ -1226,11 +1226,17 @@ func (pkt *TimeSlot) Deserialize(buf *protocol.Buffer, enc *Encoding) error {
 		return ErrInvalidChecksum
 	}
 
+	var i = 0
+
 	pkt.Actions = pkt.Actions[:0]
 	for size >= 3 {
-		var action = PlayerAction{
-			PlayerID: buf.ReadUInt8(),
+		if cap(pkt.Actions) < i+1 {
+			pkt.Actions = append(pkt.Actions, PlayerAction{})
+		} else {
+			pkt.Actions = pkt.Actions[:i+1]
 		}
+
+		pkt.Actions[i].PlayerID = buf.ReadUInt8()
 
 		var subsize = int(buf.ReadUInt16())
 		if size < subsize {
@@ -1238,8 +1244,8 @@ func (pkt *TimeSlot) Deserialize(buf *protocol.Buffer, enc *Encoding) error {
 		}
 		size -= 3 + subsize
 
-		action.Data = buf.ReadBlob(subsize)
-		pkt.Actions = append(pkt.Actions, action)
+		pkt.Actions[i].Data = append(pkt.Actions[i].Data[:0], buf.ReadBlob(subsize)...)
+		i++
 	}
 
 	if size != 0 {
@@ -1350,7 +1356,7 @@ func (pkt *Desync) DeserializeContent(buf *protocol.Buffer, enc *Encoding) error
 		return ErrInvalidPacketSize
 	}
 
-	pkt.PlayersInState = buf.ReadBlob(numPlayers)
+	pkt.PlayersInState = append(pkt.PlayersInState[:0], buf.ReadBlob(numPlayers)...)
 	return nil
 }
 
@@ -1432,7 +1438,7 @@ func (pkt *Message) Deserialize(buf *protocol.Buffer, enc *Encoding) error {
 		return ErrInvalidPacketSize
 	}
 
-	pkt.RecipientIDs = buf.ReadBlob(numRecipients)
+	pkt.RecipientIDs = append(pkt.RecipientIDs[:0], buf.ReadBlob(numRecipients)...)
 	pkt.SenderID = buf.ReadUInt8()
 	pkt.Type = MessageType(buf.ReadUInt8())
 
@@ -2278,7 +2284,7 @@ func (pkt *MapPart) Deserialize(buf *protocol.Buffer, enc *Encoding) error {
 	pkt.ChunkPos = buf.ReadUInt32()
 
 	var crc = buf.ReadUInt32()
-	pkt.Data = buf.ReadBlob(size - 18)
+	pkt.Data = append(pkt.Data[:0], buf.ReadBlob(size-18)...)
 	if crc != uint32(crc32.ChecksumIEEE(pkt.Data)) {
 		return ErrInvalidChecksum
 	}

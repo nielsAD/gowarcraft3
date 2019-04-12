@@ -76,9 +76,9 @@ func TestFiles(t *testing.T) {
 					},
 				},
 				Records: []w3g.Record{
-					&w3g.TimeSlot{TimeSlot: w3gs.TimeSlot{Fragment: true, TimeIncrementMS: 100}},
-					&w3g.TimeSlot{TimeSlot: w3gs.TimeSlot{Fragment: true, TimeIncrementMS: 100, Actions: []w3gs.PlayerAction{w3gs.PlayerAction{PlayerID: 10, Data: b64("FgIBAIlLAACMSwAAFgEFAKtLAACuSwAAw0sAAMZLAADbSwAA3ksAAPNLAAD2SwAAC0wAAA5MAAA=")}}}},
-					&w3g.TimeSlot{TimeSlot: w3gs.TimeSlot{Fragment: true, TimeIncrementMS: 100, Actions: []w3gs.PlayerAction{w3gs.PlayerAction{PlayerID: 9, Data: b64("FgIBAMBKAADASgAAFgEFABRLAAAXSwAAKksAAC1LAABASwAAQ0sAAFZLAABZSwAAbEsAAG9LAAAZAA==")}, w3gs.PlayerAction{PlayerID: 10, Data: b64("EggDAA0AAACAxAAA2EXfQAAA30AAAA==")}}}},
+					&w3g.TimeSlot{TimeSlot: w3gs.TimeSlot{TimeIncrementMS: 100}},
+					&w3g.TimeSlot{TimeSlot: w3gs.TimeSlot{TimeIncrementMS: 100, Actions: []w3gs.PlayerAction{w3gs.PlayerAction{PlayerID: 10, Data: b64("FgIBAIlLAACMSwAAFgEFAKtLAACuSwAAw0sAAMZLAADbSwAA3ksAAPNLAAD2SwAAC0wAAA5MAAA=")}}}},
+					&w3g.TimeSlot{TimeSlot: w3gs.TimeSlot{TimeIncrementMS: 100, Actions: []w3gs.PlayerAction{w3gs.PlayerAction{PlayerID: 9, Data: b64("FgIBAMBKAADASgAAFgEFABRLAAAXSwAAKksAAC1LAABASwAAQ0sAAFZLAABZSwAAbEsAAG9LAAAZAA==")}, w3gs.PlayerAction{PlayerID: 10, Data: b64("EggDAA0AAACAxAAA2EXfQAAA30AAAA==")}}}},
 				},
 			},
 		},

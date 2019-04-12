@@ -17,12 +17,12 @@ import (
 
 // Decompressor is an io.Reader that decompresses data blocks
 type Decompressor struct {
+	RecordDecoder
+
 	SizeRead  uint32 // Compressed size read in total
 	SizeTotal uint32 // Decompressed size left to read in total
 	SizeBlock uint16 // Decompressed size left to read current block
 	NumBlocks uint32 // Blocks left to read
-
-	enc Encoding
 
 	r   io.Reader
 	z   io.ReadCloser
@@ -35,15 +35,18 @@ type Decompressor struct {
 }
 
 // NewDecompressor for compressed w3g data
-func NewDecompressor(r io.Reader, numBlocks uint32, sizeTotal uint32, e Encoding) *Decompressor {
+func NewDecompressor(r io.Reader, e Encoding, f RecordFactory, numBlocks uint32, sizeTotal uint32) *Decompressor {
 	var lim = io.LimitedReader{R: r}
 	var crc = crc32.NewIEEE()
 	var tee = &toByteReader{Reader: io.TeeReader(&lim, crc)}
 
 	return &Decompressor{
+		RecordDecoder: RecordDecoder{
+			RecordFactory: f,
+			Encoding:      e,
+		},
 		SizeTotal: sizeTotal,
 		NumBlocks: numBlocks,
-		enc:       e,
 		r:         r,
 		tee:       tee,
 		lim:       &lim,
@@ -176,10 +179,9 @@ func (d *Decompressor) Read(b []byte) (int, error) {
 // ForEach record call f
 func (d *Decompressor) ForEach(f func(r Record) error) error {
 	var b = bufio.NewReaderSize(d, 8192)
-	var r = NewRecordDecoder(d.enc)
 
 	for {
-		rec, _, err := r.Read(b)
+		rec, _, err := d.RecordDecoder.Read(b)
 		switch err {
 		case nil:
 			if err := f(rec); err != nil {

@@ -127,7 +127,7 @@ func (r *Replay) Encode(w io.Writer) error {
 
 // Decode a w3g file
 func Decode(r io.Reader) (*Replay, error) {
-	hdr, data, _, err := DecodeHeader(r)
+	hdr, data, _, err := DecodeHeader(r, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -141,38 +141,15 @@ func Decode(r io.Reader) (*Replay, error) {
 		case *SlotInfo:
 			res.SlotInfo = *v
 		case *PlayerInfo:
-			var cpy = *v
-			res.Players = append(res.Players, &cpy)
-		case *TimeSlot:
-			var cpy = *v
-
-			cpy.Actions = nil
-			for _, a := range v.Actions {
-				cpy.Actions = append(cpy.Actions, w3gs.PlayerAction{
-					PlayerID: a.PlayerID,
-					Data:     append(([]byte)(nil), a.Data...),
-				})
-			}
-
-			res.Records = append(res.Records, &cpy)
+			res.Players = append(res.Players, v)
+		case *CountDownStart, *CountDownEnd, *GameStart, *TimeSlotAck:
+			// Ignore
 		case *ChatMessage:
-			if v.Type != w3gs.MsgChatExtra {
-				break
+			if v.Type == w3gs.MsgChatExtra {
+				res.Records = append(res.Records, v)
 			}
-
-			var cpy = *v
-			res.Records = append(res.Records, &cpy)
-		case *PlayerLeft:
-			var cpy = *v
-			res.Records = append(res.Records, &cpy)
-		case *Desync:
-			var cpy = *v
-			cpy.PlayersInState = append(([]byte)(nil), cpy.PlayersInState...)
-
-			res.Records = append(res.Records, &cpy)
-		case *EndTimer:
-			var cpy = *v
-			res.Records = append(res.Records, &cpy)
+		default:
+			res.Records = append(res.Records, v)
 		}
 		return nil
 	}); err != nil {

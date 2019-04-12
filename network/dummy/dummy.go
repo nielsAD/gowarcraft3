@@ -84,7 +84,7 @@ func (p *Player) Join() error {
 	conn.SetNoDelay(true)
 	conn.SetLinger(3)
 
-	w3gsconn := network.NewW3GSConn(conn, p.Encoding)
+	w3gsconn := network.NewW3GSConn(conn, nil, p.Encoding)
 
 	p.PlayerInfo.JoinCounter++
 	if _, err := w3gsconn.Send(&w3gs.Join{
@@ -116,7 +116,7 @@ func (p *Player) Join() error {
 		return ErrInvalidFirstPacket
 	}
 
-	p.SetConn(conn, p.Encoding)
+	p.SetConn(conn, w3gs.NewFactoryCache(w3gs.DefaultFactory), p.Encoding)
 	return nil
 }
 

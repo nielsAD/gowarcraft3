@@ -13,6 +13,7 @@ import (
 
 // Errors
 var (
+	ErrNoFactory         = errors.New("w3gs: Invalid w3gs packet (empty factory)")
 	ErrNoProtocolSig     = errors.New("w3gs: Invalid w3gs packet (no signature found)")
 	ErrInvalidPacketSize = errors.New("w3gs: Invalid packet size")
 	ErrInvalidChecksum   = errors.New("w3gs: Checksum invalid")

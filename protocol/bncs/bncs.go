@@ -37,4 +37,64 @@ type Packet interface {
 // Encoding options for (de)serialization
 type Encoding struct {
 	w3gs.Encoding
+
+	// Assume request when deserializing ambiguous packet IDs
+	Request bool
+}
+
+// DefaultFactory maps packet IDs to matching type
+var DefaultFactory = MapFactory{
+	PidNull:          func(_ *Encoding) Packet { return &KeepAlive{} },
+	PidStopAdv:       func(_ *Encoding) Packet { return &StopAdv{} },
+	PidJoinChannel:   func(_ *Encoding) Packet { return &JoinChannel{} },
+	PidChatCommand:   func(_ *Encoding) Packet { return &ChatCommand{} },
+	PidChatEvent:     func(_ *Encoding) Packet { return &ChatEvent{} },
+	PidFloodDetected: func(_ *Encoding) Packet { return &FloodDetected{} },
+	PidMessageBox:    func(_ *Encoding) Packet { return &MessageBox{} },
+	PidNotifyJoin:    func(_ *Encoding) Packet { return &NotifyJoin{} },
+	PidPing:          func(_ *Encoding) Packet { return &Ping{} },
+	PidNetGamePort:   func(_ *Encoding) Packet { return &NetGamePort{} },
+	PidSetEmail:      func(_ *Encoding) Packet { return &SetEmail{} },
+	PidClanInfo:      func(_ *Encoding) Packet { return &ClanInfo{} },
+
+	PidGetAdvListEx: ReqResp(
+		func(_ *Encoding) Packet { return &GetAdvListReq{} },
+		func(_ *Encoding) Packet { return &GetAdvListResp{} },
+	),
+	PidEnterChat: ReqResp(
+		func(_ *Encoding) Packet { return &EnterChatReq{} },
+		func(_ *Encoding) Packet { return &EnterChatResp{} },
+	),
+	PidStartAdvex3: ReqResp(
+		func(_ *Encoding) Packet { return &StartAdvex3Req{} },
+		func(_ *Encoding) Packet { return &StartAdvex3Resp{} },
+	),
+	PidAuthInfo: ReqResp(
+		func(_ *Encoding) Packet { return &AuthInfoReq{} },
+		func(_ *Encoding) Packet { return &AuthInfoResp{} },
+	),
+	PidAuthCheck: ReqResp(
+		func(_ *Encoding) Packet { return &AuthCheckReq{} },
+		func(_ *Encoding) Packet { return &AuthCheckResp{} },
+	),
+	PidAuthAccountCreate: ReqResp(
+		func(_ *Encoding) Packet { return &AuthAccountCreateReq{} },
+		func(_ *Encoding) Packet { return &AuthAccountCreateResp{} },
+	),
+	PidAuthAccountLogon: ReqResp(
+		func(_ *Encoding) Packet { return &AuthAccountLogonReq{} },
+		func(_ *Encoding) Packet { return &AuthAccountLogonResp{} },
+	),
+	PidAuthAccountLogonProof: ReqResp(
+		func(_ *Encoding) Packet { return &AuthAccountLogonProofReq{} },
+		func(_ *Encoding) Packet { return &AuthAccountLogonProofResp{} },
+	),
+	PidAuthAccountChange: ReqResp(
+		func(_ *Encoding) Packet { return &AuthAccountChangePassReq{} },
+		func(_ *Encoding) Packet { return &AuthAccountChangePassResp{} },
+	),
+	PidAuthAccountChangeProof: ReqResp(
+		func(_ *Encoding) Packet { return &AuthAccountChangePassProofReq{} },
+		func(_ *Encoding) Packet { return &AuthAccountChangePassProofResp{} },
+	),
 }

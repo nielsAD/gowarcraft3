@@ -47,7 +47,7 @@ func FindHeader(r Peeker) (int, error) {
 }
 
 // DecodeHeader a w3g file, returns header and a Decompressor to read compressed records
-func DecodeHeader(r io.Reader) (*Header, *Decompressor, int, error) {
+func DecodeHeader(r io.Reader, f RecordFactory) (*Header, *Decompressor, int, error) {
 	var buf [68]byte
 	var hdr Header
 
@@ -115,7 +115,7 @@ func DecodeHeader(r io.Reader) (*Header, *Decompressor, int, error) {
 		return nil, nil, n, err
 	}
 
-	return &hdr, NewDecompressor(r, numBlocks, sizeBlocks, hdr.Encoding()), n, err
+	return &hdr, NewDecompressor(r, hdr.Encoding(), f, numBlocks, sizeBlocks), n, err
 }
 
 // Encoding for (de)serialization
@@ -130,7 +130,7 @@ func (h *Header) Encoding() Encoding {
 // Encoder compresses records and updates header on close
 type Encoder struct {
 	Header
-	*BufferedCompressor
+	*Compressor
 
 	b protocol.Buffer
 	w io.Writer
@@ -149,9 +149,9 @@ func NewEncoder(w io.Writer, e Encoding) (*Encoder, error) {
 			return nil, err
 		}
 
-		res.BufferedCompressor = NewBufferedCompressor(w, e)
+		res.Compressor = NewCompressor(w, e)
 	} else {
-		res.BufferedCompressor = NewBufferedCompressor(&res.b, e)
+		res.Compressor = NewCompressor(&res.b, e)
 	}
 
 	return &res, nil
@@ -160,7 +160,7 @@ func NewEncoder(w io.Writer, e Encoding) (*Encoder, error) {
 // Close writer, flush data, and update header.
 // Does not close underlying writer.
 func (e *Encoder) Close() error {
-	if err := e.BufferedCompressor.Close(); err != nil {
+	if err := e.Compressor.Close(); err != nil {
 		return err
 	}
 
@@ -186,16 +186,16 @@ func (e *Encoder) Close() error {
 	s, seeker := e.w.(io.Seeker)
 	if seeker {
 		// Seek to beginning
-		if _, err := s.Seek(-int64(e.BufferedCompressor.SizeWritten+68), io.SeekCurrent); err != nil {
+		if _, err := s.Seek(-int64(e.Compressor.SizeWritten+68), io.SeekCurrent); err != nil {
 			return err
 		}
 		// Overwrite header
 		if n, err := e.w.Write(pbuf.Bytes); err != nil {
-			s.Seek(-int64(e.BufferedCompressor.SizeWritten+68-uint32(n)), io.SeekCurrent)
+			s.Seek(-int64(e.Compressor.SizeWritten+68-uint32(n)), io.SeekCurrent)
 			return err
 		}
 		// Seek to end
-		if _, err := s.Seek(int64(e.BufferedCompressor.SizeWritten), io.SeekCurrent); err != nil {
+		if _, err := s.Seek(int64(e.Compressor.SizeWritten), io.SeekCurrent); err != nil {
 			return err
 		}
 		return nil

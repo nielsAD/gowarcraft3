@@ -10,14 +10,27 @@ import (
 	"strings"
 )
 
-// Serialize packet and returns its byte representation.
-func Serialize(p *Packet) ([]byte, error) {
-	return json.Marshal(p)
+// PayloadFactory returns a struct of the appropiate type for a Payload ID
+type PayloadFactory interface {
+	NewPayload(cmd string) interface{}
 }
 
-// Write serializes p and writes it to w.
-func Write(w io.Writer, p *Packet) error {
-	return json.NewEncoder(w).Encode(p)
+// FactoryFunc creates new payload container
+type FactoryFunc func() interface{}
+
+// MapFactory implements PayloadFactory using a map
+type MapFactory map[string]FactoryFunc
+
+// NewPayload implements PayloadFactory interface
+func (f MapFactory) NewPayload(cmd string) interface{} {
+	fun, ok := f[cmd]
+	if !ok {
+		if strings.HasSuffix(cmd, CmdResponseSuffix) {
+			return &Response{}
+		}
+		return &map[string]interface{}{}
+	}
+	return fun()
 }
 
 type rawPacket struct {
@@ -27,75 +40,63 @@ type rawPacket struct {
 	Payload   json.RawMessage `json:"payload"`
 }
 
-func (r *rawPacket) toPacket() (*Packet, error) {
+func (r *rawPacket) toPacket(f PayloadFactory) (*Packet, error) {
 	var p = &Packet{
 		Command:   r.Command,
 		RequestID: r.RequestID,
 		Status:    r.Status,
 	}
 
-	if strings.HasSuffix(r.Command, CmdResponseSuffix) {
-		p.Payload = &Response{}
-	} else {
-		switch r.Command {
-		case CmdAuthenticate + CmdRequestSuffix:
-			p.Payload = &Authenticate{}
-		case CmdConnect + CmdRequestSuffix:
-			p.Payload = &Connect{}
-		case CmdDisconnect + CmdRequestSuffix:
-			p.Payload = &Disconnect{}
-		case CmdSendMessage + CmdRequestSuffix:
-			p.Payload = &SendMessage{}
-		case CmdSendEmote + CmdRequestSuffix:
-			p.Payload = &SendEmote{}
-		case CmdSendWhisper + CmdRequestSuffix:
-			p.Payload = &SendWhisper{}
-		case CmdKickUser + CmdRequestSuffix:
-			p.Payload = &KickUser{}
-		case CmdBanUser + CmdRequestSuffix:
-			p.Payload = &BanUser{}
-		case CmdUnbanUser + CmdRequestSuffix:
-			p.Payload = &UnbanUser{}
-		case CmdSetModerator + CmdRequestSuffix:
-			p.Payload = &SetModerator{}
-		case CmdConnectEvent + CmdRequestSuffix:
-			p.Payload = &ConnectEvent{}
-		case CmdDisconnectEvent + CmdRequestSuffix:
-			p.Payload = &DisconnectEvent{}
-		case CmdMessageEvent + CmdRequestSuffix:
-			p.Payload = &MessageEvent{}
-		case CmdUserUpdateEvent + CmdRequestSuffix:
-			p.Payload = &UserUpdateEvent{}
-		case CmdUserLeaveEvent + CmdRequestSuffix:
-			p.Payload = &UserLeaveEvent{}
-		default:
-			p.Payload = &map[string]interface{}{}
-		}
+	if f == nil {
+		f = DefaultFactory
 	}
 
-	if err := json.Unmarshal(r.Payload, p.Payload); err != nil {
-		return nil, err
+	p.Payload = f.NewPayload(r.Command)
+	if p.Payload != nil {
+		if err := json.Unmarshal(r.Payload, p.Payload); err != nil {
+			return nil, err
+		}
 	}
 
 	return p, nil
 }
 
-// Deserialize reads exactly one packet from b and returns it in the proper (deserialized) packet type.
-func Deserialize(b []byte) (*Packet, error) {
+// DeserializeWithFactory reads exactly one packet from b and returns it in the proper (deserialized) packet type.
+func DeserializeWithFactory(b []byte, f PayloadFactory) (*Packet, error) {
 	var raw rawPacket
 	if err := json.Unmarshal(b, &raw); err != nil {
 		return nil, err
 	}
 
-	return raw.toPacket()
+	return raw.toPacket(f)
 }
 
-// Read exactly one packet from r and returns it in the proper (deserialized) packet type.
-func Read(r io.Reader) (*Packet, error) {
+// ReadWithFactory exactly one packet from r and returns it in the proper (deserialized) packet type.
+func ReadWithFactory(r io.Reader, f PayloadFactory) (*Packet, error) {
 	var raw rawPacket
 	if err := json.NewDecoder(r).Decode(&raw); err != nil {
 		return nil, err
 	}
 
-	return raw.toPacket()
+	return raw.toPacket(f)
+}
+
+// Serialize packet and returns its byte representation.
+func Serialize(p *Packet) ([]byte, error) {
+	return json.Marshal(p)
+}
+
+// Deserialize reads exactly one packet from b and returns it in the proper (deserialized) packet type.
+func Deserialize(b []byte) (*Packet, error) {
+	return DeserializeWithFactory(b, nil)
+}
+
+// Read exactly one packet from r and returns it in the proper (deserialized) packet type.
+func Read(r io.Reader) (*Packet, error) {
+	return ReadWithFactory(r, nil)
+}
+
+// Write serializes p and writes it to w.
+func Write(w io.Writer, p *Packet) error {
+	return json.NewEncoder(w).Encode(p)
 }

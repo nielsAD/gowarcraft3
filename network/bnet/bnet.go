@@ -195,9 +195,14 @@ func (b *Client) Users() map[string]User {
 
 //Encoding for bncs packets
 func (b *Client) Encoding() bncs.Encoding {
-	return bncs.Encoding{Encoding: w3gs.Encoding{
-		GameVersion: b.Platform.GameVersion.Version,
-	}}
+	return bncs.Encoding{
+		Encoding: w3gs.Encoding{
+			GameVersion: b.Platform.GameVersion.Version,
+		},
+
+		// Assume response when deserializing ambiguous packet IDs
+		Request: false,
+	}
 }
 
 // Dial opens a new connection to server, verifies game version, and authenticates with CD keys
@@ -237,7 +242,7 @@ func (b *Client) Dial() (*network.BNCSConn, error) {
 	conn.SetLinger(3)
 	conn.Write([]byte{bncs.ProtocolGreeting})
 
-	bncsconn := network.NewBNCSConn(conn, b.Encoding())
+	bncsconn := network.NewBNCSConn(conn, nil, b.Encoding())
 
 	authInfo, err := b.sendAuthInfo(bncsconn)
 	if err != nil {
@@ -346,7 +351,7 @@ func (b *Client) Logon() error {
 	}
 
 	b.UniqueName = chat.UniqueName
-	b.SetConn(bncsconn.Conn(), b.Encoding())
+	b.SetConn(bncsconn.Conn(), bncs.NewFactoryCache(bncs.DefaultFactory), b.Encoding())
 	return nil
 }
 
@@ -457,7 +462,7 @@ func (b *Client) sendAuthInfo(conn *network.BNCSConn) (*bncs.AuthInfoResp, error
 		return nil, err
 	}
 
-	pkt, err := conn.NextServerPacket(5 * time.Second)
+	pkt, err := conn.NextPacket(5 * time.Second)
 	if err != nil {
 		return nil, err
 	}
@@ -470,7 +475,7 @@ func (b *Client) sendAuthInfo(conn *network.BNCSConn) (*bncs.AuthInfoResp, error
 		return nil, ErrUnexpectedPacket
 	}
 
-	pkt, err = conn.NextServerPacket(5 * time.Second)
+	pkt, err = conn.NextPacket(5 * time.Second)
 	if err != nil {
 		return nil, err
 	}
@@ -554,7 +559,7 @@ func (b *Client) sendAuthCheck(conn *network.BNCSConn, clientToken uint32, authi
 		return nil, err
 	}
 
-	pkt, err := conn.NextServerPacket(5 * time.Second)
+	pkt, err := conn.NextPacket(5 * time.Second)
 	if err != nil {
 		return nil, err
 	}
@@ -576,7 +581,7 @@ func (b *Client) sendLogon(conn *network.BNCSConn, srp SRP) (*bncs.AuthAccountLo
 		return nil, err
 	}
 
-	pkt, err := conn.NextServerPacket(15 * time.Second)
+	pkt, err := conn.NextPacket(15 * time.Second)
 	if err != nil {
 		return nil, err
 	}
@@ -597,7 +602,7 @@ func (b *Client) sendLogonProof(conn *network.BNCSConn, srp SRP, logon *bncs.Aut
 		return nil, err
 	}
 
-	pkt, err := conn.NextServerPacket(5 * time.Second)
+	pkt, err := conn.NextPacket(5 * time.Second)
 	if err != nil {
 		return nil, err
 	}
@@ -623,7 +628,7 @@ func (b *Client) sendCreateAccount(conn *network.BNCSConn, srp SRP) (*bncs.AuthA
 		return nil, err
 	}
 
-	pkt, err := conn.NextServerPacket(5 * time.Second)
+	pkt, err := conn.NextPacket(5 * time.Second)
 	if err != nil {
 		return nil, err
 	}
@@ -647,7 +652,7 @@ func (b *Client) sendChangePass(conn *network.BNCSConn, srp SRP) (*bncs.AuthAcco
 		return nil, err
 	}
 
-	pkt, err := conn.NextServerPacket(15 * time.Second)
+	pkt, err := conn.NextPacket(15 * time.Second)
 	if err != nil {
 		return nil, err
 	}
@@ -675,7 +680,7 @@ func (b *Client) sendChangePassProof(conn *network.BNCSConn, oldSRP SRP, newSRP 
 		return nil, err
 	}
 
-	pkt, err := conn.NextServerPacket(5 * time.Second)
+	pkt, err := conn.NextPacket(5 * time.Second)
 	if err != nil {
 		return nil, err
 	}
@@ -696,7 +701,7 @@ func (b *Client) sendEnterChat(conn *network.BNCSConn) (*bncs.EnterChatResp, err
 		return nil, err
 	}
 
-	pkt, err := conn.NextServerPacket(5 * time.Second)
+	pkt, err := conn.NextPacket(5 * time.Second)
 
 rcv:
 	if err != nil {
@@ -705,7 +710,7 @@ rcv:
 	switch p := pkt.(type) {
 	case *bncs.ClanInfo:
 		b.Fire(pkt)
-		pkt, err = conn.NextServerPacket(0)
+		pkt, err = conn.NextPacket(0)
 		goto rcv
 	case *bncs.EnterChatResp:
 		return p, nil
@@ -731,7 +736,7 @@ func (b *Client) Run() error {
 		}()
 	}
 
-	return b.BNCSConn.RunClient(&b.EventEmitter, 30*time.Second)
+	return b.BNCSConn.Run(&b.EventEmitter, 30*time.Second)
 }
 
 var emojiToText = func() *strings.Replacer {

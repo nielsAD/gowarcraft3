@@ -38,14 +38,14 @@ type W3GSPacketConn struct {
 	smut sync.Mutex
 	enc  w3gs.Encoder
 
-	buf [2048]byte
 	dec w3gs.Decoder
+	buf [2048]byte
 }
 
 // NewW3GSPacketConn returns conn wrapped in W3GSPacketConn
-func NewW3GSPacketConn(conn net.PacketConn, enc w3gs.Encoding) *W3GSPacketConn {
+func NewW3GSPacketConn(conn net.PacketConn, fact w3gs.PacketFactory, enc w3gs.Encoding) *W3GSPacketConn {
 	var c = &W3GSPacketConn{}
-	c.SetConn(conn, enc)
+	c.SetConn(conn, fact, enc)
 	return c
 }
 
@@ -58,12 +58,13 @@ func (c *W3GSPacketConn) Conn() net.PacketConn {
 }
 
 // SetConn closes the old connection and starts using the new net.PacketConn
-func (c *W3GSPacketConn) SetConn(conn net.PacketConn, enc w3gs.Encoding) {
+func (c *W3GSPacketConn) SetConn(conn net.PacketConn, fact w3gs.PacketFactory, enc w3gs.Encoding) {
 	c.Close()
 	c.cmut.Lock()
 	c.conn = conn
-	c.enc.Encoding = enc
+	c.dec.PacketFactory = fact
 	c.dec.Encoding = enc
+	c.enc.Encoding = enc
 	c.cmut.Unlock()
 }
 
@@ -178,9 +179,9 @@ type W3GSConn struct {
 }
 
 // NewW3GSConn returns conn wrapped in W3GSConn
-func NewW3GSConn(conn net.Conn, enc w3gs.Encoding) *W3GSConn {
+func NewW3GSConn(conn net.Conn, fact w3gs.PacketFactory, enc w3gs.Encoding) *W3GSConn {
 	var c = &W3GSConn{}
-	c.SetConn(conn, enc)
+	c.SetConn(conn, fact, enc)
 	return c
 }
 
@@ -193,12 +194,13 @@ func (c *W3GSConn) Conn() net.Conn {
 }
 
 // SetConn closes the old connection and starts using the new net.Conn
-func (c *W3GSConn) SetConn(conn net.Conn, enc w3gs.Encoding) {
+func (c *W3GSConn) SetConn(conn net.Conn, fact w3gs.PacketFactory, enc w3gs.Encoding) {
 	c.Close()
 	c.cmut.Lock()
 	c.conn = conn
-	c.enc.Encoding = enc
+	c.dec.PacketFactory = fact
 	c.dec.Encoding = enc
+	c.enc.Encoding = enc
 	c.cmut.Unlock()
 }
 
@@ -296,9 +298,9 @@ type BNCSConn struct {
 }
 
 // NewBNCSConn returns conn wrapped in BNCSConn
-func NewBNCSConn(conn net.Conn, enc bncs.Encoding) *BNCSConn {
+func NewBNCSConn(conn net.Conn, fact bncs.PacketFactory, enc bncs.Encoding) *BNCSConn {
 	var c = &BNCSConn{}
-	c.SetConn(conn, enc)
+	c.SetConn(conn, fact, enc)
 	return c
 }
 
@@ -311,12 +313,13 @@ func (c *BNCSConn) Conn() net.Conn {
 }
 
 // SetConn closes the old connection and starts using the new net.Conn
-func (c *BNCSConn) SetConn(conn net.Conn, enc bncs.Encoding) {
+func (c *BNCSConn) SetConn(conn net.Conn, fact bncs.PacketFactory, enc bncs.Encoding) {
 	c.Close()
 	c.cmut.Lock()
 	c.conn = conn
-	c.enc.Encoding = enc
+	c.dec.PacketFactory = fact
 	c.dec.Encoding = enc
+	c.enc.Encoding = enc
 	c.cmut.Unlock()
 }
 
@@ -375,9 +378,9 @@ func (c *BNCSConn) SendRL(pkt bncs.Packet) (int, error) {
 	return n, err
 }
 
-// NextClientPacket waits for the next client packet (with given timeout) and returns its deserialized representation
+// NextPacket waits for the next packet (with given timeout) and returns its deserialized representation
 // Not safe for concurrent invocation
-func (c *BNCSConn) NextClientPacket(timeout time.Duration) (bncs.Packet, error) {
+func (c *BNCSConn) NextPacket(timeout time.Duration) (bncs.Packet, error) {
 	c.cmut.RLock()
 	if c.conn == nil {
 		c.cmut.RUnlock()
@@ -391,73 +394,25 @@ func (c *BNCSConn) NextClientPacket(timeout time.Duration) (bncs.Packet, error) 
 		}
 	}
 
-	pkt, _, err := c.dec.ReadClient(c.conn)
+	pkt, _, err := c.dec.Read(c.conn)
 	c.cmut.RUnlock()
 
 	return pkt, err
 }
 
-// NextServerPacket waits for the next server packet (with given timeout) and returns its deserialized representation
+// Run reads packets (with given max time between packets) from Conn and emits an event for each received packet
 // Not safe for concurrent invocation
-func (c *BNCSConn) NextServerPacket(timeout time.Duration) (bncs.Packet, error) {
-	c.cmut.RLock()
-
-	if c.conn == nil {
-		c.cmut.RUnlock()
-		return nil, io.EOF
-	}
-
-	if timeout != 0 {
-		if err := c.conn.SetReadDeadline(time.Now().Add(timeout)); err != nil {
-			c.cmut.RUnlock()
-			return nil, err
-		}
-	}
-
-	pkt, _, err := c.dec.ReadServer(c.conn)
-	c.cmut.RUnlock()
-
-	return pkt, err
-}
-
-// RunServer reads client packets (with given max time between packets) from Conn and emits an event for each received packet
-// Not safe for concurrent invocation
-func (c *BNCSConn) RunServer(f Emitter, timeout time.Duration) error {
+func (c *BNCSConn) Run(f Emitter, timeout time.Duration) error {
 	c.cmut.RLock()
 	f.Fire(RunStart{})
 	for {
-		pkt, err := c.NextClientPacket(timeout)
+		pkt, err := c.NextPacket(timeout)
 
 		if err != nil {
 			switch err {
 			// Connection is still valid after these errors, only deserialization failed
 			case bncs.ErrInvalidPacketSize, bncs.ErrInvalidChecksum, bncs.ErrUnexpectedConst:
-				f.Fire(&AsyncError{Src: "RunServer[NextPacket]", Err: err})
-				continue
-			default:
-				f.Fire(RunStop{})
-				c.cmut.RUnlock()
-				return err
-			}
-		}
-
-		f.Fire(pkt)
-	}
-}
-
-// RunClient reads server packets (with given max time between packets) from Conn and emits an event for each received packet
-// Not safe for concurrent invocation
-func (c *BNCSConn) RunClient(f Emitter, timeout time.Duration) error {
-	c.cmut.RLock()
-	f.Fire(RunStart{})
-	for {
-		pkt, err := c.NextServerPacket(timeout)
-
-		if err != nil {
-			switch err {
-			// Connection is still valid after these errors, only deserialization failed
-			case bncs.ErrInvalidPacketSize, bncs.ErrInvalidChecksum, bncs.ErrUnexpectedConst:
-				f.Fire(&AsyncError{Src: "RunClient[NextPacket]", Err: err})
+				f.Fire(&AsyncError{Src: "Run[NextPacket]", Err: err})
 				continue
 			default:
 				f.Fire(RunStop{})
@@ -489,9 +444,9 @@ type CAPIConn struct {
 
 // NewCAPIConn returns conn wrapped in CAPIConn
 func NewCAPIConn(conn *websocket.Conn) *CAPIConn {
-	var c = &CAPIConn{}
-	c.SetConn(conn)
-	return c
+	return &CAPIConn{
+		conn: conn,
+	}
 }
 
 // Conn returns the underlying net.Conn

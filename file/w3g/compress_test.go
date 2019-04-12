@@ -16,14 +16,14 @@ import (
 	"github.com/nielsAD/gowarcraft3/protocol/w3gs"
 )
 
-func TestCompress(t *testing.T) {
+func TestBlockCompressor(t *testing.T) {
 	var ref [20480]byte
 	for i := range ref {
 		ref[i] = byte(i)
 	}
 
 	var b protocol.Buffer
-	var c = w3g.NewCompressor(&b)
+	var c = w3g.NewBlockCompressor(&b)
 	for i := 0; i < 10; i++ {
 		n, err := c.Write(ref[i*2048 : (i+1)*2048])
 		if err != nil {
@@ -44,7 +44,7 @@ func TestCompress(t *testing.T) {
 	}
 
 	var buf [2048]byte
-	var d = w3g.NewDecompressor(&b, c.NumBlocks, math.MaxUint32, w3g.Encoding{})
+	var d = w3g.NewDecompressor(&b, w3g.Encoding{}, nil, c.NumBlocks, math.MaxUint32)
 	for i := 0; i < 10; i++ {
 		n, err := d.Read(buf[:])
 		if err != nil {
@@ -66,9 +66,9 @@ func TestCompress(t *testing.T) {
 	}
 }
 
-func TestCompressBuffer(t *testing.T) {
+func TestCompressor(t *testing.T) {
 	var b protocol.Buffer
-	var c = w3g.NewBufferedCompressor(&b, w3g.Encoding{})
+	var c = w3g.NewCompressor(&b, w3g.Encoding{})
 	for i := 0; i < 100; i++ {
 		if _, err := c.WriteRecord(&w3g.TimeSlot{TimeSlot: w3gs.TimeSlot{
 			TimeIncrementMS: uint16(i),
@@ -86,7 +86,7 @@ func TestCompressBuffer(t *testing.T) {
 	}
 
 	var i = 0
-	var d = w3g.NewDecompressor(&b, c.NumBlocks, c.SizeTotal, w3g.Encoding{})
+	var d = w3g.NewDecompressor(&b, w3g.Encoding{}, nil, c.NumBlocks, c.SizeTotal)
 	if err := d.ForEach(func(r w3g.Record) error {
 		s, ok := r.(*w3g.TimeSlot)
 		if !ok {
@@ -119,7 +119,7 @@ func BenchmarkCompress(b *testing.B) {
 	}
 
 	var w protocol.Buffer
-	var c = w3g.NewCompressor(&w)
+	var c = w3g.NewBlockCompressor(&w)
 	c.Write(ref[:])
 
 	b.SetBytes(int64(len(ref)))
@@ -138,11 +138,11 @@ func BenchmarkDecompress(b *testing.B) {
 	}
 
 	var w protocol.Buffer
-	var c = w3g.NewCompressor(&w)
+	var c = w3g.NewBlockCompressor(&w)
 	c.Write(ref[:])
 
 	var r protocol.Buffer
-	var d = w3g.NewDecompressor(&r, c.NumBlocks, c.SizeTotal, w3g.Encoding{})
+	var d = w3g.NewDecompressor(&r, w3g.Encoding{}, nil, c.NumBlocks, c.SizeTotal)
 
 	b.SetBytes(int64(len(ref)))
 	b.ResetTimer()

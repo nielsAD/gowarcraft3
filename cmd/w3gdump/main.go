@@ -57,7 +57,7 @@ func main() {
 		logErr.Fatal("Cannot find header: ", err)
 	}
 
-	hdr, data, _, err := w3g.DecodeHeader(b)
+	hdr, data, _, err := w3g.DecodeHeader(b, w3g.NewFactoryCache(w3g.DefaultFactory))
 	if err != nil {
 		logErr.Fatal("DecodeHeader error: ", err)
 	}

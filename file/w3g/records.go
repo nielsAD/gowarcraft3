@@ -24,6 +24,28 @@ type Encoding struct {
 	w3gs.Encoding
 }
 
+// DefaultFactory maps record ID to matching type
+var DefaultFactory = MapFactory{
+	RidGameInfo:       func(_ *Encoding) Record { return &GameInfo{} },
+	RidPlayerInfo:     func(_ *Encoding) Record { return &PlayerInfo{} },
+	RidPlayerLeft:     func(_ *Encoding) Record { return &PlayerLeft{} },
+	RidSlotInfo:       func(_ *Encoding) Record { return &SlotInfo{} },
+	RidCountDownStart: func(_ *Encoding) Record { return &CountDownStart{} },
+	RidCountDownEnd:   func(_ *Encoding) Record { return &CountDownEnd{} },
+	RidGameStart:      func(_ *Encoding) Record { return &GameStart{} },
+	RidTimeSlot2:      func(_ *Encoding) Record { return &TimeSlot{} },
+	RidTimeSlot:       func(_ *Encoding) Record { return &TimeSlot{} },
+	RidChatMessage: func(e *Encoding) Record {
+		if e.GameVersion == 0 || e.GameVersion > 2 {
+			return &ChatMessage{}
+		}
+		return &TimeSlotAck{}
+	},
+	RidTimeSlotAck: func(_ *Encoding) Record { return &TimeSlotAck{} },
+	RidDesync:      func(_ *Encoding) Record { return &Desync{} },
+	RidEndTimer:    func(_ *Encoding) Record { return &EndTimer{} },
+}
+
 // GameInfo record [0x10]
 //
 // Format:
@@ -488,7 +510,7 @@ func (rec *TimeSlot) Deserialize(buf *protocol.Buffer, enc *Encoding) error {
 		return io.ErrShortBuffer
 	}
 
-	rec.Fragment = buf.ReadUInt8() == RidTimeSlot2
+	rec.Fragment = buf.ReadUInt8() == RidTimeSlot2 && (enc.GameVersion == 0 || enc.GameVersion > 2)
 
 	var size = int(buf.ReadUInt16())
 	if size < 2 || buf.Size() < size {
@@ -498,11 +520,17 @@ func (rec *TimeSlot) Deserialize(buf *protocol.Buffer, enc *Encoding) error {
 	rec.TimeIncrementMS = buf.ReadUInt16()
 	size -= 2
 
+	var i = 0
+
 	rec.Actions = rec.Actions[:0]
 	for size >= 3 {
-		var action = w3gs.PlayerAction{
-			PlayerID: buf.ReadUInt8(),
+		if cap(rec.Actions) < i+1 {
+			rec.Actions = append(rec.Actions, w3gs.PlayerAction{})
+		} else {
+			rec.Actions = rec.Actions[:i+1]
 		}
+
+		rec.Actions[i].PlayerID = buf.ReadUInt8()
 
 		var subsize = int(buf.ReadUInt16())
 		if size < subsize {
@@ -510,8 +538,8 @@ func (rec *TimeSlot) Deserialize(buf *protocol.Buffer, enc *Encoding) error {
 		}
 		size -= 3 + subsize
 
-		action.Data = buf.ReadBlob(subsize)
-		rec.Actions = append(rec.Actions, action)
+		rec.Actions[i].Data = append(rec.Actions[i].Data[:0], buf.ReadBlob(subsize)...)
+		i++
 	}
 
 	if size != 0 {
@@ -677,7 +705,7 @@ func (rec *TimeSlotAck) Deserialize(buf *protocol.Buffer, enc *Encoding) error {
 		return io.ErrShortBuffer
 	}
 
-	rec.Checksum = buf.ReadBlob(size)
+	rec.Checksum = append(rec.Checksum[:0], buf.ReadBlob(size)...)
 	return nil
 }
 

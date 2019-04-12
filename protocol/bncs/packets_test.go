@@ -129,7 +129,9 @@ func TestClientPackets(t *testing.T) {
 	for _, pkt := range types {
 		var err error
 		var buf = protocol.Buffer{}
-		var enc = bncs.Encoding{}
+		var enc = bncs.Encoding{
+			Request: true,
+		}
 
 		if err = pkt.Serialize(&buf, &enc); err != nil {
 			t.Log(reflect.TypeOf(pkt))
@@ -146,7 +148,7 @@ func TestClientPackets(t *testing.T) {
 			t.Fatalf("encoder.Write != packet.Serialize %v", reflect.TypeOf(pkt))
 		}
 
-		var pkt2, _, e = bncs.ReadClient(&buf, enc)
+		var pkt2, _, e = bncs.Read(&buf, enc)
 		if e != nil {
 			t.Log(reflect.TypeOf(pkt))
 			t.Fatal(e)
@@ -301,7 +303,9 @@ func TestServerPackets(t *testing.T) {
 	for _, pkt := range types {
 		var err error
 		var buf = protocol.Buffer{}
-		var enc = bncs.Encoding{}
+		var enc = bncs.Encoding{
+			Request: false,
+		}
 
 		if err = pkt.Serialize(&buf, &enc); err != nil {
 			t.Log(reflect.TypeOf(pkt))
@@ -318,7 +322,7 @@ func TestServerPackets(t *testing.T) {
 			t.Fatalf("encoder.Write != packet.Serialize %v", reflect.TypeOf(pkt))
 		}
 
-		var pkt2, _, e = bncs.ReadServer(&buf, enc)
+		var pkt2, _, e = bncs.Read(&buf, enc)
 		if e != nil {
 			t.Log(reflect.TypeOf(pkt))
 			t.Fatal(e)

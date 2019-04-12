@@ -41,7 +41,7 @@ var logOut = log.New(os.Stdout, "", log.Ltime)
 var logErr = log.New(os.Stderr, "", log.Ltime)
 
 func dumpPackets(layer string, netFlow, transFlow gopacket.Flow, r io.Reader) error {
-	var dec = bncs.NewDecoder(bncs.Encoding{})
+	var dec = bncs.NewDecoder(bncs.Encoding{}, bncs.NewFactoryCache(bncs.DefaultFactory))
 
 	var srv = strconv.Itoa(*port)
 	var src = netFlow.Src().String() + ":" + transFlow.Src().String()
@@ -61,11 +61,8 @@ func dumpPackets(layer string, netFlow, transFlow gopacket.Flow, r io.Reader) er
 
 		var raw, _, err = dec.ReadRaw(r)
 		if err == nil {
-			if transFlow.Src().String() == srv {
-				pkt, _, err = dec.DeserializeServer(raw)
-			} else {
-				pkt, _, err = dec.DeserializeClient(raw)
-			}
+			dec.Request = transFlow.Dst().String() == srv
+			pkt, _, err = dec.Deserialize(raw)
 		}
 
 		if err == io.EOF || err == bncs.ErrNoProtocolSig {

@@ -11,6 +11,7 @@ import (
 
 // Errors
 var (
+	ErrNoFactory         = errors.New("bncs: Invalid bncs packet (empty factory)")
 	ErrNoProtocolSig     = errors.New("bncs: Invalid bncs packet (no signature found)")
 	ErrInvalidPacketSize = errors.New("bncs: Invalid packet size")
 	ErrInvalidChecksum   = errors.New("bncs: Checksum invalid")

@@ -45,7 +45,7 @@ func NewGameList(gv w3gs.GameVersion, port int) (*GameList, error) {
 	}
 
 	g.InitDefaultHandlers()
-	g.SetConn(conn, g.Encoding())
+	g.SetConn(conn, w3gs.NewFactoryCache(w3gs.DefaultFactory), g.Encoding())
 	return &g, nil
 }
 

@@ -55,7 +55,7 @@ func (pkt *UnknownPacket) Deserialize(buf *protocol.Buffer, enc *Encoding) error
 	}
 
 	pkt.ID = pid
-	pkt.Blob = buf.ReadBlob(size - 4)
+	pkt.Blob = append(pkt.Blob[:0], buf.ReadBlob(size-4)...)
 
 	return nil
 }

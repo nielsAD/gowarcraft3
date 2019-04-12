@@ -40,7 +40,7 @@ var logOut = log.New(os.Stdout, "", log.Ltime)
 var logErr = log.New(os.Stderr, "", log.Ltime)
 
 func dumpPackets(layer string, netFlow, transFlow gopacket.Flow, r io.Reader) error {
-	var dec = w3gs.NewDecoder(w3gs.Encoding{})
+	var dec = w3gs.NewDecoder(w3gs.Encoding{}, w3gs.NewFactoryCache(w3gs.DefaultFactory))
 
 	var src = netFlow.Src().String() + ":" + transFlow.Src().String()
 	var dst = netFlow.Dst().String() + ":" + transFlow.Dst().String()
