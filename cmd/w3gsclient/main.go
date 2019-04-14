@@ -69,7 +69,7 @@ func main() {
 			logErr.Fatal(err)
 		}
 	} else {
-		var addr = strings.Join(flag.Args(), ":")
+		addr = strings.Join(flag.Args(), ":")
 		if addr == "" {
 			addr = "127.0.0.1:6112"
 		}
@@ -130,11 +130,18 @@ func main() {
 
 		var laggers []string
 		for _, l := range lag.Players {
-			var peer = d.Peer(l.PlayerID)
-			if peer == nil {
+			var name = ""
+			if l.PlayerID == d.PlayerInfo.PlayerID {
+				name = d.PlayerInfo.PlayerName
+			} else {
+				if peer := d.Peer(l.PlayerID); peer != nil {
+					name = peer.PlayerInfo.PlayerName
+				}
+			}
+			if name == "" {
 				continue
 			}
-			laggers = append(laggers, peer.PlayerInfo.PlayerName)
+			laggers = append(laggers, name)
 		}
 
 		logOut.Println(color.CyanString("Lag: %v", laggers))
@@ -160,17 +167,17 @@ func main() {
 		}
 
 		logOut.Printf("[CHAT] %s (ID: %d): %s\n", chat.Sender.PlayerName, chat.Sender.PlayerID, chat.Content)
-		if chat.Sender.PlayerID != 1 || chat.Content[:1] != "!" {
+		if chat.Sender.PlayerID != 1 || chat.Content[:1] != "." {
 			return
 		}
 
 		var cmd = strings.Fields(chat.Content)
 		switch strings.ToLower(cmd[0]) {
-		case "!say":
+		case ".say":
 			d.Say(strings.Join(cmd[1:], " "))
-		case "!leave":
+		case ".leave":
 			d.Leave(w3gs.LeaveLost)
-		case "!race":
+		case ".race":
 			if len(cmd) != 2 {
 				d.Say("Use like: !race [str]")
 				break
@@ -190,7 +197,7 @@ func main() {
 			default:
 				d.Say("Invalid race")
 			}
-		case "!team":
+		case ".team":
 			if len(cmd) != 2 {
 				d.Say("Use like: !team [int]")
 				break
@@ -198,7 +205,7 @@ func main() {
 			if t, err := strconv.Atoi(cmd[1]); err == nil && t >= 1 {
 				d.ChangeTeam(uint8(t - 1))
 			}
-		case "!color":
+		case ".color":
 			if len(cmd) != 2 {
 				d.Say("Use like: !color [int]")
 				break
@@ -206,7 +213,7 @@ func main() {
 			if c, err := strconv.Atoi(cmd[1]); err == nil && c >= 1 {
 				d.ChangeColor(uint8(c - 1))
 			}
-		case "!handicap":
+		case ".handicap":
 			if len(cmd) != 2 {
 				d.Say("Use like: !handicap [int]")
 				break
