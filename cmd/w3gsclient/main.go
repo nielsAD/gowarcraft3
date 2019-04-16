@@ -53,8 +53,8 @@ func main() {
 	var ek = uint32(*entrykey)
 
 	if *findlan {
-		// Search local game for 20 seconds
-		var ctx, cancel = context.WithTimeout(context.Background(), 20*time.Second)
+		// Search local game for 75 seconds
+		var ctx, cancel = context.WithTimeout(context.Background(), 75*time.Second)
 
 		var p = w3gs.ProductTFT
 		if !*gametft {
@@ -66,7 +66,7 @@ func main() {
 		cancel()
 
 		if err != nil {
-			logErr.Fatal(err)
+			logErr.Fatal("Could not find local game: ", err)
 		}
 	} else {
 		addr = strings.Join(flag.Args(), ":")

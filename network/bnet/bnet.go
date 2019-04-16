@@ -726,8 +726,8 @@ func (b *Client) Run() error {
 		var keepaliveTicker = time.NewTicker(b.KeepAliveInterval)
 		defer keepaliveTicker.Stop()
 
-		var pkt bncs.KeepAlive
 		go func() {
+			var pkt bncs.KeepAlive
 			for range keepaliveTicker.C {
 				if _, err := b.Send(&pkt); err != nil && !network.IsConnClosedError(err) {
 					b.Fire(&network.AsyncError{Src: "Run[KeepAlive]", Err: err})

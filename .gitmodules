@@ -31,3 +31,12 @@
 [submodule "vendor/github.com/kyokomi/emoji"]
 	path = vendor/github.com/kyokomi/emoji
 	url = https://github.com/kyokomi/emoji.git
+[submodule "vendor/github.com/miekg/dns"]
+	path = vendor/github.com/miekg/dns
+	url = https://github.com/miekg/dns.git
+[submodule "vendor/golang.org/x/net"]
+	path = vendor/golang.org/x/net
+	url = https://github.com/golang/net.git
+[submodule "vendor/github.com/dedis/protobuf"]
+	path = vendor/github.com/dedis/protobuf
+	url = https://github.com/dedis/protobuf.git

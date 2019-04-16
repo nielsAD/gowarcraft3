@@ -17,35 +17,37 @@ import (
 
 // FindGame returns the an arbitrary game hosted in LAN
 func FindGame(ctx context.Context, gv w3gs.GameVersion) (addr string, hostCounter uint32, entryKey uint32, err error) {
-	var g *GameList
-	g, err = NewGameList(gv, 6112)
-	if err != nil {
-		g, err = NewGameList(gv, 0)
-	}
+	var g GameList
+	g, err = NewGameList(gv)
 	if err != nil {
 		return
 	}
 
-	var stop = make(chan struct{})
+	var stop = make(chan error)
 	g.On(Update{}, func(ev *network.Event) {
 		for k, v := range g.Games() {
 			addr = k
 			hostCounter = v.HostCounter
 			entryKey = v.EntryKey
-			stop <- struct{}{}
+			stop <- nil
 			return
 		}
 	})
+	g.On(&network.AsyncError{}, func(ev *network.Event) {
+		var err = ev.Arg.(*network.AsyncError)
+		stop <- err
+	})
 
 	go func() {
-		g.Run()
-		stop <- struct{}{}
+		var err = g.Run()
+		stop <- err
 	}()
 
 	select {
 	case <-ctx.Done():
 		err = ctx.Err()
-	case <-stop:
+	case e := <-stop:
+		err = e
 	}
 
 	g.Close()

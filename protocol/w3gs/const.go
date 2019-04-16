@@ -21,7 +21,7 @@ var (
 )
 
 // CurrentGameVersion used by stable release
-const CurrentGameVersion = uint32(30)
+const CurrentGameVersion = uint32(10030)
 
 // ProtocolSig is the W3GS magic number used in the packet header.
 const ProtocolSig = 0xF7

@@ -68,7 +68,7 @@ func (c *W3GSPacketConn) SetConn(conn net.PacketConn, fact w3gs.PacketFactory, e
 	c.cmut.Unlock()
 }
 
-// Close closes the connection
+// Close the connection
 func (c *W3GSPacketConn) Close() error {
 	c.cmut.RLock()
 
@@ -204,7 +204,7 @@ func (c *W3GSConn) SetConn(conn net.Conn, fact w3gs.PacketFactory, enc w3gs.Enco
 	c.cmut.Unlock()
 }
 
-// Close closes the connection
+// Close the connection
 func (c *W3GSConn) Close() error {
 	c.cmut.RLock()
 
@@ -323,7 +323,7 @@ func (c *BNCSConn) SetConn(conn net.Conn, fact bncs.PacketFactory, enc bncs.Enco
 	c.cmut.Unlock()
 }
 
-// Close closes the connection
+// Close the connection
 func (c *BNCSConn) Close() error {
 	c.cmut.RLock()
 
@@ -465,7 +465,7 @@ func (c *CAPIConn) SetConn(conn *websocket.Conn) {
 	c.cmut.Unlock()
 }
 
-// Close closes the connection
+// Close the connection
 func (c *CAPIConn) Close() error {
 	c.cmut.RLock()
 
