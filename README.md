@@ -57,6 +57,7 @@ Packages
 |`file/blp`      |Package `blp` is a BLIzzard Picture image format decoder.|
 |`file/mpq`      |Package `mpq` provides golang bindings to the StormLib library to read MPQ archives.|
 |`file/w3m`      |Package `w3m` implements basic information extraction functions for w3m/w3x files.|
+|`file/w3g`      |Package `w3g` implements a decoder and encoder for w3g files.|
 |`network`       |Package `network` implements common utilities for higher-level (emulated) Warcraft III network components.|
 |`network/chat`  |Package `chat` implements the official classic Battle.net chat API.|
 |`network/bnet`  |Package `bnet` implements a mocked BNCS client that can be used to interact with BNCS servers.|

@@ -7,11 +7,8 @@ package lan
 
 import (
 	"context"
-	"net"
-	"sync"
 
 	"github.com/nielsAD/gowarcraft3/network"
-	"github.com/nielsAD/gowarcraft3/protocol"
 	"github.com/nielsAD/gowarcraft3/protocol/w3gs"
 )
 
@@ -52,28 +49,4 @@ func FindGame(ctx context.Context, gv w3gs.GameVersion) (addr string, hostCounte
 
 	g.Close()
 	return
-}
-
-var bcmut sync.Mutex
-var bccon *net.UDPConn
-var bcbuf protocol.Buffer
-
-// Broadcast hosted game information to LAN
-// Safe for concurrent invocation
-func Broadcast(game *w3gs.GameInfo) (err error) {
-	bcmut.Lock()
-
-	if bccon == nil {
-		bccon, err = net.ListenUDP("udp4", &net.UDPAddr{})
-	}
-
-	if err == nil {
-		bcbuf.Truncate()
-		if err = game.Serialize(&bcbuf, &w3gs.Encoding{}); err == nil {
-			_, err = bccon.WriteTo(bcbuf.Bytes, &network.W3GSBroadcastAddr)
-		}
-	}
-
-	bcmut.Unlock()
-	return err
 }
