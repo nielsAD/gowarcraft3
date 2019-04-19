@@ -14,6 +14,7 @@ Usage
 |    Flag   |  Type  | Description |
 |-----------|--------|-------------|
 |`-sanitize`|`string`|Dump cleaned up replay to this file (no chat, sane colors)|
+|`-stream`  |`bool`  |Stream game to LAN|
 |`-header`  |`bool`  |Decode header only|
 |`-json`    |`bool`  |Print machine readable format|
 

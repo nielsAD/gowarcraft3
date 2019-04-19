@@ -169,7 +169,7 @@ func (g *UDPGameList) Run() error {
 
 		go func() {
 			for range broadcastTicker.C {
-				if _, err := g.Broadcast(&sg); err != nil {
+				if _, err := g.Broadcast(&sg); err != nil && !network.IsConnClosedError(err) {
 					g.Fire(&network.AsyncError{Src: "Run[Broadcast]", Err: err})
 				}
 
@@ -227,7 +227,7 @@ func (g *UDPGameList) onRefreshGame(ev *network.Event) {
 		HostCounter: pkt.HostCounter,
 	}
 
-	if _, err := g.Send(adr, &sg); err != nil {
+	if _, err := g.Send(adr, &sg); err != nil && !network.IsConnClosedError(err) {
 		g.Fire(&network.AsyncError{Src: "onRefreshGame[Send]", Err: err})
 	}
 }
@@ -257,7 +257,7 @@ func (g *UDPGameList) onCreateGame(ev *network.Event) {
 		HostCounter: pkt.HostCounter,
 	}
 
-	if _, err := g.Send(adr, &sg); err != nil {
+	if _, err := g.Send(adr, &sg); err != nil && !network.IsConnClosedError(err) {
 		g.Fire(&network.AsyncError{Src: "onCreateGame[Send]", Err: err})
 	}
 }
@@ -494,7 +494,7 @@ func (g *MDNSGameList) Run() error {
 
 		go func() {
 			for range broadcastTicker.C {
-				if err := g.queryAll(); err != nil {
+				if err := g.queryAll(); err != nil && !network.IsConnClosedError(err) {
 					g.Fire(&network.AsyncError{Src: "Run[queryAll]", Err: err})
 				}
 
@@ -670,7 +670,7 @@ func (g *MDNSGameList) onDNS(ev *network.Event) {
 
 	// Query extra info for PTR records without matching Type66 record in response
 	for svc := range incomplete {
-		if err := g.queryGameInfo(svc); err != nil {
+		if err := g.queryGameInfo(svc); err != nil && !network.IsConnClosedError(err) {
 			g.Fire(&network.AsyncError{Src: "onDNS[queryGameInfo]", Err: err})
 		}
 	}

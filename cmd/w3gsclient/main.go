@@ -167,7 +167,7 @@ func main() {
 		}
 
 		logOut.Printf("[CHAT] %s (ID: %d): %s\n", chat.Sender.PlayerName, chat.Sender.PlayerID, chat.Content)
-		if chat.Sender.PlayerID != 1 || chat.Content[:1] != "." {
+		if chat.Sender.PlayerID != 1 || chat.Content[0] != '.' {
 			return
 		}
 
@@ -179,7 +179,7 @@ func main() {
 			d.Leave(w3gs.LeaveLost)
 		case ".race":
 			if len(cmd) != 2 {
-				d.Say("Use like: !race [str]")
+				d.Say("use like: .race [str]")
 				break
 			}
 
@@ -199,7 +199,7 @@ func main() {
 			}
 		case ".team":
 			if len(cmd) != 2 {
-				d.Say("Use like: !team [int]")
+				d.Say("use like: .team [int]")
 				break
 			}
 			if t, err := strconv.Atoi(cmd[1]); err == nil && t >= 1 {
@@ -207,7 +207,7 @@ func main() {
 			}
 		case ".color":
 			if len(cmd) != 2 {
-				d.Say("Use like: !color [int]")
+				d.Say("use like: .color [int]")
 				break
 			}
 			if c, err := strconv.Atoi(cmd[1]); err == nil && c >= 1 {
@@ -215,7 +215,7 @@ func main() {
 			}
 		case ".handicap":
 			if len(cmd) != 2 {
-				d.Say("Use like: !handicap [int]")
+				d.Say("use like: .handicap [int]")
 				break
 			}
 			if h, err := strconv.Atoi(cmd[1]); err == nil && h >= 0 {

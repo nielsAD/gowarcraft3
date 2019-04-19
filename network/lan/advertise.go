@@ -138,7 +138,7 @@ func (a *UDPAdvertiser) Run() error {
 
 		go func() {
 			for range ticker.C {
-				if err := a.refresh(); err != nil {
+				if err := a.refresh(); err != nil && !network.IsConnClosedError(err) {
 					a.Fire(&network.AsyncError{Src: "Run[refresh]", Err: err})
 				}
 			}
@@ -150,7 +150,7 @@ func (a *UDPAdvertiser) Run() error {
 
 // Close the connection
 func (a *UDPAdvertiser) Close() error {
-	if err := a.Decreate(); err != nil {
+	if err := a.Decreate(); err != nil && !network.IsConnClosedError(err) {
 		a.Fire(&network.AsyncError{Src: "Close[Decreate]", Err: err})
 	}
 	return a.W3GSPacketConn.Close()
@@ -171,7 +171,7 @@ func (a *UDPAdvertiser) onSearchGame(ev *network.Event) {
 	}
 
 	a.info.UptimeSec = (uint32)(time.Now().Sub(a.created).Seconds())
-	if _, err := a.Send(ev.Opt[0].(net.Addr), &a.info); err != nil {
+	if _, err := a.Send(ev.Opt[0].(net.Addr), &a.info); err != nil && !network.IsConnClosedError(err) {
 		a.Fire(&network.AsyncError{Src: "onSearchGame[Send]", Err: err})
 	}
 	a.imut.Unlock()
@@ -434,7 +434,7 @@ func (a *MDNSAdvertiser) Run() error {
 
 		go func() {
 			for range ticker.C {
-				if err := a.refresh(); err != nil {
+				if err := a.refresh(); err != nil && !network.IsConnClosedError(err) {
 					a.Fire(&network.AsyncError{Src: "Run[refresh]", Err: err})
 				}
 			}
@@ -446,7 +446,7 @@ func (a *MDNSAdvertiser) Run() error {
 
 // Close the connection
 func (a *MDNSAdvertiser) Close() error {
-	if err := a.Decreate(); err != nil {
+	if err := a.Decreate(); err != nil && !network.IsConnClosedError(err) {
 		a.Fire(&network.AsyncError{Src: "Close[Decreate]", Err: err})
 	}
 	return a.DNSPacketConn.Close()
@@ -463,6 +463,7 @@ func (a *MDNSAdvertiser) onDNS(ev *network.Event) {
 		return
 	}
 
+	var addr = ev.Opt[0].(net.Addr)
 	var service = a.mdnsService()
 	var name = a.mdnsName()
 
@@ -472,6 +473,10 @@ func (a *MDNSAdvertiser) onDNS(ev *network.Event) {
 	var addInfo = false
 
 	for _, q := range msg.Question {
+		if q.Qclass&TypeUnicastResponse == 0 {
+			addr = &MulticastGroup
+		}
+
 		if strings.EqualFold(q.Name, service) && (q.Qtype == dns.TypePTR || q.Qtype == dns.TypeANY) {
 			addTxt = true
 			addPtr = true
@@ -507,7 +512,7 @@ func (a *MDNSAdvertiser) onDNS(ev *network.Event) {
 		if addInfo {
 			a.addGameInfo(ans)
 		}
-		if _, err := a.Send(ev.Opt[0].(net.Addr), ans); err != nil {
+		if _, err := a.Send(addr, ans); err != nil && !network.IsConnClosedError(err) {
 			a.Fire(&network.AsyncError{Src: "onDNS[Send]", Err: err})
 		}
 	}
