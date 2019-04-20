@@ -425,6 +425,13 @@ func (g *MDNSGameList) expire() {
 func (g *MDNSGameList) queryAll() error {
 	var msg = dns.Msg{
 		Question: []dns.Question{
+			// Multicast
+			dns.Question{
+				Name:   mdnsService(&g.GameVersion),
+				Qtype:  dns.TypePTR,
+				Qclass: dns.ClassINET,
+			},
+			// Unicast
 			dns.Question{
 				Name:   mdnsService(&g.GameVersion),
 				Qtype:  dns.TypePTR,
@@ -433,7 +440,7 @@ func (g *MDNSGameList) queryAll() error {
 		},
 	}
 
-	// Default reponse to PTR query does not include Type66 as extra record, so specifically ask for it
+	// Default reponse to unicast PTR query does not include Type66 as extra record, so specifically ask for it
 	g.gmut.Lock()
 	if len(g.games) < 100 {
 		for idx := range g.games {

@@ -268,8 +268,8 @@ func (c *W3GSConn) Run(f Emitter, timeout time.Duration) error {
 
 		if err != nil {
 			switch err {
+			// Connection is still valid after these errors, only deserialization failed
 			case w3gs.ErrInvalidPacketSize, w3gs.ErrInvalidChecksum, w3gs.ErrUnexpectedConst:
-				// Connection is still valid after these errors, only deserialization failed
 				f.Fire(&AsyncError{Src: "Run[NextPacket]", Err: err})
 				continue
 			default:
@@ -411,7 +411,8 @@ func (c *BNCSConn) Run(f Emitter, timeout time.Duration) error {
 		if err != nil {
 			switch err {
 			// Connection is still valid after these errors, only deserialization failed
-			case bncs.ErrInvalidPacketSize, bncs.ErrInvalidChecksum, bncs.ErrUnexpectedConst:
+			case bncs.ErrInvalidPacketSize, bncs.ErrInvalidChecksum, bncs.ErrUnexpectedConst,
+				w3gs.ErrInvalidPacketSize, w3gs.ErrInvalidChecksum, w3gs.ErrUnexpectedConst:
 				f.Fire(&AsyncError{Src: "Run[NextPacket]", Err: err})
 				continue
 			default:
