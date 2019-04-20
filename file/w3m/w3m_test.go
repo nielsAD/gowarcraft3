@@ -17,6 +17,26 @@ import (
 	"github.com/nielsAD/gowarcraft3/file/w3m"
 )
 
+func Example() {
+	m, err := w3m.Open("./test_tft.w3x")
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	defer m.Close()
+
+	info, err := m.Info()
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	fmt.Println(info.Name)
+
+	// output:
+	// Small Wars
+}
+
 func shaImage(img image.Image) string {
 	if img == nil {
 		return ""

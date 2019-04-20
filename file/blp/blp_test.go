@@ -8,12 +8,34 @@ import (
 	"bytes"
 	"crypto/sha512"
 	"encoding/base64"
+	"fmt"
 	"image/png"
 	"os"
 	"testing"
 
 	"github.com/nielsAD/gowarcraft3/file/blp"
 )
+
+func Example() {
+	f, err := os.Open("./test.blp")
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	defer f.Close()
+
+	img, err := blp.Decode(f)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	fmt.Println(img.Bounds())
+
+	// output:
+	// (0,0)-(256,256)
+}
 
 func TestJPEG(t *testing.T) {
 	var TEST_SHA = "cF03T1FzQzhwZwm3F/yp0fo8uDbHe/3qqqOQyJLKcg5HEHQTtk5M08L6mbDoRvzdbWd8SgWNQ+Fb3qSaovCuYg"

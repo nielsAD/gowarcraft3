@@ -5,6 +5,7 @@
 package mpq_test
 
 import (
+	"fmt"
 	"io/ioutil"
 	"os"
 	"strings"
@@ -12,6 +13,32 @@ import (
 
 	"github.com/nielsAD/gowarcraft3/file/mpq"
 )
+
+func Example() {
+	archive, err := mpq.OpenArchive("./test.mpq")
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	defer archive.Close()
+
+	hello, err := archive.Open("hello.txt")
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	raw, err := ioutil.ReadAll(hello)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	fmt.Print(string(raw))
+
+	// output:
+	// Hello
+}
 
 func TestMPQ(t *testing.T) {
 	archive, err := mpq.OpenArchive("./test.mpq")

@@ -20,6 +20,19 @@ func b64(s string) []byte {
 	return b
 }
 
+func Example() {
+	replay, err := w3g.Open("./test_130.w3g")
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	fmt.Println(replay.HostPlayer.Name)
+
+	// output:
+	// niels
+}
+
 func TestFiles(t *testing.T) {
 	var files = []struct {
 		file   string
