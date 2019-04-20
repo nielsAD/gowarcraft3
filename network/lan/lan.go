@@ -12,7 +12,52 @@ import (
 	"github.com/nielsAD/gowarcraft3/protocol/w3gs"
 )
 
-// FindGame returns the an arbitrary game hosted in LAN
+// Update event for GameList changes
+type Update struct{}
+
+// GameList keeps track of all the hosted games in the Local Area Network
+// Emits events for every received packet and Update{} when the output of Games() changes
+type GameList interface {
+	network.Listener
+	Games() map[string]w3gs.GameInfo
+	Run() error
+	Close() error
+}
+
+// NewGameList initializes proper GameList type for game version
+func NewGameList(gv w3gs.GameVersion) (GameList, error) {
+	if gv.Version < 30 {
+		// Use random port to not occupy port 6112 by default
+		return NewUDPGameList(gv, 0)
+	}
+
+	return NewMDNSGameList(gv)
+}
+
+// Advertiser broadcasts available game information to the Local Area Network
+// Emits events for every received packet, responds to search queries
+type Advertiser interface {
+	network.Listener
+
+	Create() error
+	Refresh(slotsUsed uint32, slotsAvailable uint32) error
+	Decreate() error
+
+	Run() error
+	Close() error
+}
+
+// NewAdvertiser initializes proper Advertiser type for game version
+func NewAdvertiser(info *w3gs.GameInfo) (Advertiser, error) {
+	if info.GameVersion.Version < 30 {
+		// Use random port to not occupy port 6112 by default
+		return NewUDPAdvertiser(info, 0)
+	}
+
+	return NewMDNSAdvertiser(info)
+}
+
+// FindGame returns entry information for an arbitrary game hosted in LAN
 func FindGame(ctx context.Context, gv w3gs.GameVersion) (addr string, hostCounter uint32, entryKey uint32, err error) {
 	var g GameList
 	g, err = NewGameList(gv)
