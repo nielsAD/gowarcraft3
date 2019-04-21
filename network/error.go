@@ -67,16 +67,28 @@ func IsConnRefusedError(err error) bool {
 		websocket.IsCloseError(err, websocket.CloseTLSHandshake, websocket.CloseMandatoryExtension)
 }
 
+// WSAECONNABORTED is ECONNABORTED on Windows
+const WSAECONNABORTED = 10053
+
 // WSAECONNRESET is ECONNRESET on Windows
 const WSAECONNRESET = 10054
+
+// WSAENOTCONN is ENOTCONN on Windows
+const WSAENOTCONN = 10057
+
+// WSAESHUTDOWN is ESHUTDOWN on Windows
+const WSAESHUTDOWN = 10058
 
 // IsConnClosedError checks if net.error is a "connection closed" error
 func IsConnClosedError(err error) bool {
 	err = UnnestError(err)
 	return err == io.EOF ||
+		err == websocket.ErrCloseSent ||
 		IsUseClosedNetworkError(err) ||
-		IsSysCallError(err, syscall.ECONNRESET) ||
-		IsSysCallError(err, WSAECONNRESET) ||
+		IsSysCallError(err, syscall.ECONNABORTED) || IsSysCallError(err, WSAECONNABORTED) ||
+		IsSysCallError(err, syscall.ECONNRESET) || IsSysCallError(err, WSAECONNRESET) ||
+		IsSysCallError(err, syscall.ENOTCONN) || IsSysCallError(err, WSAENOTCONN) ||
+		IsSysCallError(err, syscall.ESHUTDOWN) || IsSysCallError(err, WSAESHUTDOWN) ||
 		IsSysCallError(err, syscall.EPIPE) ||
 		websocket.IsUnexpectedCloseError(err)
 }
