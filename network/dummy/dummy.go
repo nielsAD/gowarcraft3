@@ -81,6 +81,7 @@ func (p *Player) Join() error {
 		return err
 	}
 
+	conn.SetKeepAlive(false)
 	conn.SetNoDelay(true)
 	conn.SetLinger(3)
 

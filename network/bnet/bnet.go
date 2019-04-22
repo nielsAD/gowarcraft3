@@ -238,6 +238,7 @@ func (b *Client) Dial() (*network.BNCSConn, error) {
 		return nil, err
 	}
 
+	conn.SetKeepAlive(false)
 	conn.SetNoDelay(true)
 	conn.SetLinger(3)
 	conn.Write([]byte{bncs.ProtocolGreeting})

@@ -227,6 +227,7 @@ func (h *Host) Dial(playerID uint8) (*Player, error) {
 		return nil, err
 	}
 
+	conn.SetKeepAlive(false)
 	conn.SetNoDelay(true)
 	conn.SetLinger(3)
 
