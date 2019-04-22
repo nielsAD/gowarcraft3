@@ -26,6 +26,16 @@ func (e *AsyncError) Error() string {
 	return e.Src + ":" + e.Err.Error()
 }
 
+// Temporary error
+func (e *AsyncError) Temporary() bool {
+	return IsTemporaryError(e.Err)
+}
+
+// Timeout occurred
+func (e *AsyncError) Timeout() bool {
+	return IsTimeoutError(e.Err)
+}
+
 // UnnestError retrieves the innermost error
 func UnnestError(err error) error {
 	switch e := err.(type) {
@@ -46,25 +56,45 @@ func UnnestError(err error) error {
 
 // IsUseClosedNetworkError checks if net.error is poll.ErrNetClosed
 func IsUseClosedNetworkError(err error) bool {
-	err = UnnestError(err)
 	return err != nil && err.Error() == "use of closed network connection"
 }
 
-// IsSysCallError checks if net.error is syscall.Errno
-func IsSysCallError(err error, errno syscall.Errno) bool {
+// IsSysCallError checks if error is one of syscall.Errno
+func IsSysCallError(err error, errno ...syscall.Errno) bool {
 	err = UnnestError(err)
-	return err != nil && err.Error() == errno.Error()
+	if err == nil {
+		return false
+	}
+
+	n, ok := err.(syscall.Errno)
+	if !ok {
+		return false
+	}
+
+	for _, e := range errno {
+		if e == n {
+			return true
+		}
+	}
+
+	return false
 }
 
 // WSAECONNREFUSED is ECONNREFUSED on Windows
 const WSAECONNREFUSED = 10061
 
-// IsConnRefusedError checks if net.error is a "connection refused" error
+// IsConnRefusedError checks if err indicates a refused connection
 func IsConnRefusedError(err error) bool {
 	err = UnnestError(err)
-	return IsSysCallError(err, syscall.ECONNREFUSED) ||
-		IsSysCallError(err, WSAECONNREFUSED) ||
-		websocket.IsCloseError(err, websocket.CloseTLSHandshake, websocket.CloseMandatoryExtension)
+
+	if IsSysCallError(err, syscall.ECONNREFUSED, WSAECONNREFUSED) {
+		return true
+	}
+
+	return websocket.IsCloseError(err,
+		websocket.CloseTLSHandshake,
+		websocket.CloseMandatoryExtension,
+	)
 }
 
 // WSAECONNABORTED is ECONNABORTED on Windows
@@ -79,16 +109,64 @@ const WSAENOTCONN = 10057
 // WSAESHUTDOWN is ESHUTDOWN on Windows
 const WSAESHUTDOWN = 10058
 
-// IsConnClosedError checks if net.error is a "connection closed" error
+// IsConnClosedError checks if err indicates a closed connection
 func IsConnClosedError(err error) bool {
 	err = UnnestError(err)
-	return err == io.EOF ||
-		err == websocket.ErrCloseSent ||
-		IsUseClosedNetworkError(err) ||
-		IsSysCallError(err, syscall.ECONNABORTED) || IsSysCallError(err, WSAECONNABORTED) ||
-		IsSysCallError(err, syscall.ECONNRESET) || IsSysCallError(err, WSAECONNRESET) ||
-		IsSysCallError(err, syscall.ENOTCONN) || IsSysCallError(err, WSAENOTCONN) ||
-		IsSysCallError(err, syscall.ESHUTDOWN) || IsSysCallError(err, WSAESHUTDOWN) ||
-		IsSysCallError(err, syscall.EPIPE) ||
-		websocket.IsUnexpectedCloseError(err)
+	if err == io.EOF || IsUseClosedNetworkError(err) {
+		return true
+	}
+
+	if IsSysCallError(err,
+		syscall.ECONNABORTED,
+		syscall.ECONNRESET,
+		syscall.ENOTCONN,
+		syscall.ESHUTDOWN,
+		syscall.EPIPE,
+		WSAECONNABORTED,
+		WSAECONNRESET,
+		WSAENOTCONN,
+		WSAESHUTDOWN,
+	) {
+		return true
+	}
+
+	return err == websocket.ErrCloseSent || websocket.IsUnexpectedCloseError(err)
+}
+
+type temporary interface {
+	Temporary() bool
+}
+
+// IsTemporaryError checks is error is temporary
+func IsTemporaryError(err error) bool {
+	if err == nil {
+		return false
+	}
+
+	t, ok := err.(temporary)
+	if !ok {
+		t, ok = UnnestError(err).(temporary)
+	}
+	if ok {
+		return t.Temporary()
+	}
+
+	return IsTimeoutError(err)
+}
+
+type timeout interface {
+	Timeout() bool
+}
+
+// IsTimeoutError checks is error is timeout
+func IsTimeoutError(err error) bool {
+	if err == nil {
+		return false
+	}
+
+	t, ok := err.(timeout)
+	if !ok {
+		t, ok = UnnestError(err).(timeout)
+	}
+	return ok && t.Timeout()
 }

@@ -390,7 +390,7 @@ func (h *Host) serve(peer *Player) error {
 		}()
 	}
 
-	return peer.Run(15 * time.Second)
+	return peer.Run()
 }
 
 func (h *Host) acceptAndServe(listener *net.TCPListener) {

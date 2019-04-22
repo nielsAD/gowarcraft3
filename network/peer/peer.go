@@ -49,10 +49,10 @@ func (p *Player) PeerSet() protocol.BitSet32 {
 	return protocol.BitSet32(atomic.LoadUint32(&p.peerset))
 }
 
-// Run reads packets (with given max time between packets) and emits an event for each received packet
+// Run reads packets and emits an event for each received packet
 // Not safe for concurrent invocation
-func (p *Player) Run(timeout time.Duration) error {
-	return p.W3GSConn.Run(&p.EventEmitter, timeout)
+func (p *Player) Run() error {
+	return p.W3GSConn.Run(&p.EventEmitter, 15*time.Second)
 }
 
 // InitDefaultHandlers adds the default callbacks for relevant packets

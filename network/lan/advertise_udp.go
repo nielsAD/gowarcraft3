@@ -138,8 +138,11 @@ func (a *UDPAdvertiser) onSearchGame(ev *network.Event) {
 	}
 
 	a.info.UptimeSec = (uint32)(time.Now().Sub(a.created).Seconds())
-	if _, err := a.Send(ev.Opt[0].(net.Addr), &a.info); err != nil && !network.IsConnClosedError(err) {
+
+	var addr = ev.Opt[0].(net.Addr)
+	if _, err := a.Send(addr, &a.info); err != nil && !network.IsConnClosedError(err) {
 		a.Fire(&network.AsyncError{Src: "onSearchGame[Send]", Err: err})
 	}
+
 	a.imut.Unlock()
 }
