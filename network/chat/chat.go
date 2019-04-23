@@ -228,21 +228,28 @@ func (b *Bot) SendMessage(s string) error {
 		return nil
 	}
 
-	if _, err := b.RPC(capi.CmdSendMessage, &capi.SendMessage{Message: s}); err != nil {
-		return err
-	}
-
-	return nil
+	_, err := b.RPC(capi.CmdSendMessage, &capi.SendMessage{Message: s})
+	return err
 }
 
 // SendEmote sends an emote on behalf of a bot
 func (b *Bot) SendEmote(s string) error {
+	s = bnet.FilterChat(s)
+	if len(s) == 0 {
+		return nil
+	}
+
 	_, err := b.RPC(capi.CmdSendEmote, &capi.SendEmote{Message: s})
 	return err
 }
 
 // SendWhisper sends a chat message to one user in the channel
 func (b *Bot) SendWhisper(uid int64, s string) error {
+	s = bnet.FilterChat(s)
+	if len(s) == 0 {
+		return nil
+	}
+
 	_, err := b.RPC(capi.CmdSendWhisper, &capi.SendWhisper{UserID: uid, Message: s})
 	return err
 }
