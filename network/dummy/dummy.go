@@ -121,6 +121,17 @@ func (p *Player) Join() error {
 	return nil
 }
 
+// SendOrClose sends pkt to player, closes connection on failure
+func (p *Player) SendOrClose(pkt w3gs.Packet) (int, error) {
+	n, err := p.W3GSConn.Send(pkt)
+	if err == nil || network.IsCloseError(err) {
+		return n, nil
+	}
+
+	p.Close()
+	return n, err
+}
+
 // Close closes all connections to host and peers
 func (p *Player) Close() error {
 	p.Host.Close()
@@ -163,7 +174,7 @@ func (p *Player) Say(s string) error {
 }
 
 func (p *Player) changeVal(t w3gs.MessageType, v uint8) error {
-	var _, err = p.Send(&w3gs.Message{
+	var _, err = p.SendOrClose(&w3gs.Message{
 		RecipientIDs: []uint8{1},
 		SenderID:     p.PlayerInfo.PlayerID,
 		Type:         t,
@@ -194,7 +205,10 @@ func (p *Player) ChangeHandicap(h uint8) error {
 
 // Leave game
 func (p *Player) Leave(reason w3gs.LeaveReason) error {
-	var _, err = p.Send(&w3gs.Leave{Reason: reason})
+	var _, err = p.Send(&w3gs.Leave{
+		Reason: reason,
+	})
+
 	p.Close()
 	return err
 }
@@ -213,7 +227,7 @@ func (p *Player) InitDefaultHandlers() {
 }
 
 func (p *Player) onPeerConnected(ev *network.Event) {
-	if _, err := p.Send(&w3gs.PeerSet{PeerSet: protocol.BitSet16(p.PeerSet())}); err != nil && !network.IsConnClosedError(err) {
+	if _, err := p.SendOrClose(&w3gs.PeerSet{PeerSet: protocol.BitSet16(p.PeerSet())}); err != nil {
 		p.Fire(&network.AsyncError{Src: "onPeerConnected[Send]", Err: err})
 	}
 }
@@ -229,7 +243,7 @@ func (p *Player) onPeerChat(ev *network.Event) {
 func (p *Player) onPing(ev *network.Event) {
 	var pkt = ev.Arg.(*w3gs.Ping)
 
-	if _, err := p.Send(&w3gs.Pong{Ping: w3gs.Ping{Payload: pkt.Payload}}); err != nil && !network.IsConnClosedError(err) {
+	if _, err := p.SendOrClose(&w3gs.Pong{Ping: w3gs.Ping{Payload: pkt.Payload}}); err != nil {
 		p.Fire(&network.AsyncError{Src: "onPing[Send]", Err: err})
 	}
 }
@@ -237,7 +251,7 @@ func (p *Player) onPing(ev *network.Event) {
 func (p *Player) onMapCheck(ev *network.Event) {
 	var pkt = ev.Arg.(*w3gs.MapCheck)
 
-	if _, err := p.Send(&w3gs.MapState{Ready: true, FileSize: pkt.FileSize}); err != nil && !network.IsConnClosedError(err) {
+	if _, err := p.SendOrClose(&w3gs.MapState{Ready: true, FileSize: pkt.FileSize}); err != nil {
 		p.Fire(&network.AsyncError{Src: "onMapCheck[Send]", Err: err})
 	}
 }
@@ -271,7 +285,7 @@ func (p *Player) onPlayerInfo(ev *network.Event) {
 	}
 
 	go func() {
-		if _, err := p.Host.Dial(peer.PlayerInfo.PlayerID); err != nil && !network.IsConnClosedError(err) {
+		if _, err := p.Host.Dial(peer.PlayerInfo.PlayerID); err != nil && !network.IsRefusedError(err) {
 			p.Fire(&network.AsyncError{Src: "onPlayerInfo[Dial]", Err: err})
 		}
 	}()
@@ -284,7 +298,7 @@ func (p *Player) onPlayerLeft(ev *network.Event) {
 }
 
 func (p *Player) onCountDownEnd(ev *network.Event) {
-	if _, err := p.Send(&w3gs.GameLoaded{}); err != nil && !network.IsConnClosedError(err) {
+	if _, err := p.SendOrClose(&w3gs.GameLoaded{}); err != nil {
 		p.Fire(&network.AsyncError{Src: "onCountDownEnd[Send]", Err: err})
 	}
 }

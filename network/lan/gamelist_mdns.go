@@ -205,7 +205,7 @@ func (g *MDNSGameList) Run() error {
 
 		go func() {
 			for range broadcastTicker.C {
-				if err := g.queryAll(); err != nil && !network.IsConnClosedError(err) {
+				if err := g.queryAll(); err != nil && !network.IsCloseError(err) {
 					g.Fire(&network.AsyncError{Src: "Run[queryAll]", Err: err})
 				}
 
@@ -381,7 +381,7 @@ func (g *MDNSGameList) onDNS(ev *network.Event) {
 
 	// Query extra info for PTR records without game info in response
 	for svc := range incomplete {
-		if err := g.queryGameInfo(svc); err != nil && !network.IsConnClosedError(err) {
+		if err := g.queryGameInfo(svc); err != nil {
 			g.Fire(&network.AsyncError{Src: "onDNS[queryGameInfo]", Err: err})
 		}
 	}

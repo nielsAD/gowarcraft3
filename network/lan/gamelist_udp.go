@@ -139,7 +139,7 @@ func (g *UDPGameList) Run() error {
 
 		go func() {
 			for range broadcastTicker.C {
-				if _, err := g.Broadcast(&sg); err != nil && !network.IsConnClosedError(err) {
+				if _, err := g.Broadcast(&sg); err != nil && !network.IsCloseError(err) {
 					g.Fire(&network.AsyncError{Src: "Run[Broadcast]", Err: err})
 				}
 
@@ -197,7 +197,7 @@ func (g *UDPGameList) onRefreshGame(ev *network.Event) {
 		HostCounter: pkt.HostCounter,
 	}
 
-	if _, err := g.Send(adr, &sg); err != nil && !network.IsConnClosedError(err) {
+	if _, err := g.Send(adr, &sg); err != nil {
 		g.Fire(&network.AsyncError{Src: "onRefreshGame[Send]", Err: err})
 	}
 }
@@ -227,7 +227,7 @@ func (g *UDPGameList) onCreateGame(ev *network.Event) {
 		HostCounter: pkt.HostCounter,
 	}
 
-	if _, err := g.Send(adr, &sg); err != nil && !network.IsConnClosedError(err) {
+	if _, err := g.Send(adr, &sg); err != nil {
 		g.Fire(&network.AsyncError{Src: "onCreateGame[Send]", Err: err})
 	}
 }

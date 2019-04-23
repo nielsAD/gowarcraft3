@@ -49,6 +49,17 @@ func (p *Player) PeerSet() protocol.BitSet32 {
 	return protocol.BitSet32(atomic.LoadUint32(&p.peerset))
 }
 
+// SendOrClose sends pkt to player, closes connection on failure
+func (p *Player) SendOrClose(pkt w3gs.Packet) (int, error) {
+	n, err := p.W3GSConn.Send(pkt)
+	if err == nil || network.IsCloseError(err) {
+		return n, nil
+	}
+
+	p.Close()
+	return n, err
+}
+
 // Run reads packets and emits an event for each received packet
 // Not safe for concurrent invocation
 func (p *Player) Run() error {
@@ -66,7 +77,7 @@ func (p *Player) onPing(ev *network.Event) {
 
 	atomic.StoreUint32(&p.peerset, uint32(pkt.PeerSet))
 
-	if _, err := p.Send(&w3gs.PeerPong{Ping: w3gs.Ping{Payload: pkt.Payload}}); err != nil && !network.IsConnClosedError(err) {
+	if _, err := p.SendOrClose(&w3gs.PeerPong{Ping: w3gs.Ping{Payload: pkt.Payload}}); err != nil {
 		p.Fire(&network.AsyncError{Src: "onPing[Send]", Err: err})
 	}
 }

@@ -105,7 +105,7 @@ func (a *UDPAdvertiser) Run() error {
 
 		go func() {
 			for range ticker.C {
-				if err := a.refresh(); err != nil && !network.IsConnClosedError(err) {
+				if err := a.refresh(); err != nil && !network.IsCloseError(err) {
 					a.Fire(&network.AsyncError{Src: "Run[refresh]", Err: err})
 				}
 			}
@@ -117,7 +117,7 @@ func (a *UDPAdvertiser) Run() error {
 
 // Close the connection
 func (a *UDPAdvertiser) Close() error {
-	if err := a.Decreate(); err != nil && !network.IsConnClosedError(err) {
+	if err := a.Decreate(); err != nil && !network.IsCloseError(err) {
 		a.Fire(&network.AsyncError{Src: "Close[Decreate]", Err: err})
 	}
 	return a.W3GSPacketConn.Close()
@@ -140,7 +140,7 @@ func (a *UDPAdvertiser) onSearchGame(ev *network.Event) {
 	a.info.UptimeSec = (uint32)(time.Now().Sub(a.created).Seconds())
 
 	var addr = ev.Opt[0].(net.Addr)
-	if _, err := a.Send(addr, &a.info); err != nil && !network.IsConnClosedError(err) {
+	if _, err := a.Send(addr, &a.info); err != nil {
 		a.Fire(&network.AsyncError{Src: "onSearchGame[Send]", Err: err})
 	}
 

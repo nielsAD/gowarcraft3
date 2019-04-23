@@ -238,5 +238,7 @@ func main() {
 		}
 	}()
 
-	d.Run()
+	if err := d.Run(); err != nil && !network.IsCloseError(err) {
+		logErr.Println(color.RedString("[ERROR] %s", err.Error()))
+	}
 }

@@ -192,7 +192,7 @@ func (h *Host) Accept(conn net.Conn) (*Player, error) {
 
 	h.wg.Add(1)
 	go func() {
-		if err := h.serve(peer); err != nil && !network.IsConnClosedError(err) {
+		if err := h.serve(peer); err != nil && !network.IsCloseError(err) {
 			h.Fire(&network.AsyncError{Src: "Accept[Serve]", Err: err})
 		}
 
@@ -281,7 +281,7 @@ func (h *Host) Dial(playerID uint8) (*Player, error) {
 
 	h.wg.Add(1)
 	go func() {
-		if err := h.serve(peer); err != nil && !network.IsConnClosedError(err) {
+		if err := h.serve(peer); err != nil && !network.IsCloseError(err) {
 			h.Fire(&network.AsyncError{Src: "Dial[Serve]", Err: err})
 		}
 
@@ -383,7 +383,7 @@ func (h *Host) serve(peer *Player) error {
 				peerPing.Payload = uint32(time.Now().Sub(peer.StartTime).Nanoseconds() / 1e6)
 				peerPing.PeerSet = h.PeerSet()
 				peerPing.GameTicks = h.GameTicks()
-				if _, err := peer.Send(&peerPing); err != nil && !network.IsConnClosedError(err) {
+				if _, err := peer.SendOrClose(&peerPing); err != nil {
 					h.Fire(&network.AsyncError{Src: "serve[Ping]", Err: err})
 				}
 			}
@@ -397,7 +397,7 @@ func (h *Host) acceptAndServe(listener *net.TCPListener) {
 	for {
 		conn, err := listener.AcceptTCP()
 		if err != nil {
-			if !network.IsConnClosedError(err) {
+			if !network.IsCloseError(err) {
 				h.Fire(&network.AsyncError{Src: "acceptAndServe[Listen]", Err: err})
 			}
 			break
@@ -407,7 +407,7 @@ func (h *Host) acceptAndServe(listener *net.TCPListener) {
 		conn.SetLinger(3)
 
 		_, err = h.Accept(conn)
-		if err != nil && !network.IsConnClosedError(err) {
+		if err != nil {
 			h.Fire(&network.AsyncError{Src: "acceptAndServe[Accept]", Err: err})
 		}
 	}

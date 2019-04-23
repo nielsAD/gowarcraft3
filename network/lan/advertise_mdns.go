@@ -281,7 +281,7 @@ func (a *MDNSAdvertiser) Run() error {
 
 		go func() {
 			for range ticker.C {
-				if err := a.refresh(); err != nil && !network.IsConnClosedError(err) {
+				if err := a.refresh(); err != nil && !network.IsCloseError(err) {
 					a.Fire(&network.AsyncError{Src: "Run[refresh]", Err: err})
 				}
 			}
@@ -293,7 +293,7 @@ func (a *MDNSAdvertiser) Run() error {
 
 // Close the connection
 func (a *MDNSAdvertiser) Close() error {
-	if err := a.Decreate(); err != nil && !network.IsConnClosedError(err) {
+	if err := a.Decreate(); err != nil && !network.IsCloseError(err) {
 		a.Fire(&network.AsyncError{Src: "Close[Decreate]", Err: err})
 	}
 	return a.DNSPacketConn.Close()
@@ -359,7 +359,7 @@ func (a *MDNSAdvertiser) onDNS(ev *network.Event) {
 		if addInfo {
 			a.addGameInfo(ans)
 		}
-		if _, err := a.Send(addr, ans); err != nil && !network.IsConnClosedError(err) {
+		if _, err := a.Send(addr, ans); err != nil && !network.IsCloseError(err) {
 			a.Fire(&network.AsyncError{Src: "onDNS[Send]", Err: err})
 		}
 	}

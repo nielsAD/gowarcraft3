@@ -730,7 +730,7 @@ func (b *Client) Run() error {
 		go func() {
 			var pkt bncs.KeepAlive
 			for range keepaliveTicker.C {
-				if _, err := b.Send(&pkt); err != nil && !network.IsConnClosedError(err) {
+				if _, err := b.Send(&pkt); err != nil && !network.IsCloseError(err) {
 					b.Fire(&network.AsyncError{Src: "Run[KeepAlive]", Err: err})
 				}
 			}
@@ -791,7 +791,7 @@ func (b *Client) InitDefaultHandlers() {
 func (b *Client) onPing(ev *network.Event) {
 	var pkt = ev.Arg.(*bncs.Ping)
 
-	if _, err := b.Send(pkt); err != nil && !network.IsConnClosedError(err) {
+	if _, err := b.Send(pkt); err != nil {
 		b.Fire(&network.AsyncError{Src: "onPing[Send]", Err: err})
 	}
 }
