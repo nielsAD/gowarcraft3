@@ -16,6 +16,7 @@ import (
 	"strings"
 
 	"github.com/nielsAD/gowarcraft3/file/w3g"
+	"github.com/nielsAD/gowarcraft3/network"
 )
 
 var (
@@ -44,7 +45,7 @@ func main() {
 	var filename = strings.Join(flag.Args(), " ")
 
 	if *stream {
-		if err := cast(filename); err != nil {
+		if err := cast(filename); err != nil && !network.IsCloseError(err) {
 			logErr.Fatal("Stream error: ", err)
 		}
 		return

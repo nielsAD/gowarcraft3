@@ -197,15 +197,19 @@ func cast(name string) error {
 		return errUnexpectedPacket
 	}
 
+	var msec int64
 	var speed int64
-	var say = func(s string) error {
-		_, err := conn.Send(&w3gs.MessageRelay{Message: w3gs.Message{
+
+	var say = func(s string) {
+		if _, err := conn.Send(&w3gs.MessageRelay{Message: w3gs.Message{
 			SenderID: hostID,
 			Type:     w3gs.MsgChatExtra,
 			Scope:    w3gs.ScopeAll,
 			Content:  s,
-		}})
-		return err
+		}}); err != nil {
+			logErr.Println("Say error: ", err)
+			conn.Close()
+		}
 	}
 
 	var events = network.EventEmitter{}
@@ -221,6 +225,9 @@ func cast(name string) error {
 
 		var cmd = strings.Fields(msg.Content)
 		switch strings.ToLower(cmd[0]) {
+		case ".time":
+			var t = (time.Duration)(atomic.LoadInt64(&msec)) * time.Millisecond
+			say("Time: " + t.String())
 		case ".speed":
 			var s = atomic.LoadInt64(&speed)
 
@@ -273,6 +280,8 @@ func cast(name string) error {
 			} else {
 				time.Sleep(time.Duration(v.TimeIncrementMS) * time.Millisecond * (time.Duration)(-s+1))
 			}
+			atomic.AddInt64(&msec, int64(v.TimeIncrementMS))
+
 			pkt = &v.TimeSlot
 		case *w3g.Desync:
 			pkt = &v.Desync
