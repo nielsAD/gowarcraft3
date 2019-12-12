@@ -10,11 +10,20 @@ import (
 	"github.com/nielsAD/gowarcraft3/protocol"
 )
 
+type GameVersion struct {
+	major uint32
+	minor uint32
+	patch uint32
+	commit uint32
+}
+
 // Info for Warcraft III maps as found in the war3map.w3i file
 type Info struct {
 	FileFormat    uint32
 	SaveCount     uint32
 	EditorVersion uint32
+	GameVersion GameVersion
+	CodeFormat GameCodeFormat
 
 	Name             string
 	Author           string
@@ -92,6 +101,11 @@ type CustomTechAvailability struct {
 	TechID    protocol.DWordString
 }
 
+const EDITOR_VERSION_ROC = 18;
+const EDITOR_VERSION_TFT = 25;
+const EDITOR_VERSION_131 = 28;
+const EDITOR_VERSION_REFORGED = 31;
+
 // Info read from war3map.w3i
 func (m *Map) Info() (*Info, error) {
 	w3i, err := m.Archive.Open("war3map.w3i")
@@ -122,14 +136,26 @@ func (m *Map) Info() (*Info, error) {
 	}
 
 	switch i.FileFormat {
-	case 18: //.w3m
-	case 25: //.w3x
+	case EDITOR_VERSION_ROC:
+	case EDITOR_VERSION_TFT:
+	case EDITOR_VERSION_131:
+	case EDITOR_VERSION_REFORGED:
 	default:
 		return nil, ErrBadFormat
 	}
 
 	i.SaveCount = b.ReadUInt32()
 	i.EditorVersion = b.ReadUInt32()
+
+	if i.FileFormat >= EDITOR_VERSION_131 {
+		// A.B.C.D = 1.31.1.12173
+		i.GameVersion = GameVersion{
+			major:  b.ReadUInt32(),
+			minor:  b.ReadUInt32(),
+			patch:  b.ReadUInt32(),
+			commit: b.ReadUInt32(),
+		}
+	}
 
 	i.Name, _ = readTS()
 	i.Author, _ = readTS()
@@ -155,7 +181,7 @@ func (m *Map) Info() (*Info, error) {
 	i.Tileset = Tileset(b.ReadUInt8())
 	i.LsBackground = b.ReadUInt32()
 
-	if i.FileFormat == 25 {
+	if i.FileFormat >= EDITOR_VERSION_TFT {
 		i.LsPath, _ = readTS()
 	}
 	i.LsText, _ = readTS()
@@ -169,7 +195,7 @@ func (m *Map) Info() (*Info, error) {
 
 	i.DataSet = b.ReadUInt32()
 
-	if i.FileFormat == 25 {
+	if i.FileFormat >= EDITOR_VERSION_TFT {
 		i.PsPath, _ = readTS()
 	}
 	i.PsText, _ = readTS()
@@ -179,7 +205,7 @@ func (m *Map) Info() (*Info, error) {
 		return nil, err
 	}
 
-	if i.FileFormat == 25 {
+	if i.FileFormat >= EDITOR_VERSION_TFT {
 		if b.Size() < 54 {
 			return nil, ErrBadFormat
 		}
@@ -199,6 +225,16 @@ func (m *Map) Info() (*Info, error) {
 		i.WaterColor = b.ReadUInt32()
 	}
 
+	if i.FileFormat >= EDITOR_VERSION_131 {
+		i.CodeFormat = GameCodeFormat(b.ReadUInt32())
+	}
+
+	if i.FileFormat >= EDITOR_VERSION_REFORGED {
+		// TODO: two unknown reforged int's
+		b.ReadUInt32()
+		b.ReadUInt32()
+	}
+
 	if b.Size() < 8 {
 		return nil, ErrBadFormat
 	}
@@ -214,6 +250,7 @@ func (m *Map) Info() (*Info, error) {
 		i.Players[p].Type = PlayerType(b.ReadUInt32())
 		i.Players[p].Race = Race(b.ReadUInt32())
 		i.Players[p].Flags = PlayerFlags(b.ReadUInt32())
+
 		i.Players[p].Name, err = readTS()
 		if err != nil {
 			return nil, err
@@ -224,6 +261,12 @@ func (m *Map) Info() (*Info, error) {
 		i.Players[p].StartPosY = b.ReadFloat32()
 		i.Players[p].AllyPrioLow = protocol.BitSet32(b.ReadUInt32())
 		i.Players[p].AllyPrioHigh = protocol.BitSet32(b.ReadUInt32())
+
+		if i.FileFormat >= EDITOR_VERSION_REFORGED {
+			// TODO: two unknown reforged player options
+			b.ReadUInt32()
+			b.ReadUInt32()
+		}
 	}
 
 	var numForces = b.ReadUInt32()

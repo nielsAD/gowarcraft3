@@ -33,6 +33,13 @@ const (
 	SizeEpic
 )
 
+type GameCodeFormat uint32
+
+const (
+	GameCodeFormatJASS GameCodeFormat = iota
+	GameCodeFormatLua
+)
+
 func (s Size) String() string {
 	switch s {
 	case SizeTiny:
