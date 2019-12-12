@@ -33,8 +33,10 @@ const (
 	SizeEpic
 )
 
+// GameCodeFormat of source code
 type GameCodeFormat uint32
 
+// Triggers source code types
 const (
 	GameCodeFormatJASS GameCodeFormat = iota
 	GameCodeFormatLua
