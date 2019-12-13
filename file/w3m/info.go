@@ -62,10 +62,10 @@ type Info struct {
 
 // GameVersion stored in map file
 type GameVersion struct {
-	major uint32
-	minor uint32
-	patch uint32
-	commit uint32
+	Major uint32
+	Minor uint32
+	Patch uint32
+	Commit uint32
 }
 
 // Player structure in war3map.w3i file
@@ -151,10 +151,10 @@ func (m *Map) Info() (*Info, error) {
 	if i.FileFormat >= editorVersion131 {
 		// A.B.C.D = 1.31.1.12173
 		i.GameVersion = GameVersion{
-			major:  b.ReadUInt32(),
-			minor:  b.ReadUInt32(),
-			patch:  b.ReadUInt32(),
-			commit: b.ReadUInt32(),
+			Major:  b.ReadUInt32(),
+			Minor:  b.ReadUInt32(),
+			Patch:  b.ReadUInt32(),
+			Commit: b.ReadUInt32(),
 		}
 	}
 
