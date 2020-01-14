@@ -379,8 +379,8 @@ func (h *Host) serve(peer *Player) error {
 
 		var peerPing w3gs.PeerPing
 		go func() {
-			for range pingTicker.C {
-				peerPing.Payload = uint32(time.Now().Sub(peer.StartTime).Nanoseconds() / 1e6)
+			for c := range pingTicker.C {
+				peerPing.Payload = uint32(c.Sub(peer.StartTime).Nanoseconds() / 1e6)
 				peerPing.PeerSet = h.PeerSet()
 				peerPing.GameTicks = h.GameTicks()
 				if _, err := peer.SendOrClose(&peerPing); err != nil {
