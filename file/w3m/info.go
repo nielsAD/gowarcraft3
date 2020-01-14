@@ -15,6 +15,8 @@ type Info struct {
 	FileFormat    uint32
 	SaveCount     uint32
 	EditorVersion uint32
+	GameVersion GameVersion
+	CodeFormat GameCodeFormat
 
 	Name             string
 	Author           string
@@ -58,6 +60,14 @@ type Info struct {
 	CustomTechAvailabilities    []CustomTechAvailability
 }
 
+// GameVersion stored in map file
+type GameVersion struct {
+	Major uint32
+	Minor uint32
+	Patch uint32
+	Commit uint32
+}
+
 // Player structure in war3map.w3i file
 type Player struct {
 	ID           uint32
@@ -92,6 +102,11 @@ type CustomTechAvailability struct {
 	TechID    protocol.DWordString
 }
 
+const editorVersionRoc = 18;
+const editorVersionTft = 25;
+const editorVersion131 = 28;
+const editorVersionReforged = 31;
+
 // Info read from war3map.w3i
 func (m *Map) Info() (*Info, error) {
 	w3i, err := m.Archive.Open("war3map.w3i")
@@ -122,14 +137,26 @@ func (m *Map) Info() (*Info, error) {
 	}
 
 	switch i.FileFormat {
-	case 18: //.w3m
-	case 25: //.w3x
+	case editorVersionRoc:
+	case editorVersionTft:
+	case editorVersion131:
+	case editorVersionReforged:
 	default:
 		return nil, ErrBadFormat
 	}
 
 	i.SaveCount = b.ReadUInt32()
 	i.EditorVersion = b.ReadUInt32()
+
+	if i.FileFormat >= editorVersion131 {
+		// A.B.C.D = 1.31.1.12173
+		i.GameVersion = GameVersion{
+			Major:  b.ReadUInt32(),
+			Minor:  b.ReadUInt32(),
+			Patch:  b.ReadUInt32(),
+			Commit: b.ReadUInt32(),
+		}
+	}
 
 	i.Name, _ = readTS()
 	i.Author, _ = readTS()
@@ -155,7 +182,7 @@ func (m *Map) Info() (*Info, error) {
 	i.Tileset = Tileset(b.ReadUInt8())
 	i.LsBackground = b.ReadUInt32()
 
-	if i.FileFormat == 25 {
+	if i.FileFormat >= editorVersionTft {
 		i.LsPath, _ = readTS()
 	}
 	i.LsText, _ = readTS()
@@ -169,7 +196,7 @@ func (m *Map) Info() (*Info, error) {
 
 	i.DataSet = b.ReadUInt32()
 
-	if i.FileFormat == 25 {
+	if i.FileFormat >= editorVersionTft {
 		i.PsPath, _ = readTS()
 	}
 	i.PsText, _ = readTS()
@@ -179,7 +206,7 @@ func (m *Map) Info() (*Info, error) {
 		return nil, err
 	}
 
-	if i.FileFormat == 25 {
+	if i.FileFormat >= editorVersionTft {
 		if b.Size() < 54 {
 			return nil, ErrBadFormat
 		}
@@ -199,6 +226,16 @@ func (m *Map) Info() (*Info, error) {
 		i.WaterColor = b.ReadUInt32()
 	}
 
+	if i.FileFormat >= editorVersion131 {
+		i.CodeFormat = GameCodeFormat(b.ReadUInt32())
+	}
+
+	if i.FileFormat >= editorVersionReforged {
+		// TODO: two unknown reforged int's
+		b.ReadUInt32()
+		b.ReadUInt32()
+	}
+
 	if b.Size() < 8 {
 		return nil, ErrBadFormat
 	}
@@ -214,6 +251,7 @@ func (m *Map) Info() (*Info, error) {
 		i.Players[p].Type = PlayerType(b.ReadUInt32())
 		i.Players[p].Race = Race(b.ReadUInt32())
 		i.Players[p].Flags = PlayerFlags(b.ReadUInt32())
+
 		i.Players[p].Name, err = readTS()
 		if err != nil {
 			return nil, err
@@ -224,6 +262,12 @@ func (m *Map) Info() (*Info, error) {
 		i.Players[p].StartPosY = b.ReadFloat32()
 		i.Players[p].AllyPrioLow = protocol.BitSet32(b.ReadUInt32())
 		i.Players[p].AllyPrioHigh = protocol.BitSet32(b.ReadUInt32())
+
+		if i.FileFormat >= editorVersionReforged {
+			// TODO: two unknown reforged player options
+			b.ReadUInt32()
+			b.ReadUInt32()
+		}
 	}
 
 	var numForces = b.ReadUInt32()
