@@ -118,6 +118,35 @@ func (p *Player) Join() error {
 	}
 
 	p.SetConn(conn, w3gs.NewFactoryCache(w3gs.DefaultFactory), p.Encoding)
+
+	if p.Encoding.GameVersion >= w3gs.ReforgedGameVersion {
+		if _, err := p.SendOrClose(&w3gs.PlayerExtra{
+			Type: w3gs.PlayerProfile,
+			Profiles: []w3gs.PlayerDataProfile{w3gs.PlayerDataProfile{
+				PlayerID:  uint32(p.PlayerInfo.PlayerID),
+				BattleTag: p.PlayerInfo.PlayerName,
+			}},
+		}); err != nil {
+			return err
+		}
+		if _, err := p.SendOrClose(&w3gs.PlayerExtra{
+			Type: w3gs.PlayerSkins,
+			Skins: []w3gs.PlayerDataSkins{w3gs.PlayerDataSkins{
+				PlayerID: uint32(p.PlayerInfo.PlayerID),
+			}},
+		}); err != nil {
+			return err
+		}
+		if _, err := p.SendOrClose(&w3gs.PlayerExtra{
+			Type: w3gs.PlayerExtra5,
+			Unknown5: []w3gs.PlayerData5{w3gs.PlayerData5{
+				PlayerID: uint32(p.PlayerInfo.PlayerID),
+			}},
+		}); err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 

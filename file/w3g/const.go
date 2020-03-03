@@ -34,4 +34,5 @@ const (
 	RidTimeSlotAck    = 0x22 // w3gs.TimeSlotAck
 	RidDesync         = 0x23
 	RidEndTimer       = 0x2F
+	RidPlayerExtra    = 0x39
 )

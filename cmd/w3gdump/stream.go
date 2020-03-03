@@ -11,7 +11,6 @@ import (
 	"io"
 	"net"
 	"os"
-	"os/user"
 	"path"
 	"strconv"
 	"strings"
@@ -37,8 +36,8 @@ var paths = []string{
 	path.Join(os.Getenv("HOME"), ".wine/drive_c/Program Files/Warcraft III/"),
 	path.Join(os.Getenv("HOME"), ".wine/drive_c/Program Files (x86)/Warcraft III/"),
 	func() string {
-		if h, err := user.Current(); err == nil {
-			return path.Join(h.HomeDir, "Warcraft III")
+		if h, err := os.UserHomeDir(); err == nil {
+			return path.Join(h, "Documents", "Warcraft III")
 		}
 		return "."
 	}(),
@@ -58,7 +57,7 @@ func mapCRC(name string) (uint32, uint32) {
 
 		return uint32(size), crc.Sum32()
 	}
-	return 0, 0
+	return 1, 1
 }
 
 func speedString(s int64) string {
@@ -169,11 +168,22 @@ func cast(name string) error {
 		return err
 	}
 
-	if pkt, err = conn.NextPacket(5 * time.Second); err != nil {
-		return err
-	}
-	if m, ok := pkt.(*w3gs.MapState); !ok || !m.Ready {
-		return errMapUnavailable
+	for true {
+		if pkt, err = conn.NextPacket(5 * time.Second); err != nil {
+			return err
+		}
+		switch m := pkt.(type) {
+		case *w3gs.PlayerExtra:
+			continue
+		case *w3gs.MapState:
+			if !m.Ready {
+				return errMapUnavailable
+			}
+			// Break out of loop
+		default:
+			return errUnexpectedPacket
+		}
+		break
 	}
 
 	conn.Send(&w3gs.CountDownStart{})
@@ -190,11 +200,19 @@ func cast(name string) error {
 		}
 	}
 
-	if pkt, err = conn.NextPacket(time.Minute * 3); err != nil {
-		return err
-	}
-	if _, ok := pkt.(*w3gs.GameLoaded); !ok {
-		return errUnexpectedPacket
+	for true {
+		if pkt, err = conn.NextPacket(time.Minute * 3); err != nil {
+			return err
+		}
+		switch pkt.(type) {
+		case *w3gs.PlayerExtra:
+			continue
+		case *w3gs.GameLoaded:
+			// Break out of loop
+		default:
+			return errUnexpectedPacket
+		}
+		break
 	}
 
 	var msec int64

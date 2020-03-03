@@ -12,10 +12,10 @@ type RecordFactory interface {
 // FactoryFunc creates new Record
 type FactoryFunc func(enc *Encoding) Record
 
-// MapFactory implements PacketFactory using a map
+// MapFactory implements RecordFactory using a map
 type MapFactory map[uint8]FactoryFunc
 
-// NewRecord implements PacketFactory interface
+// NewRecord implements RecordFactory interface
 func (f MapFactory) NewRecord(rid uint8, enc *Encoding) Record {
 	fun, ok := f[rid]
 	if !ok {
@@ -43,7 +43,7 @@ func NewFactoryCache(factory RecordFactory) RecordFactory {
 	}
 }
 
-// NewRecord implements PacketFactory interface
+// NewRecord implements RecordFactory interface
 func (f CacheFactory) NewRecord(rid uint8, enc *Encoding) Record {
 	var key = cacheKey{
 		enc: *enc,

@@ -319,6 +319,40 @@ func TestPackets(t *testing.T) {
 			ChunkPos:    3,
 		},
 		&w3gs.MapPartError{},
+		&w3gs.PlayerExtra{},
+		&w3gs.PlayerExtra{
+			Type: w3gs.PlayerProfile,
+			Profiles: []w3gs.PlayerDataProfile{
+				w3gs.PlayerDataProfile{
+					PlayerID:  1,
+					BattleTag: "niels#1234",
+					Clan:      "clan",
+					Portrait:  "p051",
+					Realm:     20,
+					Unknown1:  "",
+				},
+			},
+		},
+		&w3gs.PlayerExtra{
+			Type: w3gs.PlayerSkins,
+			Skins: []w3gs.PlayerDataSkins{
+				w3gs.PlayerDataSkins{
+					PlayerID: 3,
+					Skins: []w3gs.PlayerDataSkin{
+						w3gs.PlayerDataSkin{
+							Unit:       1164207469,
+							Skin:       1164207462,
+							Collection: "w3-standard",
+						},
+						w3gs.PlayerDataSkin{
+							Unit:       1164666213,
+							Skin:       1164665701,
+							Collection: "w3-sow-skins",
+						},
+					},
+				},
+			},
+		},
 	}
 
 	for _, pkt := range types {

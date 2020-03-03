@@ -21,7 +21,10 @@ var (
 )
 
 // CurrentGameVersion used by stable release
-const CurrentGameVersion uint32 = 10031
+const CurrentGameVersion uint32 = 10032
+
+// ReforgedGameVersion is the first Reforged release
+const ReforgedGameVersion uint32 = 10032
 
 // ProtocolSig is the W3GS magic number used in the packet header.
 const ProtocolSig = 0xF7
@@ -70,6 +73,7 @@ const (
 	PidMapPartError      = 0x45
 	PidPongToHost        = 0x46
 	PidIncomingAction2   = 0x48
+	PidPlayerExtra       = 0x59
 )
 
 // Failover related: 0x15 0x16 0x2B 0x2C 0x39
@@ -341,6 +345,7 @@ const (
 	SettingTerrainMask     GameSettingFlags = 0x00000F00
 
 	SettingObsNone     GameSettingFlags = 0x00000000
+	SettingObsEnabled  GameSettingFlags = 0x00001000
 	SettingObsOnDefeat GameSettingFlags = 0x00002000
 	SettingObsFull     GameSettingFlags = 0x00003000
 	SettingObsReferees GameSettingFlags = 0x40000000
@@ -384,11 +389,13 @@ func (f GameSettingFlags) String() string {
 	switch f & SettingObsMask {
 	case SettingObsNone:
 		res += "|ObsNone"
+	case SettingObsEnabled:
+		res += "|ObsEnabled"
 	case SettingObsOnDefeat:
 		res += "|ObsOnDefeat"
 	case SettingObsFull:
 		res += "|ObsFull"
-	case SettingObsReferees:
+	case SettingObsReferees, SettingObsReferees | SettingObsEnabled:
 		res += "|ObsReferees"
 	default:
 		return fmt.Sprintf("GameSettingFlags(0x%07X)", uint32(f))
@@ -431,9 +438,15 @@ type GameFlags uint32
 const (
 	GameFlagCustomGame   GameFlags = 0x000001
 	GameFlagSinglePlayer GameFlags = 0x000005
-	GameFlagTeamLadder   GameFlags = 0x000020
-	GameFlagSavedGame    GameFlags = 0x000200
-	GameFlagTypeMask     GameFlags = 0x000225
+
+	GameFlagLadder1v1  GameFlags = 0x000010
+	GameFlagLadder2v2  GameFlags = 0x000020
+	GameFlagLadder3v3  GameFlags = 0x000040
+	GameFlagLadder4v4  GameFlags = 0x000080
+	GameFlagTeamLadder GameFlags = 0x000020 // Before Reforged, all team modes shared a ladder
+
+	GameFlagSavedGame GameFlags = 0x000200
+	GameFlagTypeMask  GameFlags = 0x0002F5
 
 	GameFlagSignedMap   GameFlags = 0x000008
 	GameFlagPrivateGame GameFlags = 0x000800
@@ -468,10 +481,16 @@ func (f GameFlags) String() string {
 		res = "|Custom"
 	case GameFlagSinglePlayer:
 		res = "|SinglePlayer"
-	case GameFlagTeamLadder:
-		res = "|TeamLadder"
+	case GameFlagLadder1v1:
+		res = "|Ladder1v1"
+	case GameFlagLadder2v2:
+		res = "|Ladder2v2"
+	case GameFlagLadder3v3:
+		res = "|Ladder3v3"
+	case GameFlagLadder4v4:
+		res = "|Ladder4v4"
 	case GameFlagSavedGame:
-		res += "|SavedGame"
+		res = "|SavedGame"
 	case 0:
 		// No game type
 	default:
@@ -551,4 +570,25 @@ func (f GameFlags) String() string {
 	}
 
 	return res
+}
+
+// PlayerExtraType enum
+type PlayerExtraType uint8
+
+// PlayerExtra record type
+const (
+	PlayerProfile PlayerExtraType = 0x03
+	PlayerSkins   PlayerExtraType = 0x04
+	PlayerExtra5  PlayerExtraType = 0x05
+)
+
+func (t PlayerExtraType) String() string {
+	switch t {
+	case PlayerProfile:
+		return "BNetProfile"
+	case PlayerSkins:
+		return "Skins"
+	default:
+		return fmt.Sprintf("PlayerExtraType(0x%02X)", uint8(t))
+	}
 }

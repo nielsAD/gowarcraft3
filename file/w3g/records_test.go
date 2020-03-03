@@ -129,6 +129,67 @@ func TestRecords(t *testing.T) {
 			GameOver:     true,
 			CountDownSec: 5,
 		},
+		&w3g.PlayerExtra{},
+		&w3g.PlayerExtra{
+			PlayerExtra: w3gs.PlayerExtra{
+				Type: w3gs.PlayerProfile,
+				Profiles: []w3gs.PlayerDataProfile{
+					w3gs.PlayerDataProfile{
+						PlayerID:  1,
+						BattleTag: "niels#1234",
+						Clan:      "clan",
+						Portrait:  "p051",
+						Realm:     20,
+						Unknown1:  "",
+					},
+					w3gs.PlayerDataProfile{
+						PlayerID:  2,
+						BattleTag: "moon#56789",
+						Clan:      "clan",
+						Portrait:  "p055",
+						Realm:     10,
+						Unknown1:  "",
+					},
+				},
+			},
+		},
+		&w3g.PlayerExtra{
+			PlayerExtra: w3gs.PlayerExtra{
+				Type: w3gs.PlayerSkins,
+				Skins: []w3gs.PlayerDataSkins{
+					w3gs.PlayerDataSkins{
+						PlayerID: 3,
+						Skins: []w3gs.PlayerDataSkin{
+							w3gs.PlayerDataSkin{
+								Unit:       1164207469,
+								Skin:       1164207462,
+								Collection: "w3-standard",
+							},
+							w3gs.PlayerDataSkin{
+								Unit:       1164666213,
+								Skin:       1164665701,
+								Collection: "w3-sow-skins",
+							},
+						},
+					},
+					w3gs.PlayerDataSkins{
+						PlayerID: 4,
+						Skins: []w3gs.PlayerDataSkin{
+							w3gs.PlayerDataSkin{
+								Unit:       1432642913,
+								Skin:       1432642918,
+								Collection: "w3-standard",
+							},
+							w3gs.PlayerDataSkin{
+								Unit:       1332109682,
+								Skin:       1332114536,
+								Collection: "w3-sow-skins",
+							},
+						},
+					},
+				},
+			},
+		},
 	}
 
 	for _, rec := range types {

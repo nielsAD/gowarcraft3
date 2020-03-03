@@ -12,12 +12,15 @@ import (
 	"math"
 
 	"github.com/nielsAD/gowarcraft3/protocol"
+	"github.com/nielsAD/gowarcraft3/protocol/w3gs"
 )
 
 const defaultBufSize = 8192
 
 // BlockCompressor is an io.Writer that compresses data blocks
 type BlockCompressor struct {
+	Encoding
+
 	SizeWritten uint32 // Compressed size written in total
 	SizeTotal   uint32 // Decompressed size written in total
 	NumBlocks   uint32 // Blocks written in total
@@ -28,11 +31,12 @@ type BlockCompressor struct {
 }
 
 // NewBlockCompressor for compressed w3g data
-func NewBlockCompressor(w io.Writer) *BlockCompressor {
+func NewBlockCompressor(w io.Writer, e Encoding) *BlockCompressor {
 	z, _ := zlib.NewWriterLevelDict(nil, zlib.BestCompression, nil)
 	return &BlockCompressor{
-		w: w,
-		z: z,
+		Encoding: e,
+		w:        w,
+		z:        z,
 	}
 }
 
@@ -40,19 +44,27 @@ func NewBlockCompressor(w io.Writer) *BlockCompressor {
 func (d *BlockCompressor) Write(b []byte) (int, error) {
 	var n = 0
 	for len(b) > 0 {
-		var l = len(b)
-		if l > math.MaxUint16 {
-			l = math.MaxUint16
-		}
+		var lenBuf = len(b)
+		var lenHdr = 12
 
 		// Header with placeholders for size
 		d.b.Truncate()
-		d.b.WriteUInt16(0)
-		d.b.WriteUInt16(uint16(l))
+		if d.GameVersion >= w3gs.ReforgedGameVersion {
+			d.b.WriteUInt32(0)
+			d.b.WriteUInt32(uint32(lenBuf))
+		} else {
+			if lenBuf > math.MaxUint16 {
+				lenBuf = math.MaxUint16
+			}
+			lenHdr = 8
+			d.b.WriteUInt16(0)
+			d.b.WriteUInt16(uint16(lenBuf))
+		}
+
 		d.b.WriteUInt32(0)
 
 		d.z.Reset(&d.b)
-		zn, err := d.z.Write(b[:l])
+		zn, err := d.z.Write(b[:lenBuf])
 		n += zn
 
 		if err != nil {
@@ -63,13 +75,17 @@ func (d *BlockCompressor) Write(b []byte) (int, error) {
 		}
 
 		// Update header
-		d.b.WriteUInt16At(0, uint16(d.b.Size()-8))
+		if d.GameVersion >= w3gs.ReforgedGameVersion {
+			d.b.WriteUInt32At(0, uint32(d.b.Size()-lenHdr))
+		} else {
+			d.b.WriteUInt16At(0, uint16(d.b.Size()-lenHdr))
+		}
 
-		var crcHead = crc32.ChecksumIEEE(d.b.Bytes[:8])
-		d.b.WriteUInt16At(4, uint16(crcHead^crcHead>>16))
+		var crcHead = crc32.ChecksumIEEE(d.b.Bytes[:lenHdr])
+		d.b.WriteUInt16At(lenHdr-4, uint16(crcHead^crcHead>>16))
 
-		var crcData = crc32.ChecksumIEEE(d.b.Bytes[8:])
-		d.b.WriteUInt16At(6, uint16(crcData^crcData>>16))
+		var crcData = crc32.ChecksumIEEE(d.b.Bytes[lenHdr:])
+		d.b.WriteUInt16At(lenHdr-2, uint16(crcData^crcData>>16))
 
 		wn, err := d.w.Write(d.b.Bytes)
 		d.SizeWritten += uint32(wn)
@@ -80,7 +96,7 @@ func (d *BlockCompressor) Write(b []byte) (int, error) {
 			return n, err
 		}
 
-		b = b[l:]
+		b = b[lenBuf:]
 	}
 
 	return n, nil
@@ -95,7 +111,7 @@ type Compressor struct {
 
 // NewCompressorSize for compressed w3g with specified buffer size
 func NewCompressorSize(w io.Writer, e Encoding, size int) *Compressor {
-	var c = NewBlockCompressor(w)
+	var c = NewBlockCompressor(w, e)
 	var b = bufio.NewWriterSize(c, size)
 
 	return &Compressor{

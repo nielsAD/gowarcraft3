@@ -181,9 +181,8 @@ func TestFiles(t *testing.T) {
 						HostName:         "niels",
 						MapSha1:          [20]byte{107, 111, 100, 67, 248, 197, 26, 44, 89, 111, 217, 78, 123, 106, 91, 101, 208, 6, 70, 129},
 					},
-					GameFlags:  w3gs.GameFlagCustomGame | w3gs.GameFlagSignedMap,
-					NumSlots:   24,
-					LanguageID: 0,
+					GameFlags: w3gs.GameFlagCustomGame | w3gs.GameFlagSignedMap,
+					NumSlots:  24,
 				},
 				SlotInfo: w3g.SlotInfo{
 					SlotInfo: w3gs.SlotInfo{
@@ -214,6 +213,60 @@ func TestFiles(t *testing.T) {
 					&w3g.TimeSlot{TimeSlot: w3gs.TimeSlot{TimeIncrementMS: 0, Actions: []w3gs.PlayerAction{w3gs.PlayerAction{PlayerID: 1, Data: b64("EhgAAwANAP//////////AACwxQAAYEXMMQAAzDEAAA==")}}}},
 					&w3g.TimeSlot{TimeSlot: w3gs.TimeSlot{TimeIncrementMS: 100}},
 					&w3g.TimeSlot{TimeSlot: w3gs.TimeSlot{TimeIncrementMS: 100}},
+				},
+			},
+		},
+		{
+			"test_132.w3g",
+			w3g.Replay{
+				Header: w3g.Header{
+					GameVersion: w3gs.GameVersion{Product: w3gs.ProductTFT, Version: 10032},
+					BuildNumber: 6105,
+					DurationMS:  503575,
+				},
+				GameInfo: w3g.GameInfo{
+					HostPlayer: w3g.PlayerInfo{
+						ID:   2,
+						Name: "TheBiGsLeeP#220",
+					},
+					GameName: "BNet",
+					GameSettings: w3gs.GameSettings{
+						GameSettingFlags: w3gs.SettingSpeedFast | w3gs.SettingTerrainDefault | w3gs.SettingObsEnabled | w3gs.SettingObsReferees | w3gs.SettingTeamsTogether | w3gs.SettingTeamsFixed,
+						MapXoro:          4294967295,
+						MapPath:          "Maps/Download/ddee38acb17ca0c372e271ef0dbe684a78d42eb4/(2)Amazonia.w3x",
+						HostName:         "Battle.net",
+						MapSha1:          [20]byte{221, 238, 56, 172, 177, 124, 160, 195, 114, 226, 113, 239, 13, 190, 104, 74, 120, 212, 46, 180},
+					},
+					GameFlags: w3gs.GameFlagCreatorBlizzard | w3gs.GameFlagObsFull | w3gs.GameFlags(0x10),
+					NumSlots:  3,
+				},
+				SlotInfo: w3g.SlotInfo{
+					SlotInfo: w3gs.SlotInfo{
+						Slots: []w3gs.SlotData{
+							w3gs.SlotData{
+								PlayerID:       3,
+								DownloadStatus: 100,
+								SlotStatus:     w3gs.SlotOccupied,
+								Team:           1,
+								Color:          1,
+								Race:           w3gs.RaceUndead,
+								Handicap:       100,
+							}},
+						RandomSeed: 1131023344,
+						SlotLayout: w3gs.LayoutMelee,
+						NumPlayers: 2,
+					},
+				},
+				Players: []*w3g.PlayerInfo{
+					&w3g.PlayerInfo{
+						ID:   3,
+						Name: "Серник#26",
+					},
+				},
+				Records: []w3g.Record{
+					&w3g.TimeSlot{TimeSlot: w3gs.TimeSlot{TimeIncrementMS: 52}},
+					&w3g.TimeSlot{TimeSlot: w3gs.TimeSlot{TimeIncrementMS: 50}},
+					&w3g.TimeSlot{TimeSlot: w3gs.TimeSlot{TimeIncrementMS: 51, Actions: []w3gs.PlayerAction{w3gs.PlayerAction{PlayerID: 2, Data: b64("EhgAAwANAP//////////op92xdiHf8X//////////w==")}}}},
 				},
 			},
 		},

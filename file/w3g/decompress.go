@@ -13,6 +13,7 @@ import (
 	"io/ioutil"
 
 	"github.com/nielsAD/gowarcraft3/protocol"
+	"github.com/nielsAD/gowarcraft3/protocol/w3gs"
 )
 
 // Decompressor is an io.Reader that decompresses data blocks
@@ -21,7 +22,7 @@ type Decompressor struct {
 
 	SizeRead  uint32 // Compressed size read in total
 	SizeTotal uint32 // Decompressed size left to read in total
-	SizeBlock uint16 // Decompressed size left to read current block
+	SizeBlock uint32 // Decompressed size left to read current block
 	NumBlocks uint32 // Blocks left to read
 
 	r   io.Reader
@@ -31,7 +32,7 @@ type Decompressor struct {
 
 	crc     hash.Hash32
 	crcData uint16
-	buf     [8]byte
+	buf     [12]byte
 }
 
 // NewDecompressor for compressed w3g data
@@ -78,25 +79,35 @@ func (d *Decompressor) nextBlock() error {
 
 	d.NumBlocks--
 
-	n, err := io.ReadFull(d.r, d.buf[:])
+	var lenHead = len(d.buf)
+	if d.GameVersion < w3gs.ReforgedGameVersion {
+		lenHead -= 4
+	}
+
+	n, err := io.ReadFull(d.r, d.buf[:lenHead])
 	d.SizeRead += uint32(n)
 	if err != nil {
 		return err
 	}
 
-	var pbuf = protocol.Buffer{Bytes: d.buf[:]}
-	var lenDeflate = pbuf.ReadUInt16()
-	d.SizeBlock = pbuf.ReadUInt16()
+	var pbuf = protocol.Buffer{Bytes: d.buf[:lenHead]}
+	var lenDeflate uint32
+	if d.GameVersion >= w3gs.ReforgedGameVersion {
+		lenDeflate = pbuf.ReadUInt32()
+		d.SizeBlock = pbuf.ReadUInt32()
+	} else {
+		lenDeflate = uint32(pbuf.ReadUInt16())
+		d.SizeBlock = uint32(pbuf.ReadUInt16())
+	}
 
 	var crcHead = pbuf.ReadUInt16()
 	d.crcData = pbuf.ReadUInt16()
 
-	d.buf[4], d.buf[5], d.buf[6], d.buf[7] = 0, 0, 0, 0
-	var crc = crc32.ChecksumIEEE(d.buf[:])
+	d.buf[lenHead-4], d.buf[lenHead-3], d.buf[lenHead-2], d.buf[lenHead-1] = 0, 0, 0, 0
+	var crc = crc32.ChecksumIEEE(d.buf[:lenHead])
 	if crcHead != uint16(crc^crc>>16) {
 		return ErrInvalidChecksum
 	}
-
 	// Use limr to keep track of how many compressed bytes are read
 	d.lim.R = d.r
 	d.lim.N = int64(lenDeflate)
@@ -109,7 +120,7 @@ func (d *Decompressor) nextBlock() error {
 	}
 
 	// Account for zlib header
-	d.SizeRead += uint32(lenDeflate - uint16(d.lim.N))
+	d.SizeRead += lenDeflate - uint32(d.lim.N)
 
 	return err
 }
@@ -151,14 +162,14 @@ func (d *Decompressor) Read(b []byte) (int, error) {
 		nn, err := io.ReadFull(d.z, b[n:])
 		d.SizeRead += uint32(r - d.lim.N)
 		d.SizeTotal -= uint32(nn)
-		d.SizeBlock -= uint16(nn)
+		d.SizeBlock -= uint32(nn)
 		n += nn
 
 		switch err {
 		case nil:
 			if d.SizeTotal == 0 && d.SizeBlock > 0 {
 				nn, _ := io.Copy(ioutil.Discard, d.z)
-				d.SizeBlock -= uint16(nn)
+				d.SizeBlock -= uint32(nn)
 			}
 			if d.SizeBlock > 0 {
 				continue

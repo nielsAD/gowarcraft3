@@ -23,7 +23,7 @@ func TestBlockCompressor(t *testing.T) {
 	}
 
 	var b protocol.Buffer
-	var c = w3g.NewBlockCompressor(&b)
+	var c = w3g.NewBlockCompressor(&b, w3g.Encoding{})
 	for i := 0; i < 10; i++ {
 		n, err := c.Write(ref[i*2048 : (i+1)*2048])
 		if err != nil {
@@ -119,7 +119,7 @@ func BenchmarkCompress(b *testing.B) {
 	}
 
 	var w protocol.Buffer
-	var c = w3g.NewBlockCompressor(&w)
+	var c = w3g.NewBlockCompressor(&w, w3g.Encoding{})
 	c.Write(ref[:])
 
 	b.SetBytes(int64(len(ref)))
@@ -138,7 +138,7 @@ func BenchmarkDecompress(b *testing.B) {
 	}
 
 	var w protocol.Buffer
-	var c = w3g.NewBlockCompressor(&w)
+	var c = w3g.NewBlockCompressor(&w, w3g.Encoding{})
 	c.Write(ref[:])
 
 	var r protocol.Buffer

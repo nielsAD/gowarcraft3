@@ -77,4 +77,5 @@ var DefaultFactory = MapFactory{
 	PidMapPartError:      func(_ *Encoding) Packet { return &MapPartError{} },
 	PidPongToHost:        func(_ *Encoding) Packet { return &Pong{} },
 	PidIncomingAction2:   func(_ *Encoding) Packet { return &TimeSlot{} },
+	PidPlayerExtra:       func(_ *Encoding) Packet { return &PlayerExtra{} },
 }
