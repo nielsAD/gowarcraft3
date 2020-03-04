@@ -77,10 +77,11 @@ var DefaultConfig = Config{
 	BinPath: func() string {
 		var paths = []string{
 			"./war3",
-			"C:/Program Files/Warcraft III/",
-			"C:/Program Files (x86)/Warcraft III/",
-			path.Join(os.Getenv("HOME"), ".wine/drive_c/Program Files/Warcraft III/"),
-			path.Join(os.Getenv("HOME"), ".wine/drive_c/Program Files (x86)/Warcraft III/"),
+			"C:/Program Files/Warcraft III",
+			"C:/Program Files (x86)/Warcraft III",
+			"/Applications/Warcraft III",
+			path.Join(os.Getenv("HOME"), ".wine/drive_c/Program Files/Warcraft III"),
+			path.Join(os.Getenv("HOME"), ".wine/drive_c/Program Files (x86)/Warcraft III"),
 		}
 
 		for i := 0; i < len(paths); i++ {

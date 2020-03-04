@@ -31,13 +31,15 @@ var (
 
 var paths = []string{
 	".",
-	"C:/Program Files/Warcraft III/",
-	"C:/Program Files (x86)/Warcraft III/",
-	path.Join(os.Getenv("HOME"), ".wine/drive_c/Program Files/Warcraft III/"),
-	path.Join(os.Getenv("HOME"), ".wine/drive_c/Program Files (x86)/Warcraft III/"),
+	"C:/Program Files/Warcraft III",
+	"C:/Program Files (x86)/Warcraft III",
+	"/Applications/Warcraft III",
+	path.Join(os.Getenv("HOME"), ".wine/drive_c/Program Files/Warcraft III"),
+	path.Join(os.Getenv("HOME"), ".wine/drive_c/Program Files (x86)/Warcraft III"),
 	func() string {
 		if h, err := os.UserHomeDir(); err == nil {
 			return path.Join(h, "Documents", "Warcraft III")
+			// ~/Library/Application Support/Blizzard/Warcraft III/
 		}
 		return "."
 	}(),
@@ -184,6 +186,37 @@ func cast(name string) error {
 			return errUnexpectedPacket
 		}
 		break
+	}
+
+	if replay.GameVersion.Version >= w3gs.ReforgedGameVersion {
+		for _, p := range replay.Players {
+			if _, err := conn.Send(&w3gs.PlayerExtra{
+				Type: w3gs.PlayerProfile,
+				Profiles: []w3gs.PlayerDataProfile{w3gs.PlayerDataProfile{
+					PlayerID:  uint32(p.ID),
+					BattleTag: p.Name,
+				}},
+			}); err != nil {
+				return err
+			}
+			if _, err := conn.Send(&w3gs.PlayerExtra{
+				Type: w3gs.PlayerSkins,
+				Skins: []w3gs.PlayerDataSkins{w3gs.PlayerDataSkins{
+					PlayerID: uint32(p.ID),
+				}},
+			}); err != nil {
+				return err
+			}
+			if _, err := conn.Send(&w3gs.PlayerExtra{
+				Type: w3gs.PlayerExtra5,
+				Unknown5: []w3gs.PlayerData5{w3gs.PlayerData5{
+					PlayerID: uint32(p.ID),
+				}},
+			}); err != nil {
+				return err
+			}
+		}
+		time.Sleep(1 * time.Second)
 	}
 
 	conn.Send(&w3gs.CountDownStart{})
