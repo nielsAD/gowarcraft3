@@ -328,7 +328,7 @@ func TestPackets(t *testing.T) {
 					BattleTag: "niels#1234",
 					Clan:      "clan",
 					Portrait:  "p051",
-					Realm:     20,
+					Realm:     w3gs.RealmEurope,
 					Unknown1:  "",
 				},
 			},

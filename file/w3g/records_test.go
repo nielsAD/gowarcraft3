@@ -139,7 +139,7 @@ func TestRecords(t *testing.T) {
 						BattleTag: "niels#1234",
 						Clan:      "clan",
 						Portrait:  "p051",
-						Realm:     20,
+						Realm:     w3gs.RealmAmericas,
 						Unknown1:  "",
 					},
 					w3gs.PlayerDataProfile{
@@ -147,7 +147,7 @@ func TestRecords(t *testing.T) {
 						BattleTag: "moon#56789",
 						Clan:      "clan",
 						Portrait:  "p055",
-						Realm:     10,
+						Realm:     w3gs.RealmAsia,
 						Unknown1:  "",
 					},
 				},

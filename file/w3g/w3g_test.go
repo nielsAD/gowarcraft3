@@ -82,7 +82,7 @@ func TestFiles(t *testing.T) {
 						NumPlayers: 4,
 					},
 				},
-				Players: []*w3g.PlayerInfo{
+				PlayerInfo: []*w3g.PlayerInfo{
 					&w3g.PlayerInfo{
 						ID:   2,
 						Name: "Go4WC3.Desann",
@@ -142,7 +142,7 @@ func TestFiles(t *testing.T) {
 						NumPlayers: 4,
 					},
 				},
-				Players: []*w3g.PlayerInfo{
+				PlayerInfo: []*w3g.PlayerInfo{
 					&w3g.PlayerInfo{
 						ID:          2,
 						Name:        "Fighting-",
@@ -203,7 +203,7 @@ func TestFiles(t *testing.T) {
 						NumPlayers: 2,
 					},
 				},
-				Players: []*w3g.PlayerInfo{
+				PlayerInfo: []*w3g.PlayerInfo{
 					&w3g.PlayerInfo{
 						ID:   1,
 						Name: "niels",
@@ -257,16 +257,37 @@ func TestFiles(t *testing.T) {
 						NumPlayers: 2,
 					},
 				},
-				Players: []*w3g.PlayerInfo{
+				PlayerInfo: []*w3g.PlayerInfo{
 					&w3g.PlayerInfo{
 						ID:   3,
 						Name: "Серник#26",
 					},
 				},
+				PlayerExtra: []*w3g.PlayerExtra{
+					&w3g.PlayerExtra{PlayerExtra: w3gs.PlayerExtra{
+						Type: w3gs.PlayerProfile,
+						Profiles: []w3gs.PlayerDataProfile{
+							w3gs.PlayerDataProfile{
+								PlayerID:  3,
+								BattleTag: "Серник#2653",
+								Clan:      "clan",
+								Portrait:  "p052",
+								Realm:     w3gs.RealmEurope,
+							},
+							w3gs.PlayerDataProfile{
+								PlayerID:  2,
+								BattleTag: "TheBiGsLeeP#2208",
+								Clan:      "clan",
+								Portrait:  "p029",
+								Realm:     w3gs.RealmEurope,
+							},
+						},
+					},
+					}},
 				Records: []w3g.Record{
-					&w3g.TimeSlot{TimeSlot: w3gs.TimeSlot{TimeIncrementMS: 52}},
-					&w3g.TimeSlot{TimeSlot: w3gs.TimeSlot{TimeIncrementMS: 50}},
 					&w3g.TimeSlot{TimeSlot: w3gs.TimeSlot{TimeIncrementMS: 51, Actions: []w3gs.PlayerAction{w3gs.PlayerAction{PlayerID: 2, Data: b64("EhgAAwANAP//////////op92xdiHf8X//////////w==")}}}},
+					&w3g.TimeSlot{TimeSlot: w3gs.TimeSlot{TimeIncrementMS: 51}},
+					&w3g.TimeSlot{TimeSlot: w3gs.TimeSlot{TimeIncrementMS: 52}},
 				},
 			},
 		},
@@ -279,8 +300,11 @@ func TestFiles(t *testing.T) {
 		}
 
 		var trunc = *rep
-		if len(trunc.Players) > 1 {
-			trunc.Players = trunc.Players[1:2]
+		if len(trunc.PlayerInfo) > 1 {
+			trunc.PlayerInfo = trunc.PlayerInfo[1:2]
+		}
+		if len(trunc.PlayerExtra) > 1 {
+			trunc.PlayerExtra = trunc.PlayerExtra[1:2]
 		}
 		if len(trunc.Slots) > 1 {
 			trunc.Slots = trunc.Slots[1:2]

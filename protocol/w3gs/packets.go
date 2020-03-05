@@ -2436,7 +2436,7 @@ type PlayerDataProfile struct {
 	BattleTag string
 	Clan      string
 	Portrait  string
-	Realm     uint32
+	Realm     ProfileRealm
 	Unknown1  string
 }
 

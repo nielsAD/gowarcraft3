@@ -146,7 +146,7 @@ func cast(name string) error {
 		return err
 	}
 
-	for _, p := range replay.Players {
+	for _, p := range replay.PlayerInfo {
 		if p.ID == hostID {
 			continue
 		}
@@ -188,41 +188,17 @@ func cast(name string) error {
 		break
 	}
 
-	if replay.GameVersion.Version >= w3gs.ReforgedGameVersion {
-		for _, p := range replay.Players {
-			if _, err := conn.Send(&w3gs.PlayerExtra{
-				Type: w3gs.PlayerProfile,
-				Profiles: []w3gs.PlayerDataProfile{w3gs.PlayerDataProfile{
-					PlayerID:  uint32(p.ID),
-					BattleTag: p.Name,
-				}},
-			}); err != nil {
-				return err
-			}
-			if _, err := conn.Send(&w3gs.PlayerExtra{
-				Type: w3gs.PlayerSkins,
-				Skins: []w3gs.PlayerDataSkins{w3gs.PlayerDataSkins{
-					PlayerID: uint32(p.ID),
-				}},
-			}); err != nil {
-				return err
-			}
-			if _, err := conn.Send(&w3gs.PlayerExtra{
-				Type: w3gs.PlayerExtra5,
-				Unknown5: []w3gs.PlayerData5{w3gs.PlayerData5{
-					PlayerID: uint32(p.ID),
-				}},
-			}); err != nil {
-				return err
-			}
+	for _, p := range replay.PlayerExtra {
+		if _, err := conn.Send(&p.PlayerExtra); err != nil {
+			return err
 		}
-		time.Sleep(1 * time.Second)
 	}
 
+	time.Sleep(1 * time.Second)
 	conn.Send(&w3gs.CountDownStart{})
 	conn.Send(&w3gs.CountDownEnd{})
 
-	for _, p := range replay.Players {
+	for _, p := range replay.PlayerInfo {
 		if p.ID == hostID {
 			continue
 		}

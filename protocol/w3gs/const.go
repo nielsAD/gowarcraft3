@@ -592,3 +592,29 @@ func (t PlayerExtraType) String() string {
 		return fmt.Sprintf("PlayerExtraType(0x%02X)", uint8(t))
 	}
 }
+
+// ProfileRealm enum
+type ProfileRealm uint32
+
+// Realms
+const (
+	RealmOffline  ProfileRealm = 0
+	RealmAmericas ProfileRealm = 10
+	RealmEurope   ProfileRealm = 20
+	RealmAsia     ProfileRealm = 30
+)
+
+func (r ProfileRealm) String() string {
+	switch r {
+	case RealmOffline:
+		return "Offline"
+	case RealmAmericas:
+		return "Americas"
+	case RealmEurope:
+		return "Europe"
+	case RealmAsia:
+		return "Asia"
+	default:
+		return fmt.Sprintf("ProfileRealm(%d)", r)
+	}
+}

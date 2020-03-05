@@ -62,8 +62,9 @@ type Replay struct {
 	Header
 	GameInfo
 	SlotInfo
-	Players []*PlayerInfo
-	Records []Record
+	PlayerInfo  []*PlayerInfo
+	PlayerExtra []*PlayerExtra
+	Records     []Record
 }
 
 // Open a w3g file
@@ -104,11 +105,16 @@ func (r *Replay) Encode(w io.Writer) error {
 	if _, err := e.WriteRecords(&r.GameInfo, &r.SlotInfo); err != nil {
 		return err
 	}
-	for _, p := range r.Players {
+	for _, p := range r.PlayerInfo {
 		if p.ID == r.HostPlayer.ID {
 			// Skip host
 			continue
 		}
+		if _, err := e.WriteRecord(p); err != nil {
+			return err
+		}
+	}
+	for _, p := range r.PlayerExtra {
 		if _, err := e.WriteRecord(p); err != nil {
 			return err
 		}
@@ -137,11 +143,13 @@ func Decode(r io.Reader) (*Replay, error) {
 		switch v := r.(type) {
 		case *GameInfo:
 			res.GameInfo = *v
-			res.Players = []*PlayerInfo{&res.GameInfo.HostPlayer}
+			res.PlayerInfo = []*PlayerInfo{&res.GameInfo.HostPlayer}
 		case *SlotInfo:
 			res.SlotInfo = *v
 		case *PlayerInfo:
-			res.Players = append(res.Players, v)
+			res.PlayerInfo = append(res.PlayerInfo, v)
+		case *PlayerExtra:
+			res.PlayerExtra = append(res.PlayerExtra, v)
 		case *CountDownStart, *CountDownEnd, *GameStart, *TimeSlotAck:
 			// Ignore
 		case *ChatMessage:
@@ -157,7 +165,7 @@ func Decode(r io.Reader) (*Replay, error) {
 	}
 
 	if len(res.SlotInfo.Slots) == 0 {
-		for i, p := range res.Players {
+		for i, p := range res.PlayerInfo {
 			res.SlotInfo.NumPlayers++
 			res.SlotInfo.Slots = append(res.SlotInfo.Slots, w3gs.SlotData{
 				PlayerID:       uint8(i + 1),
