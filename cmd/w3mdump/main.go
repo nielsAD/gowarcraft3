@@ -10,15 +10,16 @@ import (
 	"flag"
 	"fmt"
 	"image/png"
-	"io"
 	"log"
 	"os"
 	"strings"
 
+	"github.com/nielsAD/gowarcraft3/file/fs"
 	"github.com/nielsAD/gowarcraft3/file/w3m"
 )
 
 var (
+	binpath = flag.String("b", fs.FindInstallationDir(), "Path to game binaries")
 	preview = flag.String("preview", "", "Dump preview image to this file")
 	jsonout = flag.Bool("json", false, "Print machine readable format")
 )
@@ -40,19 +41,10 @@ func main() {
 		logErr.Fatal("Info error: ", err)
 	}
 
-	var defaultFiles = make(map[string]io.Reader)
+	stor := fs.Open(*binpath)
+	defer stor.Close()
 
-	if f, err := os.Open("common.j"); err == nil {
-		defaultFiles["scripts\\common.j"] = f
-		defer f.Close()
-	}
-
-	if f, err := os.Open("blizzard.j"); err == nil {
-		defaultFiles["scripts\\blizzard.j"] = f
-		defer f.Close()
-	}
-
-	hash, err := m.Checksum(defaultFiles)
+	hash, err := m.Checksum(stor)
 	if err != nil {
 		logErr.Fatal("Checksum error: ", err)
 	}

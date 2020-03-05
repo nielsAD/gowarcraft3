@@ -40,3 +40,9 @@
 [submodule "vendor/github.com/dedis/protobuf"]
 	path = vendor/github.com/dedis/protobuf
 	url = https://github.com/dedis/protobuf.git
+[submodule "vendor/github.com/jybp/casc"]
+	path = vendor/github.com/jybp/casc
+	url = https://github.com/jybp/casc.git
+[submodule "vendor/github.com/pkg/errors"]
+	path = vendor/github.com/pkg/errors
+	url = https://github.com/pkg/errors.git

@@ -12,7 +12,7 @@ import (
 	"math/bits"
 	"os"
 
-	"github.com/nielsAD/gowarcraft3/file/mpq"
+	"github.com/nielsAD/gowarcraft3/file/fs"
 	"github.com/nielsAD/gowarcraft3/protocol"
 )
 
@@ -65,30 +65,34 @@ var hashFiles2 = [][]string{
 	[]string{"war3map.w3q"},
 }
 
-func (m *Map) findFile(file []string, defaultFiles map[string]io.Reader) (io.Reader, *mpq.File, error) {
-	for _, p := range file {
+func (m *Map) findFile(files []string, stor *fs.Storage) (io.ReadCloser, error) {
+	for _, p := range files {
 		if file, err := m.Archive.Open(p); err == nil {
-			return file, file, nil
+			return file, nil
 		} else if err != os.ErrNotExist {
-			return nil, nil, err
+			return nil, err
 		}
 
-		if defaultFiles[p] != nil {
-			return defaultFiles[p], nil, nil
+		if stor != nil {
+			if file, err := stor.Open(p); err == nil {
+				return file, nil
+			} else if err != os.ErrNotExist {
+				return nil, err
+			}
 		}
 	}
 
-	return nil, nil, nil
+	return nil, nil
 }
 
-// Checksum returns hash that identifies the map
-func (m *Map) Checksum(defaultFiles map[string]io.Reader) (*Hash, error) {
+// Checksum returns the content hash that identifies the map (used in version < 1.32)
+func (m *Map) Checksum(stor *fs.Storage) (*Hash, error) {
 	var sha = sha1.New()
 	var xor = xoro(0)
 	var buf = make([]byte, 32*1024)
 
 	for _, file := range hashFiles1 {
-		r, f, err := m.findFile(file, defaultFiles)
+		r, err := m.findFile(file, stor)
 		if err != nil {
 			return nil, err
 		}
@@ -100,19 +104,19 @@ func (m *Map) Checksum(defaultFiles map[string]io.Reader) (*Hash, error) {
 		io.CopyBuffer(io.MultiWriter(sha, &subxor), r, buf)
 		xor ^= subxor
 
-		if f != nil {
-			f.Close()
+		if r != nil {
+			r.Close()
 		}
 	}
 
 	xor = xoro(bits.RotateLeft32(uint32(xor), 3))
 
-	var magic = []byte{0x09E, 0x037, 0x0F1, 0x03}
+	var magic = []byte{0x9E, 0x37, 0xF1, 0x03}
 	xor.Write(magic)
 	sha.Write(magic)
 
 	for _, file := range hashFiles2 {
-		r, f, err := m.findFile(file, defaultFiles)
+		r, err := m.findFile(file, stor)
 		if err != nil {
 			return nil, err
 		}
@@ -124,8 +128,8 @@ func (m *Map) Checksum(defaultFiles map[string]io.Reader) (*Hash, error) {
 		io.CopyBuffer(io.MultiWriter(sha, &subxor), r, buf)
 		xor.Write32(uint32(subxor))
 
-		if f != nil {
-			f.Close()
+		if r != nil {
+			r.Close()
 		}
 	}
 

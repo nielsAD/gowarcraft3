@@ -17,6 +17,7 @@ import (
 
 	"github.com/imdario/mergo"
 	"github.com/kyokomi/emoji"
+	"github.com/nielsAD/gowarcraft3/file/fs"
 	"github.com/nielsAD/gowarcraft3/network"
 	"github.com/nielsAD/gowarcraft3/protocol"
 	"github.com/nielsAD/gowarcraft3/protocol/bncs"
@@ -73,25 +74,7 @@ var DefaultConfig = Config{
 	KeepAliveInterval: 30 * time.Second,
 	CDKeyOwner:        "gowarcraft3",
 	GamePort:          6112,
-
-	BinPath: func() string {
-		var paths = []string{
-			"./war3",
-			"C:/Program Files/Warcraft III",
-			"C:/Program Files (x86)/Warcraft III",
-			"/Applications/Warcraft III",
-			path.Join(os.Getenv("HOME"), ".wine/drive_c/Program Files/Warcraft III"),
-			path.Join(os.Getenv("HOME"), ".wine/drive_c/Program Files (x86)/Warcraft III"),
-		}
-
-		for i := 0; i < len(paths); i++ {
-			if _, err := os.Stat(paths[i]); err == nil {
-				return paths[i]
-			}
-		}
-
-		return "."
-	}(),
+	BinPath:           fs.FindInstallationDir(),
 }
 
 // NewClient initializes a Client struct
@@ -117,26 +100,20 @@ func NewClient(conf *Config) (*Client, error) {
 	}
 
 	if conf.Username == "" {
-		if _, err := os.Stat(path.Join(c.BinPath, "user.w3k")); err == nil {
-			if f, err := ioutil.ReadFile(path.Join(c.BinPath, "user.w3k")); err == nil {
-				c.Username = strings.TrimSpace(string(f))
-			}
+		if f, err := ioutil.ReadFile(path.Join(c.BinPath, "user.w3k")); err == nil {
+			c.Username = strings.TrimSpace(string(f))
 		}
 	}
 
 	if len(conf.CDKeys) == 0 {
 		var rock = ""
-		if _, err := os.Stat(path.Join(c.BinPath, "roc.w3k")); err == nil {
-			if f, err := ioutil.ReadFile(path.Join(c.BinPath, "roc.w3k")); err == nil {
-				rock = strings.TrimSpace(string(f))
-			}
+		if f, err := ioutil.ReadFile(path.Join(c.BinPath, "roc.w3k")); err == nil {
+			rock = strings.TrimSpace(string(f))
 		}
 
 		var tftk = ""
-		if _, err := os.Stat(path.Join(c.BinPath, "tft.w3k")); err == nil {
-			if f, err := ioutil.ReadFile(path.Join(c.BinPath, "tft.w3k")); err == nil {
-				tftk = strings.TrimSpace(string(f))
-			}
+		if f, err := ioutil.ReadFile(path.Join(c.BinPath, "tft.w3k")); err == nil {
+			tftk = strings.TrimSpace(string(f))
 		}
 
 		if rock != "" {

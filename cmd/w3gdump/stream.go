@@ -17,6 +17,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/nielsAD/gowarcraft3/file/fs"
 	"github.com/nielsAD/gowarcraft3/file/w3g"
 	"github.com/nielsAD/gowarcraft3/network"
 	"github.com/nielsAD/gowarcraft3/network/lan"
@@ -31,22 +32,16 @@ var (
 
 var paths = []string{
 	".",
-	"C:/Program Files/Warcraft III",
-	"C:/Program Files (x86)/Warcraft III",
-	"/Applications/Warcraft III",
-	path.Join(os.Getenv("HOME"), ".wine/drive_c/Program Files/Warcraft III"),
-	path.Join(os.Getenv("HOME"), ".wine/drive_c/Program Files (x86)/Warcraft III"),
-	func() string {
-		if h, err := os.UserHomeDir(); err == nil {
-			return path.Join(h, "Documents", "Warcraft III")
-			// ~/Library/Application Support/Blizzard/Warcraft III/
-		}
-		return "."
-	}(),
+	fs.UserDir(),
+	fs.FindInstallationDir(),
 }
 
 func mapCRC(name string) (uint32, uint32) {
 	for _, p := range paths {
+		if p == "" {
+			continue
+		}
+
 		var file = path.Join(p, name)
 		f, err := os.Open(file)
 		if err != nil {

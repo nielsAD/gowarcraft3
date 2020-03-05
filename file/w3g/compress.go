@@ -12,7 +12,6 @@ import (
 	"math"
 
 	"github.com/nielsAD/gowarcraft3/protocol"
-	"github.com/nielsAD/gowarcraft3/protocol/w3gs"
 )
 
 const defaultBufSize = 8192
@@ -49,7 +48,7 @@ func (d *BlockCompressor) Write(b []byte) (int, error) {
 
 		// Header with placeholders for size
 		d.b.Truncate()
-		if d.GameVersion >= w3gs.ReforgedGameVersion {
+		if d.GameVersion >= 10032 {
 			d.b.WriteUInt32(0)
 			d.b.WriteUInt32(uint32(lenBuf))
 		} else {
@@ -75,7 +74,7 @@ func (d *BlockCompressor) Write(b []byte) (int, error) {
 		}
 
 		// Update header
-		if d.GameVersion >= w3gs.ReforgedGameVersion {
+		if d.GameVersion >= 10032 {
 			d.b.WriteUInt32At(0, uint32(d.b.Size()-lenHdr))
 		} else {
 			d.b.WriteUInt16At(0, uint16(d.b.Size()-lenHdr))

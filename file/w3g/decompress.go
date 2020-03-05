@@ -13,7 +13,6 @@ import (
 	"io/ioutil"
 
 	"github.com/nielsAD/gowarcraft3/protocol"
-	"github.com/nielsAD/gowarcraft3/protocol/w3gs"
 )
 
 // Decompressor is an io.Reader that decompresses data blocks
@@ -80,7 +79,7 @@ func (d *Decompressor) nextBlock() error {
 	d.NumBlocks--
 
 	var lenHead = len(d.buf)
-	if d.GameVersion < w3gs.ReforgedGameVersion {
+	if d.GameVersion < 10032 {
 		lenHead -= 4
 	}
 
@@ -92,7 +91,7 @@ func (d *Decompressor) nextBlock() error {
 
 	var pbuf = protocol.Buffer{Bytes: d.buf[:lenHead]}
 	var lenDeflate uint32
-	if d.GameVersion >= w3gs.ReforgedGameVersion {
+	if d.GameVersion >= 10032 {
 		lenDeflate = pbuf.ReadUInt32()
 		d.SizeBlock = pbuf.ReadUInt32()
 	} else {

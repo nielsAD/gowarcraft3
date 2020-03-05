@@ -23,9 +23,6 @@ var (
 // CurrentGameVersion used by stable release
 const CurrentGameVersion uint32 = 10032
 
-// ReforgedGameVersion is the first Reforged release
-const ReforgedGameVersion uint32 = 10032
-
 // ProtocolSig is the W3GS magic number used in the packet header.
 const ProtocolSig = 0xF7
 
