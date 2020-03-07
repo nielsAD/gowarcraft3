@@ -10,8 +10,6 @@ import (
 	"hash/crc32"
 	"io"
 	"net"
-	"os"
-	"path"
 	"strconv"
 	"strings"
 	"sync/atomic"
@@ -30,30 +28,19 @@ var (
 	errMapUnavailable   = errors.New("Map unavailable")
 )
 
-var paths = []string{
-	".",
-	fs.UserDir(),
-	fs.FindInstallationDir(),
-}
-
 func mapCRC(name string) (uint32, uint32) {
-	for _, p := range paths {
-		if p == "" {
-			continue
-		}
+	var stor = fs.Open(fs.FindInstallationDir(), fs.UserDir())
+	defer stor.Close()
 
-		var file = path.Join(p, name)
-		f, err := os.Open(file)
-		if err != nil {
-			continue
-		}
+	if f, err := stor.Open(name); err == nil {
+		defer f.Close()
 
 		var crc = crc32.NewIEEE()
-		var size, _ = io.Copy(crc, f)
-		f.Close()
-
-		return uint32(size), crc.Sum32()
+		if size, err := io.Copy(crc, f); err == nil {
+			return uint32(size), crc.Sum32()
+		}
 	}
+
 	return 1, 1
 }
 
