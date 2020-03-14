@@ -574,6 +574,7 @@ type PlayerExtraType uint8
 
 // PlayerExtra record type
 const (
+	PlayerExtra2  PlayerExtraType = 0x02
 	PlayerProfile PlayerExtraType = 0x03
 	PlayerSkins   PlayerExtraType = 0x04
 	PlayerExtra5  PlayerExtraType = 0x05

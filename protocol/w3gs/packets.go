@@ -1745,8 +1745,9 @@ func (gs *GameSettings) DeserializeContent(buf *protocol.Buffer, enc *Encoding) 
 	var size = b.Size()
 	gs.GameSettingFlags = GameSettingFlags(b.ReadUInt32())
 
+	// Unknown enum, perhaps type of game (online / local / lan)?
 	switch b.ReadUInt8() {
-	case 0, 2:
+	case 0, 1, 2:
 	default:
 		return ErrUnexpectedConst
 	}
@@ -2389,8 +2390,10 @@ func (pkt *MapPartError) Deserialize(buf *protocol.Buffer, enc *Encoding) error 
 // Format:
 //
 //      (UINT8)    Sub type (0x03)
+//                   0x02   Unknown, found when leaving LAN game
 //                   0x03   Battle.net profile data
 //                   0x04   In-game skins
+//                   0x05   Unknown, found when joining LAN game
 //     (UINT32)    Number of bytes following
 //      (UINT8)[n] Protobuf encoded struct
 //
@@ -2523,6 +2526,18 @@ func (pkt *PlayerExtra) SerializeContent(buf *protocol.Buffer, enc *Encoding) er
 	var raw []byte
 	var err error
 	switch pkt.Type {
+	case PlayerExtra2:
+		// Unknown format:
+		//   0a60080610031a0a08efd09dab07100018011a0a08efc685ab07100018061a0808e7d2e
+		//   9ab0718011a0808e4de85ab0718011a0808ece0b9ab0718011a0808ecde9dab0718011a
+		//   0808f0cacdab0718011a0808edded1ab0718012a060800100018000a4a080710041a0a0
+		//   8f0e6ddab061000180a1a0808ecded1ab0618011a0808ecde9dab0618011a0808e5e885
+		//   ab0618011a0808edde85ab0618011a0808f7deb5ab0618012a06080010001800
+		//
+		//   0a4c080610031a0a08efd09dab07100018011a0a08efc685ab07100018031a0808e7d2e
+		//   9ab0718011a0808e4de85ab0718011a0808ece0b9ab0718011a0808ecde9dab0718012a
+		//   060800100018000a36080710041a0a08f0e6ddab06100018051a0808ecded1ab0618011
+		//   a0808ecde9dab0618011a0808e5e885ab0618012a06080010001800
 	case PlayerProfile:
 		if len(pkt.Profiles) == 1 {
 			raw, err = protobuf.Encode(&pkt.Profiles[0])
