@@ -11,8 +11,18 @@ import (
 	"golang.org/x/sys/windows/registry"
 )
 
+func docPath() string {
+	if k, err := registry.OpenKey(registry.CURRENT_USER, `SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders`, registry.QUERY_VALUE); err == nil {
+		if s, _, err := k.GetStringValue("{F42EE2D3-909F-4907-8871-4C22FC0BF756}"); err == nil {
+			return s
+		}
+		k.Close()
+	}
+	return os.Getenv("USERPROFILE")
+}
+
 func osUserDir() string {
-	return path.Join(os.Getenv("USERPROFILE"), "Documents/Warcraft III")
+	return path.Join(docPath(), "Warcraft III")
 }
 
 func osInstallDirs() []string {
