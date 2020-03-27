@@ -181,6 +181,31 @@ func (g *MDNSGameList) InitDefaultHandlers() {
 	g.On(&dns.Msg{}, g.onDNS)
 }
 
+func (g *MDNSGameList) runSearch() func() {
+	var stop = make(chan struct{})
+
+	go func() {
+		var ticker = time.NewTicker(g.BroadcastInterval)
+		for {
+			select {
+			case <-stop:
+				ticker.Stop()
+				return
+			case <-ticker.C:
+				if err := g.queryAll(); err != nil && !network.IsCloseError(err) {
+					g.Fire(&network.AsyncError{Src: "runSearch[queryAll]", Err: err})
+				}
+
+				g.expire()
+			}
+		}
+	}()
+
+	return func() {
+		stop <- struct{}{}
+	}
+}
+
 // Run reads packets from Conn and emits an event for each received packet
 // Not safe for concurrent invocation
 func (g *MDNSGameList) Run() error {
@@ -199,23 +224,13 @@ func (g *MDNSGameList) Run() error {
 		g.Fire(&network.AsyncError{Src: "Run[ListenMulticastUDP]", Err: err})
 	}
 
-	if g.BroadcastInterval != 0 {
-		var broadcastTicker = time.NewTicker(g.BroadcastInterval)
-		defer broadcastTicker.Stop()
-
-		go func() {
-			for range broadcastTicker.C {
-				if err := g.queryAll(); err != nil && !network.IsCloseError(err) {
-					g.Fire(&network.AsyncError{Src: "Run[queryAll]", Err: err})
-				}
-
-				g.expire()
-			}
-		}()
-	}
-
 	if err := g.queryAll(); err != nil {
 		return err
+	}
+
+	if g.BroadcastInterval > 0 {
+		var stop = g.runSearch()
+		defer stop()
 	}
 
 	return g.DNSPacketConn.Run(&g.EventEmitter, 0)

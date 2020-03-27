@@ -68,23 +68,9 @@ func Join(addr string, name string, hostCounter uint32, entryKey uint32, listenP
 	return &p, err
 }
 
-// Join opens a new connection to host
+// JoinWithConn initializes a connection to host
 // Not safe for concurrent invocation
-func (p *Player) Join() error {
-	addr, err := net.ResolveTCPAddr("tcp4", p.HostAddr)
-	if err != nil {
-		return err
-	}
-
-	conn, err := net.DialTCP("tcp4", nil, addr)
-	if err != nil {
-		return err
-	}
-
-	conn.SetKeepAlive(false)
-	conn.SetNoDelay(true)
-	conn.SetLinger(3)
-
+func (p *Player) JoinWithConn(conn net.Conn) error {
 	w3gsconn := network.NewW3GSConn(conn, nil, p.Encoding)
 
 	p.PlayerInfo.JoinCounter++
@@ -148,6 +134,26 @@ func (p *Player) Join() error {
 	}
 
 	return nil
+}
+
+// Join opens a new connection to host
+// Not safe for concurrent invocation
+func (p *Player) Join() error {
+	addr, err := net.ResolveTCPAddr("tcp4", p.HostAddr)
+	if err != nil {
+		return err
+	}
+
+	conn, err := net.DialTCP("tcp4", nil, addr)
+	if err != nil {
+		return err
+	}
+
+	conn.SetKeepAlive(false)
+	conn.SetNoDelay(true)
+	conn.SetLinger(3)
+
+	return p.JoinWithConn(conn)
 }
 
 // SendOrClose sends pkt to player, closes connection on failure

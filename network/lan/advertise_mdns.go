@@ -268,6 +268,29 @@ func (a *MDNSAdvertiser) Decreate() error {
 	return err
 }
 
+func (a *MDNSAdvertiser) runBroadcast() func() {
+	var stop = make(chan struct{})
+
+	go func() {
+		var ticker = time.NewTicker(a.BroadcastInterval)
+		for {
+			select {
+			case <-stop:
+				ticker.Stop()
+				return
+			case <-ticker.C:
+				if err := a.refresh(); err != nil && !network.IsCloseError(err) {
+					a.Fire(&network.AsyncError{Src: "runBroadcast[refresh]", Err: err})
+				}
+			}
+		}
+	}()
+
+	return func() {
+		stop <- struct{}{}
+	}
+}
+
 // Run broadcasts gameinfo in Local Area Network
 func (a *MDNSAdvertiser) Run() error {
 	if err := a.Create(); err != nil {
@@ -276,16 +299,8 @@ func (a *MDNSAdvertiser) Run() error {
 	defer a.Decreate()
 
 	if a.BroadcastInterval > 0 {
-		var ticker = time.NewTicker(a.BroadcastInterval)
-		defer ticker.Stop()
-
-		go func() {
-			for range ticker.C {
-				if err := a.refresh(); err != nil && !network.IsCloseError(err) {
-					a.Fire(&network.AsyncError{Src: "Run[refresh]", Err: err})
-				}
-			}
-		}()
+		var stop = a.runBroadcast()
+		defer stop()
 	}
 
 	return a.DNSPacketConn.Run(&a.EventEmitter, 0)

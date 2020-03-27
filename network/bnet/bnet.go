@@ -183,7 +183,7 @@ func (b *Client) Encoding() bncs.Encoding {
 	}
 }
 
-// Dial opens a new connection to server, verifies game version, and authenticates with CD keys
+// DialWithConn initializes a connection to server, verifies game version, and authenticates with CD keys
 //
 // Dial sequence:
 //   1. C > S [0x50] SID_AUTH_INFO
@@ -201,24 +201,7 @@ func (b *Client) Encoding() bncs.Encoding {
 //     6. S > C [0x33] SID_GETFILETIME (one for each request)
 //     7. Connection to BNFTPv2 to do file downloads
 //
-func (b *Client) Dial() (*network.BNCSConn, error) {
-	if !strings.ContainsRune(b.ServerAddr, ':') {
-		b.ServerAddr += ":6112"
-	}
-
-	addr, err := net.ResolveTCPAddr("tcp4", b.ServerAddr)
-	if err != nil {
-		return nil, err
-	}
-
-	conn, err := net.DialTCP("tcp4", nil, addr)
-	if err != nil {
-		return nil, err
-	}
-
-	conn.SetKeepAlive(false)
-	conn.SetNoDelay(true)
-	conn.SetLinger(3)
+func (b *Client) DialWithConn(conn net.Conn) (*network.BNCSConn, error) {
 	conn.Write([]byte{bncs.ProtocolGreeting})
 
 	bncsconn := network.NewBNCSConn(conn, nil, b.Encoding())
@@ -247,6 +230,29 @@ func (b *Client) Dial() (*network.BNCSConn, error) {
 	}
 
 	return bncsconn, nil
+}
+
+// Dial opens a new connection to server, verifies game version, and authenticates with CD keys
+func (b *Client) Dial() (*network.BNCSConn, error) {
+	if !strings.ContainsRune(b.ServerAddr, ':') {
+		b.ServerAddr += ":6112"
+	}
+
+	addr, err := net.ResolveTCPAddr("tcp4", b.ServerAddr)
+	if err != nil {
+		return nil, err
+	}
+
+	conn, err := net.DialTCP("tcp4", nil, addr)
+	if err != nil {
+		return nil, err
+	}
+
+	conn.SetKeepAlive(false)
+	conn.SetNoDelay(true)
+	conn.SetLinger(3)
+
+	return b.DialWithConn(conn)
 }
 
 // Logon opens a new connection to server, logs on, and joins chat
@@ -698,21 +704,37 @@ rcv:
 	}
 }
 
+func (b *Client) runKeepAlive() func() {
+	var stop = make(chan struct{})
+
+	go func() {
+		var ticker = time.NewTicker(b.KeepAliveInterval)
+
+		var pkt bncs.KeepAlive
+		for {
+			select {
+			case <-stop:
+				ticker.Stop()
+				return
+			case <-ticker.C:
+				if _, err := b.Send(&pkt); err != nil && !network.IsCloseError(err) {
+					b.Fire(&network.AsyncError{Src: "runKeepAlive[Send]", Err: err})
+				}
+			}
+		}
+	}()
+
+	return func() {
+		stop <- struct{}{}
+	}
+}
+
 // Run reads packets and emits an event for each received packet
 // Not safe for concurrent invocation
 func (b *Client) Run() error {
 	if b.KeepAliveInterval != 0 {
-		var keepaliveTicker = time.NewTicker(b.KeepAliveInterval)
-		defer keepaliveTicker.Stop()
-
-		go func() {
-			var pkt bncs.KeepAlive
-			for range keepaliveTicker.C {
-				if _, err := b.Send(&pkt); err != nil && !network.IsCloseError(err) {
-					b.Fire(&network.AsyncError{Src: "Run[KeepAlive]", Err: err})
-				}
-			}
-		}()
+		var stop = b.runKeepAlive()
+		defer stop()
 	}
 
 	return b.BNCSConn.Run(&b.EventEmitter, 30*time.Second)

@@ -15,8 +15,8 @@ type Info struct {
 	FileFormat    uint32
 	SaveCount     uint32
 	EditorVersion uint32
-	GameVersion GameVersion
-	CodeFormat GameCodeFormat
+	GameVersion   GameVersion
+	CodeFormat    GameCodeFormat
 
 	Name             string
 	Author           string
@@ -62,9 +62,9 @@ type Info struct {
 
 // GameVersion stored in map file
 type GameVersion struct {
-	Major uint32
-	Minor uint32
-	Patch uint32
+	Major  uint32
+	Minor  uint32
+	Patch  uint32
 	Commit uint32
 }
 
@@ -102,10 +102,10 @@ type CustomTechAvailability struct {
 	TechID    protocol.DWordString
 }
 
-const editorVersionRoc = 18;
-const editorVersionTft = 25;
-const editorVersion131 = 28;
-const editorVersionReforged = 31;
+const editorVersionRoc = 18
+const editorVersionTft = 25
+const editorVersion131 = 28
+const editorVersionReforged = 31
 
 // Info read from war3map.w3i
 func (m *Map) Info() (*Info, error) {

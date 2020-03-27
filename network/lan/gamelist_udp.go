@@ -126,6 +126,31 @@ func (g *UDPGameList) InitDefaultHandlers() {
 	g.On(&w3gs.GameInfo{}, g.onGameInfo)
 }
 
+func (g *UDPGameList) runSearch(sg *w3gs.SearchGame) func() {
+	var stop = make(chan struct{})
+
+	go func() {
+		var ticker = time.NewTicker(g.BroadcastInterval)
+		for {
+			select {
+			case <-stop:
+				ticker.Stop()
+				return
+			case <-ticker.C:
+				if _, err := g.Broadcast(sg); err != nil && !network.IsCloseError(err) {
+					g.Fire(&network.AsyncError{Src: "runSearch[Broadcast]", Err: err})
+				}
+
+				g.expire()
+			}
+		}
+	}()
+
+	return func() {
+		stop <- struct{}{}
+	}
+}
+
 // Run reads packets from Conn and emits an event for each received packet
 // Not safe for concurrent invocation
 func (g *UDPGameList) Run() error {
@@ -133,23 +158,13 @@ func (g *UDPGameList) Run() error {
 		GameVersion: g.GameVersion,
 	}
 
-	if g.BroadcastInterval != 0 {
-		var broadcastTicker = time.NewTicker(g.BroadcastInterval)
-		defer broadcastTicker.Stop()
-
-		go func() {
-			for range broadcastTicker.C {
-				if _, err := g.Broadcast(&sg); err != nil && !network.IsCloseError(err) {
-					g.Fire(&network.AsyncError{Src: "Run[Broadcast]", Err: err})
-				}
-
-				g.expire()
-			}
-		}()
-	}
-
 	if _, err := g.Broadcast(&sg); err != nil {
 		return err
+	}
+
+	if g.BroadcastInterval > 0 {
+		var stop = g.runSearch(&sg)
+		defer stop()
 	}
 
 	return g.W3GSPacketConn.Run(&g.EventEmitter, 0)

@@ -59,7 +59,7 @@ func (h *Host) PeerSet() protocol.BitSet32 {
 // Peer returns registered Player for playerID
 func (h *Host) Peer(playerID uint8) *Player {
 	h.pmut.Lock()
-	peer := h.peers[playerID]
+	var peer = h.peers[playerID]
 	h.pmut.Unlock()
 
 	return peer
@@ -193,7 +193,7 @@ func (h *Host) Accept(conn net.Conn) (*Player, error) {
 	h.wg.Add(1)
 	go func() {
 		if err := h.serve(peer); err != nil && !network.IsCloseError(err) {
-			h.Fire(&network.AsyncError{Src: "Accept[Serve]", Err: err})
+			peer.Fire(&network.AsyncError{Src: "Host.Accept[Serve]", Err: err})
 		}
 
 		h.disconnectPlayer(conn, peer)
@@ -282,7 +282,7 @@ func (h *Host) Dial(playerID uint8) (*Player, error) {
 	h.wg.Add(1)
 	go func() {
 		if err := h.serve(peer); err != nil && !network.IsCloseError(err) {
-			h.Fire(&network.AsyncError{Src: "Dial[Serve]", Err: err})
+			peer.Fire(&network.AsyncError{Src: "Host.Dial[Serve]", Err: err})
 		}
 
 		h.disconnectPlayer(conn, peer)
@@ -372,22 +372,38 @@ func (h *Host) disconnectPlayer(conn net.Conn, peer *Player) {
 	}
 }
 
-func (h *Host) serve(peer *Player) error {
-	if h.PingInterval != 0 {
-		var pingTicker = time.NewTicker(h.PingInterval)
-		defer pingTicker.Stop()
+func (h *Host) servePeerPing(peer *Player) func() {
+	var stop = make(chan struct{})
 
-		var peerPing w3gs.PeerPing
-		go func() {
-			for c := range pingTicker.C {
-				peerPing.Payload = uint32(c.Sub(peer.StartTime).Nanoseconds() / 1e6)
-				peerPing.PeerSet = h.PeerSet()
-				peerPing.GameTicks = h.GameTicks()
-				if _, err := peer.SendOrClose(&peerPing); err != nil {
-					h.Fire(&network.AsyncError{Src: "serve[Ping]", Err: err})
+	go func() {
+		var ticker = time.NewTicker(h.PingInterval)
+
+		var pkt w3gs.PeerPing
+		for {
+			select {
+			case <-stop:
+				ticker.Stop()
+				return
+			case c := <-ticker.C:
+				pkt.Payload = uint32(c.Sub(peer.StartTime).Milliseconds())
+				pkt.PeerSet = h.PeerSet()
+				pkt.GameTicks = h.GameTicks()
+				if _, err := peer.SendOrClose(&pkt); err != nil {
+					peer.Fire(&network.AsyncError{Src: "Host.serve[PeerPing]", Err: err})
 				}
 			}
-		}()
+		}
+	}()
+
+	return func() {
+		stop <- struct{}{}
+	}
+}
+
+func (h *Host) serve(peer *Player) error {
+	if h.PingInterval != 0 {
+		var stop = h.servePeerPing(peer)
+		defer stop()
 	}
 
 	return peer.Run()
