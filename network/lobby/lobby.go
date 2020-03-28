@@ -34,8 +34,9 @@ type Lobby struct {
 	// Set once before Run(), read-only after that
 	w3gs.Encoder
 	w3gs.MapCheck
-	ColorSet protocol.BitSet32
-	ObsTeam  uint8
+	ColorSet  protocol.BitSet32
+	ObsTeam   uint8
+	ShareAddr bool
 }
 
 // NewLobby initializes a new Lobby struct
@@ -212,15 +213,9 @@ func (l *Lobby) refreshSlots() {
 
 // slotmut should be locked
 func (l *Lobby) join(conn net.Conn, join *w3gs.Join) (*Player, error) {
-	var pid = l.findEmptyPID()
-	var addr = protocol.Addr(conn.RemoteAddr())
-
 	var p = NewPlayer(&w3gs.PlayerInfo{
 		JoinCounter: join.JoinCounter,
-		PlayerID:    pid,
 		PlayerName:  join.PlayerName,
-		// InternalAddr: join.InternalAddr,
-		// ExternalAddr: addr,
 	})
 	p.SetConn(conn, w3gs.NewFactoryCache(w3gs.DefaultFactory), l.Encoding)
 
@@ -238,12 +233,15 @@ func (l *Lobby) join(conn net.Conn, join *w3gs.Join) (*Player, error) {
 		p.Send(&w3gs.RejectJoin{Reason: w3gs.RejectJoinFull})
 		return nil, err
 	}
+
+	var pid = l.findEmptyPID()
+	p.PlayerInfo.PlayerID = pid
 	l.slots[sid].PlayerID = pid
 
 	var slotInfo = w3gs.SlotInfoJoin{
 		SlotInfo:     *l.slotInfo(),
 		PlayerID:     pid,
-		ExternalAddr: addr,
+		ExternalAddr: protocol.Addr(conn.RemoteAddr()),
 	}
 	slotInfo.Slots = l.slots
 
@@ -256,6 +254,13 @@ func (l *Lobby) join(conn net.Conn, join *w3gs.Join) (*Player, error) {
 	}
 	if _, err := p.SendOrClose(&l.MapCheck); err != nil {
 		return nil, err
+	}
+
+	if l.ShareAddr {
+		p.PlayerInfo.ExternalAddr = protocol.Addr(conn.RemoteAddr())
+		p.PlayerInfo.InternalAddr = join.InternalAddr
+		p.PlayerInfo.ExternalAddr.Port = join.ListenPort
+		p.PlayerInfo.InternalAddr.Port = join.ListenPort
 	}
 
 	l.sendToAll(&p.PlayerInfo)
