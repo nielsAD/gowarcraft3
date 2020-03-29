@@ -28,8 +28,6 @@ type Game struct {
 	ackmask protocol.BitSet32
 	ackarr  []plack
 
-	forceTick chan time.Time
-
 	// Atomic
 	stage uint32
 	tick  uint32
@@ -50,8 +48,6 @@ func NewGame(encoding w3gs.Encoding, slotInfo w3gs.SlotInfo, mapInfo w3gs.MapChe
 		Lobby:       *NewLobby(encoding, slotInfo, mapInfo),
 		LoadTimeout: time.Minute * 2,
 		TurnRate:    40,
-
-		forceTick: make(chan time.Time),
 	}
 
 	g.InitDefaultHandlers()
@@ -191,9 +187,6 @@ func (g *Game) gameloop() {
 		case <-stop:
 			ticker.Stop()
 			return
-		case tick := <-g.forceTick:
-			inc = tick.Sub(lastTick)
-			lastTick = tick
 		case tick := <-ticker.C:
 			inc = tick.Sub(lastTick)
 			lastTick = tick
