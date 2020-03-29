@@ -53,7 +53,9 @@ func NewUDPGameList(gv w3gs.GameVersion, port int) (*UDPGameList, error) {
 	}
 
 	g.InitDefaultHandlers()
+	g.SetWriteTimeout(time.Second)
 	g.SetConn(conn, w3gs.NewFactoryCache(w3gs.DefaultFactory), g.Encoding())
+
 	return &g, nil
 }
 
@@ -167,7 +169,7 @@ func (g *UDPGameList) Run() error {
 		defer stop()
 	}
 
-	return g.W3GSPacketConn.Run(&g.EventEmitter, 0)
+	return g.W3GSPacketConn.Run(&g.EventEmitter, network.NoTimeout)
 }
 
 func (g *UDPGameList) onRefreshGame(ev *network.Event) {

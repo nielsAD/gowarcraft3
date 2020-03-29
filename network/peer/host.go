@@ -334,7 +334,7 @@ func (h *Host) Close() {
 }
 
 func (h *Host) connectPlayer(conn net.Conn) (*w3gs.PeerConnect, error) {
-	pkt, err := network.NewW3GSConn(conn, nil, h.Encoding).NextPacket(5 * time.Second)
+	pkt, err := network.NewW3GSConn(conn, nil, h.Encoding).NextPacket(10 * time.Second)
 	if err != nil {
 		return nil, err
 	}

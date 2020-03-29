@@ -50,6 +50,8 @@ func NewBot(conf *Config) (*Bot, error) {
 	}
 
 	b.InitDefaultHandlers()
+	b.SetWriteTimeout(30 * time.Second)
+
 	return &b, nil
 }
 
@@ -158,7 +160,7 @@ func (b *Bot) asyncRPC(ctx context.Context, command string, arg ...interface{}) 
 
 	var rid = int64(atomic.AddUint32(&b.rid, 1))
 	var cmd = command + capi.CmdResponseSuffix
-	var rsp = make(chan capi.Packet)
+	var rsp = make(chan capi.Packet, 1)
 
 	var eid = b.On(&capi.Packet{}, func(ev *network.Event) {
 		var pkt = ev.Arg.(*capi.Packet)
@@ -166,7 +168,12 @@ func (b *Bot) asyncRPC(ctx context.Context, command string, arg ...interface{}) 
 			return
 		}
 
-		rsp <- *pkt
+		select {
+		case rsp <- *pkt:
+			// Successfully sent to channel
+		default:
+			// Ignore duplicate response
+		}
 	})
 
 	defer b.Off(eid)

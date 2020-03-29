@@ -57,7 +57,9 @@ func NewMDNSAdvertiser(info *w3gs.GameInfo) (*MDNSAdvertiser, error) {
 	}
 
 	a.InitDefaultHandlers()
+	a.SetWriteTimeout(time.Second)
 	a.SetConn(conn)
+
 	return &a, nil
 }
 
@@ -303,7 +305,7 @@ func (a *MDNSAdvertiser) Run() error {
 		defer stop()
 	}
 
-	return a.DNSPacketConn.Run(&a.EventEmitter, 0)
+	return a.DNSPacketConn.Run(&a.EventEmitter, network.NoTimeout)
 }
 
 // Close the connection

@@ -84,6 +84,7 @@ func NewClient(conf *Config) (*Client, error) {
 	}
 
 	c.InitDefaultHandlers()
+	c.SetWriteTimeout(30 * time.Second)
 
 	if err := mergo.Merge(&c.Config, DefaultConfig); err != nil {
 		return nil, err
@@ -447,7 +448,7 @@ func (b *Client) sendAuthInfo(conn *network.BNCSConn) (*bncs.AuthInfoResp, error
 		return nil, err
 	}
 
-	pkt, err := conn.NextPacket(5 * time.Second)
+	pkt, err := conn.NextPacket(10 * time.Second)
 	if err != nil {
 		return nil, err
 	}
@@ -460,7 +461,7 @@ func (b *Client) sendAuthInfo(conn *network.BNCSConn) (*bncs.AuthInfoResp, error
 		return nil, ErrUnexpectedPacket
 	}
 
-	pkt, err = conn.NextPacket(5 * time.Second)
+	pkt, err = conn.NextPacket(10 * time.Second)
 	if err != nil {
 		return nil, err
 	}
@@ -544,7 +545,7 @@ func (b *Client) sendAuthCheck(conn *network.BNCSConn, clientToken uint32, authi
 		return nil, err
 	}
 
-	pkt, err := conn.NextPacket(5 * time.Second)
+	pkt, err := conn.NextPacket(10 * time.Second)
 	if err != nil {
 		return nil, err
 	}
@@ -587,7 +588,7 @@ func (b *Client) sendLogonProof(conn *network.BNCSConn, srp SRP, logon *bncs.Aut
 		return nil, err
 	}
 
-	pkt, err := conn.NextPacket(5 * time.Second)
+	pkt, err := conn.NextPacket(10 * time.Second)
 	if err != nil {
 		return nil, err
 	}
@@ -613,7 +614,7 @@ func (b *Client) sendCreateAccount(conn *network.BNCSConn, srp SRP) (*bncs.AuthA
 		return nil, err
 	}
 
-	pkt, err := conn.NextPacket(5 * time.Second)
+	pkt, err := conn.NextPacket(10 * time.Second)
 	if err != nil {
 		return nil, err
 	}
@@ -665,7 +666,7 @@ func (b *Client) sendChangePassProof(conn *network.BNCSConn, oldSRP SRP, newSRP 
 		return nil, err
 	}
 
-	pkt, err := conn.NextPacket(5 * time.Second)
+	pkt, err := conn.NextPacket(10 * time.Second)
 	if err != nil {
 		return nil, err
 	}
@@ -686,21 +687,21 @@ func (b *Client) sendEnterChat(conn *network.BNCSConn) (*bncs.EnterChatResp, err
 		return nil, err
 	}
 
-	pkt, err := conn.NextPacket(5 * time.Second)
+	pkt, err := conn.NextPacket(10 * time.Second)
+	for {
+		if err != nil {
+			return nil, err
+		}
+		switch p := pkt.(type) {
+		case *bncs.ClanInfo:
+			b.Fire(pkt)
+		case *bncs.EnterChatResp:
+			return p, nil
+		default:
+			return nil, ErrUnexpectedPacket
+		}
 
-rcv:
-	if err != nil {
-		return nil, err
-	}
-	switch p := pkt.(type) {
-	case *bncs.ClanInfo:
-		b.Fire(pkt)
-		pkt, err = conn.NextPacket(0)
-		goto rcv
-	case *bncs.EnterChatResp:
-		return p, nil
-	default:
-		return nil, ErrUnexpectedPacket
+		pkt, err = conn.NextPacket(network.NoTimeout)
 	}
 }
 

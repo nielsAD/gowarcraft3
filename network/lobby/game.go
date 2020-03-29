@@ -126,6 +126,9 @@ func (g *Game) Start() error {
 		// capture player
 		var p = g.players[pid]
 
+		// we are time critical from now on
+		p.SetWriteTimeout(5 * time.Millisecond)
+
 		wg.Add(1)
 		var timeout = time.AfterFunc(g.LoadTimeout, func() {
 			p.Kick(w3gs.LeaveDisconnect)

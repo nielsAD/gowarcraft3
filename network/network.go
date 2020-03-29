@@ -20,6 +20,9 @@ import (
 	"github.com/nielsAD/gowarcraft3/protocol/w3gs"
 )
 
+// NoTimeout constant to read/write without deadline
+const NoTimeout = time.Duration(-1)
+
 // RunStart event
 type RunStart struct{}
 
@@ -29,11 +32,20 @@ type RunStop struct{}
 // W3GSBroadcastAddr is used to broadcast W3GS packets to LAN
 var W3GSBroadcastAddr = net.UDPAddr{IP: net.IPv4bcast, Port: 6112}
 
+// Deadline for given timeout
+func Deadline(timeout time.Duration) time.Time {
+	if timeout <= 0 {
+		return time.Time{}
+	}
+	return time.Now().Add(timeout)
+}
+
 // W3GSPacketConn manages a UDP connection that transfers W3GS packets.
 // Public methods/fields are thread-safe unless explicitly stated otherwise
 type W3GSPacketConn struct {
 	cmut RWMutex
 	conn net.PacketConn
+	wto  time.Duration
 
 	smut sync.Mutex
 	enc  w3gs.Encoder
@@ -44,7 +56,9 @@ type W3GSPacketConn struct {
 
 // NewW3GSPacketConn returns conn wrapped in W3GSPacketConn
 func NewW3GSPacketConn(conn net.PacketConn, fact w3gs.PacketFactory, enc w3gs.Encoding) *W3GSPacketConn {
-	var c = &W3GSPacketConn{}
+	var c = &W3GSPacketConn{
+		wto: time.Second,
+	}
 	c.SetConn(conn, fact, enc)
 	return c
 }
@@ -66,6 +80,13 @@ func (c *W3GSPacketConn) SetConn(conn net.PacketConn, fact w3gs.PacketFactory, e
 	c.dec.Encoding = enc
 	c.enc.Encoding = enc
 	c.cmut.Unlock()
+}
+
+// SetWriteTimeout for Send() calls
+func (c *W3GSPacketConn) SetWriteTimeout(wto time.Duration) {
+	c.smut.Lock()
+	c.wto = wto
+	c.smut.Unlock()
 }
 
 // Close the connection
@@ -95,6 +116,9 @@ func (c *W3GSPacketConn) Send(addr net.Addr, pkt w3gs.Packet) (int, error) {
 
 	c.smut.Lock()
 	raw, err := c.enc.Serialize(pkt)
+	if err == nil && c.wto >= 0 {
+		err = c.conn.SetWriteDeadline(Deadline(c.wto))
+	}
 	if err == nil {
 		n, err = c.conn.WriteTo(raw, addr)
 	}
@@ -119,8 +143,8 @@ func (c *W3GSPacketConn) NextPacket(timeout time.Duration) (w3gs.Packet, net.Add
 		return nil, nil, io.EOF
 	}
 
-	if timeout != 0 {
-		if err := c.conn.SetReadDeadline(time.Now().Add(timeout)); err != nil {
+	if timeout >= 0 {
+		if err := c.conn.SetReadDeadline(Deadline(timeout)); err != nil {
 			c.cmut.RUnlock()
 			return nil, nil, err
 		}
@@ -172,6 +196,7 @@ func (c *W3GSPacketConn) Run(f Emitter, timeout time.Duration) error {
 type W3GSConn struct {
 	cmut RWMutex
 	conn net.Conn
+	wto  time.Duration
 
 	smut sync.Mutex
 	enc  w3gs.Encoder
@@ -180,7 +205,9 @@ type W3GSConn struct {
 
 // NewW3GSConn returns conn wrapped in W3GSConn
 func NewW3GSConn(conn net.Conn, fact w3gs.PacketFactory, enc w3gs.Encoding) *W3GSConn {
-	var c = &W3GSConn{}
+	var c = &W3GSConn{
+		wto: time.Second,
+	}
 	c.SetConn(conn, fact, enc)
 	return c
 }
@@ -204,6 +231,13 @@ func (c *W3GSConn) SetConn(conn net.Conn, fact w3gs.PacketFactory, enc w3gs.Enco
 	c.cmut.Unlock()
 }
 
+// SetWriteTimeout for Send() calls
+func (c *W3GSConn) SetWriteTimeout(wto time.Duration) {
+	c.smut.Lock()
+	c.wto = wto
+	c.smut.Unlock()
+}
+
 // Close the connection
 func (c *W3GSConn) Close() error {
 	c.cmut.RLock()
@@ -218,6 +252,31 @@ func (c *W3GSConn) Close() error {
 	return err
 }
 
+// Write implements io.Writer
+func (c *W3GSConn) Write(b []byte) (int, error) {
+	c.cmut.RLock()
+
+	if c.conn == nil {
+		c.cmut.RUnlock()
+		return 0, io.EOF
+	}
+
+	c.smut.Lock()
+	if c.wto >= 0 {
+		if err := c.conn.SetWriteDeadline(Deadline(c.wto)); err != nil {
+			c.smut.Unlock()
+			c.cmut.RUnlock()
+			return 0, err
+		}
+	}
+
+	var n, err = c.conn.Write(b)
+	c.smut.Unlock()
+	c.cmut.RUnlock()
+
+	return n, err
+}
+
 // Send pkt to addr over net.Conn
 func (c *W3GSConn) Send(pkt w3gs.Packet) (int, error) {
 	c.cmut.RLock()
@@ -228,6 +287,14 @@ func (c *W3GSConn) Send(pkt w3gs.Packet) (int, error) {
 	}
 
 	c.smut.Lock()
+	if c.wto >= 0 {
+		if err := c.conn.SetWriteDeadline(Deadline(c.wto)); err != nil {
+			c.smut.Unlock()
+			c.cmut.RUnlock()
+			return 0, err
+		}
+	}
+
 	var n, err = c.enc.Write(c.conn, pkt)
 	c.smut.Unlock()
 	c.cmut.RUnlock()
@@ -245,8 +312,8 @@ func (c *W3GSConn) NextPacket(timeout time.Duration) (w3gs.Packet, error) {
 		return nil, io.EOF
 	}
 
-	if timeout != 0 {
-		if err := c.conn.SetReadDeadline(time.Now().Add(timeout)); err != nil {
+	if timeout >= 0 {
+		if err := c.conn.SetReadDeadline(Deadline(timeout)); err != nil {
 			c.cmut.RUnlock()
 			return nil, err
 		}
@@ -288,6 +355,7 @@ func (c *W3GSConn) Run(f Emitter, timeout time.Duration) error {
 type BNCSConn struct {
 	cmut RWMutex
 	conn net.Conn
+	wto  time.Duration
 
 	smut sync.Mutex
 	enc  bncs.Encoder
@@ -299,7 +367,9 @@ type BNCSConn struct {
 
 // NewBNCSConn returns conn wrapped in BNCSConn
 func NewBNCSConn(conn net.Conn, fact bncs.PacketFactory, enc bncs.Encoding) *BNCSConn {
-	var c = &BNCSConn{}
+	var c = &BNCSConn{
+		wto: time.Second,
+	}
 	c.SetConn(conn, fact, enc)
 	return c
 }
@@ -323,6 +393,13 @@ func (c *BNCSConn) SetConn(conn net.Conn, fact bncs.PacketFactory, enc bncs.Enco
 	c.cmut.Unlock()
 }
 
+// SetWriteTimeout for Send() calls
+func (c *BNCSConn) SetWriteTimeout(wto time.Duration) {
+	c.smut.Lock()
+	c.wto = wto
+	c.smut.Unlock()
+}
+
 // Close the connection
 func (c *BNCSConn) Close() error {
 	c.cmut.RLock()
@@ -337,6 +414,31 @@ func (c *BNCSConn) Close() error {
 	return err
 }
 
+// Write implements io.Writer
+func (c *BNCSConn) Write(b []byte) (int, error) {
+	c.cmut.RLock()
+
+	if c.conn == nil {
+		c.cmut.RUnlock()
+		return 0, io.EOF
+	}
+
+	c.smut.Lock()
+	if c.wto >= 0 {
+		if err := c.conn.SetWriteDeadline(Deadline(c.wto)); err != nil {
+			c.smut.Unlock()
+			c.cmut.RUnlock()
+			return 0, err
+		}
+	}
+
+	var n, err = c.conn.Write(b)
+	c.smut.Unlock()
+	c.cmut.RUnlock()
+
+	return n, err
+}
+
 // Send pkt to addr over net.Conn
 func (c *BNCSConn) Send(pkt bncs.Packet) (int, error) {
 	c.cmut.RLock()
@@ -347,6 +449,14 @@ func (c *BNCSConn) Send(pkt bncs.Packet) (int, error) {
 	}
 
 	c.smut.Lock()
+	if c.wto >= 0 {
+		if err := c.conn.SetWriteDeadline(Deadline(c.wto)); err != nil {
+			c.smut.Unlock()
+			c.cmut.RUnlock()
+			return 0, err
+		}
+	}
+
 	var n, err = c.enc.Write(c.conn, pkt)
 	c.smut.Unlock()
 	c.cmut.RUnlock()
@@ -387,8 +497,8 @@ func (c *BNCSConn) NextPacket(timeout time.Duration) (bncs.Packet, error) {
 		return nil, io.EOF
 	}
 
-	if timeout != 0 {
-		if err := c.conn.SetReadDeadline(time.Now().Add(timeout)); err != nil {
+	if timeout >= 0 {
+		if err := c.conn.SetReadDeadline(Deadline(timeout)); err != nil {
 			c.cmut.RUnlock()
 			return nil, err
 		}
@@ -438,6 +548,7 @@ type CAPIConn struct {
 	//
 	// The Close and WriteControl methods can be called concurrently with all other methods.
 	conn *websocket.Conn
+	wto  time.Duration
 
 	cmut RWMutex
 	smut sync.Mutex
@@ -447,6 +558,7 @@ type CAPIConn struct {
 func NewCAPIConn(conn *websocket.Conn) *CAPIConn {
 	return &CAPIConn{
 		conn: conn,
+		wto:  time.Second,
 	}
 }
 
@@ -464,6 +576,13 @@ func (c *CAPIConn) SetConn(conn *websocket.Conn) {
 	c.cmut.Lock()
 	c.conn = conn
 	c.cmut.Unlock()
+}
+
+// SetWriteTimeout for Send() calls
+func (c *CAPIConn) SetWriteTimeout(wto time.Duration) {
+	c.smut.Lock()
+	c.wto = wto
+	c.smut.Unlock()
 }
 
 // Close the connection
@@ -490,13 +609,20 @@ func (c *CAPIConn) Send(pkt *capi.Packet) error {
 	}
 
 	c.smut.Lock()
-
 	w, err := c.conn.NextWriter(websocket.TextMessage)
-	if err == nil {
-		err = capi.Write(w, pkt)
-		w.Close()
+	if err != nil {
+		c.smut.Unlock()
+		c.cmut.RUnlock()
 	}
 
+	if c.wto >= 0 {
+		err = c.conn.SetWriteDeadline(Deadline(c.wto))
+	}
+	if err == nil {
+		err = capi.Write(w, pkt)
+	}
+
+	w.Close()
 	c.smut.Unlock()
 	c.cmut.RUnlock()
 
@@ -513,8 +639,8 @@ func (c *CAPIConn) NextPacket(timeout time.Duration) (*capi.Packet, error) {
 		return nil, io.EOF
 	}
 
-	if timeout != 0 {
-		if err := c.conn.SetReadDeadline(time.Now().Add(timeout)); err != nil {
+	if timeout >= 0 {
+		if err := c.conn.SetReadDeadline(Deadline(timeout)); err != nil {
 			c.cmut.RUnlock()
 			return nil, err
 		}

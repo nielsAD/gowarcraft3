@@ -185,11 +185,7 @@ func (l *Lobby) sendToAll(pkt w3gs.Packet) {
 	}
 
 	for _, p := range l.players {
-		var c = p.Conn()
-		if c == nil {
-			continue
-		}
-		if _, err := c.Write(b); err != nil && !network.IsCloseError(err) {
+		if _, err := p.Write(b); err != nil && !network.IsCloseError(err) {
 			p.Fire(&network.AsyncError{Src: "Lobby.sendToAll[Write]", Err: err})
 			p.Close()
 		}
@@ -789,7 +785,7 @@ func (l *Lobby) JoinAndServe(conn net.Conn, join *w3gs.Join) (*Player, error) {
 func (l *Lobby) Accept(conn net.Conn) (*Player, error) {
 	var c = network.NewW3GSConn(conn, nil, l.Encoding)
 
-	pkt, err := c.NextPacket(5 * time.Second)
+	pkt, err := c.NextPacket(10 * time.Second)
 	if err != nil {
 		return nil, err
 	}

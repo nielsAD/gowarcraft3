@@ -35,7 +35,10 @@ func NewPlayer(info *w3gs.PlayerInfo) *Player {
 		PlayerInfo: *info,
 		StartTime:  time.Now(),
 	}
+
 	p.InitDefaultHandlers()
+	p.SetWriteTimeout(time.Second)
+
 	return &p
 }
 

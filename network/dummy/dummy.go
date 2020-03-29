@@ -56,6 +56,7 @@ func Join(addr string, name string, hostCounter uint32, entryKey uint32, listenP
 	}
 
 	p.InitDefaultHandlers()
+	p.SetWriteTimeout(time.Second)
 
 	if listenPort >= 0 {
 		p.Host.PlayerInfo.InternalAddr.Port = uint16(listenPort)
@@ -86,7 +87,7 @@ func (p *Player) JoinWithConn(conn net.Conn) error {
 		return err
 	}
 
-	pkt, err := w3gsconn.NextPacket(5 * time.Second)
+	pkt, err := w3gsconn.NextPacket(10 * time.Second)
 	if err != nil {
 		w3gsconn.Close()
 		return err

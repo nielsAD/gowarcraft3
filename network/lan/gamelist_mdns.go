@@ -64,7 +64,9 @@ func NewMDNSGameList(gv w3gs.GameVersion) (*MDNSGameList, error) {
 	}
 
 	g.InitDefaultHandlers()
+	g.SetWriteTimeout(time.Second)
 	g.SetConn(conn)
+
 	return &g, nil
 }
 
@@ -219,7 +221,7 @@ func (g *MDNSGameList) Run() error {
 		var mc = NewDNSPacketConn(m)
 		defer mc.Close()
 
-		go mc.Run(&g.EventEmitter, 0)
+		go mc.Run(&g.EventEmitter, network.NoTimeout)
 	} else {
 		g.Fire(&network.AsyncError{Src: "Run[ListenMulticastUDP]", Err: err})
 	}
@@ -233,7 +235,7 @@ func (g *MDNSGameList) Run() error {
 		defer stop()
 	}
 
-	return g.DNSPacketConn.Run(&g.EventEmitter, 0)
+	return g.DNSPacketConn.Run(&g.EventEmitter, network.NoTimeout)
 }
 
 func (g *MDNSGameList) processPTR(msg *dns.PTR, addr net.Addr) {

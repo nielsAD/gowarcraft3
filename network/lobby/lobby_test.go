@@ -101,7 +101,9 @@ func joinDummy(t *testing.T, g *lobby.Game, name string) (*dummy.Player, error) 
 			Encoding:   g.Encoding,
 		},
 	}
+
 	p.InitDefaultHandlers()
+	p.SetWriteTimeout(time.Hour)
 
 	p.On(&network.AsyncError{}, func(ev *network.Event) {
 		var err = ev.Arg.(*network.AsyncError)
@@ -118,7 +120,7 @@ func joinDummy(t *testing.T, g *lobby.Game, name string) (*dummy.Player, error) 
 		return nil, err
 	}
 
-	ch := make(chan error)
+	ch := make(chan error, 1)
 	go func() {
 		defer p.Close()
 
@@ -131,10 +133,12 @@ func joinDummy(t *testing.T, g *lobby.Game, name string) (*dummy.Player, error) 
 		p.Run()
 	}()
 
-	if _, err := g.Accept(c2); err != nil {
+	pl, err := g.Accept(c2)
+	if err != nil {
 		return nil, err
 	}
 
+	pl.SetWriteTimeout(time.Hour)
 	return &p, <-ch
 }
 

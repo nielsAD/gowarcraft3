@@ -172,6 +172,10 @@ func TestMass(t *testing.T) {
 		if err := h.ListenAndServe(); err != nil {
 			t.Fatal(i, err)
 		}
+		h.On(&peer.Connected{}, func(ev *network.Event) {
+			var conn = ev.Arg.(*peer.Connected)
+			conn.Peer.SetWriteTimeout(time.Hour)
+		})
 		h.On(&peer.Registered{}, func(ev *network.Event) {
 			var reg = ev.Arg.(*peer.Registered)
 			wg.Add(1)

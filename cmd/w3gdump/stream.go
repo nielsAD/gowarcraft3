@@ -92,7 +92,7 @@ func cast(name string) error {
 	tcp.SetNoDelay(true)
 
 	conn := network.NewW3GSConn(tcp, w3gs.NewFactoryCache(w3gs.DefaultFactory), w3gs.Encoding{GameVersion: replay.GameVersion.Version})
-	pkt, err := conn.NextPacket(5 * time.Second)
+	pkt, err := conn.NextPacket(10 * time.Second)
 	if err != nil {
 		return err
 	}
@@ -152,12 +152,14 @@ func cast(name string) error {
 		return err
 	}
 
-	for true {
-		if pkt, err = conn.NextPacket(5 * time.Second); err != nil {
+	pkt, err = conn.NextPacket(10 * time.Second)
+	for {
+		if err != nil {
 			return err
 		}
 		switch m := pkt.(type) {
 		case *w3gs.PlayerExtra:
+			pkt, err = conn.NextPacket(network.NoTimeout)
 			continue
 		case *w3gs.MapState:
 			if !m.Ready {
@@ -191,12 +193,14 @@ func cast(name string) error {
 		}
 	}
 
-	for true {
-		if pkt, err = conn.NextPacket(time.Minute * 3); err != nil {
+	pkt, err = conn.NextPacket(time.Minute * 5)
+	for {
+		if err != nil {
 			return err
 		}
 		switch pkt.(type) {
 		case *w3gs.PlayerExtra:
+			pkt, err = conn.NextPacket(network.NoTimeout)
 			continue
 		case *w3gs.GameLoaded:
 			// Break out of loop

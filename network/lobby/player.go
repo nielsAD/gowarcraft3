@@ -49,7 +49,10 @@ func NewPlayer(info *w3gs.PlayerInfo) *Player {
 
 		rtt: math.MaxUint32,
 	}
+
 	p.InitDefaultHandlers()
+	p.SetWriteTimeout(time.Second)
+
 	return &p
 }
 

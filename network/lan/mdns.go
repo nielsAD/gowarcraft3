@@ -35,8 +35,10 @@ func mdnsService(gv *w3gs.GameVersion) string {
 type DNSPacketConn struct {
 	cmut network.RWMutex
 	conn net.PacketConn
-	msg  dns.Msg
-	buf  [2048]byte
+	wto  time.Duration
+
+	msg dns.Msg
+	buf [2048]byte
 }
 
 // NewDNSPacketConn returns conn wrapped in DNSPacketConn
@@ -59,6 +61,13 @@ func (c *DNSPacketConn) SetConn(conn net.PacketConn) {
 	c.Close()
 	c.cmut.Lock()
 	c.conn = conn
+	c.cmut.Unlock()
+}
+
+// SetWriteTimeout for Send() calls
+func (c *DNSPacketConn) SetWriteTimeout(wto time.Duration) {
+	c.cmut.Lock()
+	c.wto = wto
 	c.cmut.Unlock()
 }
 
@@ -88,6 +97,9 @@ func (c *DNSPacketConn) Send(addr net.Addr, pkt *dns.Msg) (int, error) {
 	var n = 0
 
 	raw, err := pkt.Pack()
+	if err == nil && c.wto >= 0 {
+		err = c.conn.SetWriteDeadline(network.Deadline(c.wto))
+	}
 	if err == nil {
 		n, err = c.conn.WriteTo(raw, addr)
 	}
@@ -111,8 +123,8 @@ func (c *DNSPacketConn) NextPacket(timeout time.Duration) (*dns.Msg, net.Addr, e
 		return nil, nil, io.EOF
 	}
 
-	if timeout != 0 {
-		if err := c.conn.SetReadDeadline(time.Now().Add(timeout)); err != nil {
+	if timeout >= 0 {
+		if err := c.conn.SetReadDeadline(network.Deadline(timeout)); err != nil {
 			c.cmut.RUnlock()
 			return nil, nil, err
 		}

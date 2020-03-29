@@ -41,7 +41,9 @@ func NewUDPAdvertiser(info *w3gs.GameInfo, port int) (*UDPAdvertiser, error) {
 	}
 
 	a.InitDefaultHandlers()
+	a.SetWriteTimeout(time.Second)
 	a.SetConn(conn, w3gs.NewFactoryCache(w3gs.DefaultFactory), w3gs.Encoding{GameVersion: info.GameVersion.Version})
+
 	return &a, nil
 }
 
@@ -128,7 +130,7 @@ func (a *UDPAdvertiser) Run() error {
 		defer stop()
 	}
 
-	return a.W3GSPacketConn.Run(&a.EventEmitter, 0)
+	return a.W3GSPacketConn.Run(&a.EventEmitter, network.NoTimeout)
 }
 
 // Close the connection
