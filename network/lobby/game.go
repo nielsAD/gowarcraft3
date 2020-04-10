@@ -356,8 +356,16 @@ func (g *Game) desync() {
 
 // InitDefaultHandlers adds the default callbacks for relevant packets
 func (g *Game) InitDefaultHandlers() {
+	g.On(&w3gs.SlotInfo{}, g.onRefreshSlots)
 	g.On(&PlayerJoined{}, g.onPlayerJoined)
 	g.On(&PlayerLeft{}, g.onPlayerLeft)
+}
+
+func (g *Game) onRefreshSlots(ev *network.Event) {
+	// Do not send SlotInfo after game has started
+	if g.Stage() > StageLobby {
+		ev.PreventNext()
+	}
 }
 
 func (g *Game) onPlayerJoined(ev *network.Event) {

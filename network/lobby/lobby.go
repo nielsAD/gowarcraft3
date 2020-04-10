@@ -203,7 +203,12 @@ func (l *Lobby) slotInfo() *w3gs.SlotInfo {
 // slotmut should be locked
 func (l *Lobby) refreshSlots() {
 	var s = l.slotInfo()
-	l.Fire(s)
+
+	if l.Fire(s) {
+		// Do not relay if event.PreventNext()
+		return
+	}
+
 	l.sendToAll(s)
 }
 

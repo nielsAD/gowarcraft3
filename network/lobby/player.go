@@ -5,7 +5,6 @@
 package lobby
 
 import (
-	"fmt"
 	"math"
 	"sync"
 	"sync/atomic"
@@ -68,7 +67,6 @@ func (p *Player) RTT() uint32 {
 
 // Ready to start the game (ping and map packets received)
 func (p *Player) Ready() bool {
-	fmt.Println(atomic.LoadUint32(&p.ready), p.RTT())
 	return atomic.LoadUint32(&p.ready) != 0 && p.RTT() != math.MaxUint32
 }
 
