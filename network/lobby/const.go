@@ -18,6 +18,7 @@ var (
 	ErrInvalidSlot     = errors.New("lobby: Invalid slot")
 	ErrInvalidPacket   = errors.New("lobby: Invalid packet")
 	ErrMapUnavailable  = errors.New("lobby: Map unavailable")
+	ErrNotReady        = errors.New("lobby: Not all players are ready")
 	ErrPlayersOccupied = errors.New("lobby: No player slots left")
 	ErrSlotOccupied    = errors.New("lobby: Slot occupied")
 	ErrColorOccupied   = errors.New("lobby: Color occupied")

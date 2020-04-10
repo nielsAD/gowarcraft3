@@ -113,20 +113,27 @@ func (g *Game) EnqueueAction(a *w3gs.PlayerAction) {
 
 // Start game
 func (g *Game) Start() error {
+	g.slotmut.Lock()
+
+	// Check if all players are pinged and have downloaded the map
+	for _, p := range g.players {
+		if !p.Ready() {
+			g.slotmut.Unlock()
+			return ErrNotReady
+		}
+	}
+
 	if !g.swapStage(StageLobby, StageLoading) {
+		g.slotmut.Unlock()
 		return ErrLocked
 	}
 
 	var wg sync.WaitGroup
-
-	g.slotmut.Lock()
-	g.locked = true
-
 	for pid := range g.players {
-		// capture player
+		// Capture player
 		var p = g.players[pid]
 
-		// we are time critical from now on
+		// We are time critical from now on
 		p.SetWriteTimeout(5 * time.Millisecond)
 
 		wg.Add(1)
@@ -149,6 +156,7 @@ func (g *Game) Start() error {
 		})
 	}
 
+	g.locked = true
 	g.sendToAll(&w3gs.CountDownStart{})
 	g.sendToAll(&w3gs.CountDownEnd{})
 	g.slotmut.Unlock()
