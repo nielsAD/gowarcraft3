@@ -33,8 +33,10 @@ type Game struct {
 	tick  uint32
 
 	// Set once before Run(), read-only after that
-	LoadTimeout time.Duration
-	TurnRate    int
+	LoadTimeout  time.Duration
+	LagTimeout   time.Duration
+	LagObservers bool
+	TurnRate     int
 }
 
 type plack struct {
@@ -46,7 +48,8 @@ type plack struct {
 func NewGame(encoding w3gs.Encoding, slotInfo w3gs.SlotInfo, mapInfo w3gs.MapCheck) *Game {
 	var g = Game{
 		Lobby:       *NewLobby(encoding, slotInfo, mapInfo),
-		LoadTimeout: time.Minute * 2,
+		LoadTimeout: 2 * time.Minute,
+		LagTimeout:  3 * time.Minute,
 		TurnRate:    40,
 	}
 
@@ -138,6 +141,7 @@ func (g *Game) Start() error {
 
 		wg.Add(1)
 		var timeout = time.AfterFunc(g.LoadTimeout, func() {
+			p.Fire(&network.AsyncError{Src: "Game.Start[LoadTimeout]", Err: ErrNotReady})
 			p.Kick(w3gs.LeaveDisconnect)
 		})
 		p.Once(&w3gs.GameLoaded{}, func(ev *network.Event) {
@@ -267,8 +271,8 @@ func (g *Game) incLaggers(inc uint32) {
 
 		g.laggers.Players[i].LagDurationMS += inc
 
-		if g.laggers.Players[i].LagDurationMS >= 180_000 ||
-			(g.laggers.Players[i].LagDurationMS >= 25_000 && g.dropmask == 0) {
+		var dur = time.Duration(g.laggers.Players[i].LagDurationMS) * time.Millisecond
+		if dur >= g.LagTimeout || (dur >= 25*time.Second && g.dropmask == 0) {
 			g.laggers.Players[i].LagDurationMS = math.MaxUint32
 
 			g.slotmut.Lock()
@@ -453,13 +457,14 @@ func (g *Game) onGameTick(p *Player, tick Tick, queue int) {
 }
 
 func (g *Game) onStartLag(p *Player) {
-	g.slotmut.Lock()
-	var obs = g.slots[g.pidToSID(p.PlayerInfo.PlayerID)].Team == g.ObsTeam
-	g.slotmut.Unlock()
+	if !g.LagObservers {
+		g.slotmut.Lock()
+		var obs = g.slots[g.pidToSID(p.PlayerInfo.PlayerID)].Team == g.ObsTeam
+		g.slotmut.Unlock()
 
-	// Do not show lag screen for observers
-	if obs {
-		return
+		if obs {
+			return
+		}
 	}
 
 	g.actmut.Lock()

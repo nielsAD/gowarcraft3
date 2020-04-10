@@ -34,9 +34,10 @@ type Lobby struct {
 	// Set once before Run(), read-only after that
 	w3gs.Encoder
 	w3gs.MapCheck
-	ColorSet  protocol.BitSet32
-	ObsTeam   uint8
-	ShareAddr bool
+	ObsTeam      uint8
+	ColorSet     protocol.BitSet32
+	ReadyTimeout time.Duration
+	ShareAddr    bool
 }
 
 // NewLobby initializes a new Lobby struct
@@ -52,10 +53,11 @@ func NewLobby(encoding w3gs.Encoding, slotInfo w3gs.SlotInfo, mapInfo w3gs.MapCh
 	}
 
 	return &Lobby{
-		Encoder:  w3gs.Encoder{Encoding: encoding},
-		MapCheck: mapInfo,
-		ColorSet: colors,
-		ObsTeam:  obsteam,
+		Encoder:      w3gs.Encoder{Encoding: encoding},
+		MapCheck:     mapInfo,
+		ObsTeam:      obsteam,
+		ColorSet:     colors,
+		ReadyTimeout: 10 * time.Second,
 
 		slotBase: slotInfo,
 		slots:    append([]w3gs.SlotData{}, slotInfo.Slots...),
@@ -763,6 +765,13 @@ func (l *Lobby) JoinAndServe(conn net.Conn, join *w3gs.Join) (*Player, error) {
 		return nil, err
 	}
 
+	var timeout = time.AfterFunc(l.ReadyTimeout, func() {
+		p.Fire(&network.AsyncError{Src: "Lobby.JoinAndServe[ReadyTimeout]", Err: ErrNotReady})
+		p.Kick(w3gs.LeaveLobby)
+	})
+	p.Once(&Ready{}, func(ev *network.Event) {
+		timeout.Stop()
+	})
 	p.On(&w3gs.MapState{}, func(ev *network.Event) {
 		l.onMapState(p, ev.Arg.(*w3gs.MapState))
 	})
@@ -780,6 +789,7 @@ func (l *Lobby) JoinAndServe(conn net.Conn, join *w3gs.Join) (*Player, error) {
 			p.Fire(&network.AsyncError{Src: "Lobby.JoinAndServe[Run]", Err: err})
 		}
 
+		timeout.Stop()
 		l.onLeave(p)
 	}()
 
