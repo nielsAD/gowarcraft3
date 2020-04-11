@@ -2,7 +2,7 @@
 // Project: gowarcraft3 (https://github.com/nielsAD/gowarcraft3)
 // License: Mozilla Public License, v2.0
 
-// Package lobby implements a mocked Warcraft III game client that can be used to host lobbies.
+// Package lobby implements a mocked Warcraft III game server that can be used to host lobbies.
 package lobby
 
 import (
