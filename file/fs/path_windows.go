@@ -18,7 +18,7 @@ func docPath() string {
 		}
 		k.Close()
 	}
-	return os.Getenv("USERPROFILE")
+	return path.Join(os.Getenv("USERPROFILE"), "Documents")
 }
 
 func osUserDir() string {
