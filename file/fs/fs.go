@@ -10,7 +10,7 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
-	"path"
+	"path/filepath"
 	"strings"
 
 	"github.com/jybp/casc"
@@ -36,14 +36,14 @@ var mpqFiles = []string{
 
 // Open Warcraft III storage from installPath and userPath
 func Open(installPath string, userPaths ...string) *Storage {
-	installPath = path.Clean(installPath)
+	installPath = filepath.Clean(installPath)
 
 	var stor = Storage{
 		dir: append([]string{installPath}, userPaths...),
 	}
 
 	for _, mpqFileName := range mpqFiles {
-		if archive, err := mpq.OpenArchive(path.Join(installPath, mpqFileName)); err == nil {
+		if archive, err := mpq.OpenArchive(filepath.Join(installPath, mpqFileName)); err == nil {
 			stor.mpq = append(stor.mpq, archive)
 		}
 	}
@@ -86,7 +86,7 @@ func (stor *Storage) Open(subFileName string) (io.ReadCloser, error) {
 	subFileName = strings.Replace(subFileName, "\\", "/", -1)
 
 	for _, dir := range stor.dir {
-		if file, err := os.Open(path.Join(dir, subFileName)); !os.IsNotExist(err) {
+		if file, err := os.Open(filepath.Join(dir, subFileName)); !os.IsNotExist(err) {
 			return file, err
 		}
 	}

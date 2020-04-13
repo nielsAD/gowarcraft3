@@ -9,7 +9,7 @@ import (
 	"io/ioutil"
 	"net"
 	"os"
-	"path"
+	"path/filepath"
 	"strings"
 	"sync"
 	"time"
@@ -93,27 +93,27 @@ func NewClient(conf *Config) (*Client, error) {
 	if conf.Platform.GameVersion.Version == 0 {
 		if c.ExeVersion != 0 {
 			c.Platform.GameVersion.Version = (c.ExeVersion >> 16) & 0xFF
-		} else if exeVersion, _, err := GetExeInfo(path.Join(c.BinPath, "war3.exe")); err == nil {
+		} else if exeVersion, _, err := GetExeInfo(filepath.Join(c.BinPath, "war3.exe")); err == nil {
 			c.Platform.GameVersion.Version = (exeVersion >> 16) & 0xFF
-		} else if exeVersion, _, err := GetExeInfo(path.Join(c.BinPath, "Warcraft III.exe")); err == nil {
+		} else if exeVersion, _, err := GetExeInfo(filepath.Join(c.BinPath, "Warcraft III.exe")); err == nil {
 			c.Platform.GameVersion.Version = (exeVersion >> 16) & 0xFF
 		}
 	}
 
 	if conf.Username == "" {
-		if f, err := ioutil.ReadFile(path.Join(c.BinPath, "user.w3k")); err == nil {
+		if f, err := ioutil.ReadFile(filepath.Join(c.BinPath, "user.w3k")); err == nil {
 			c.Username = strings.TrimSpace(string(f))
 		}
 	}
 
 	if len(conf.CDKeys) == 0 {
 		var rock = ""
-		if f, err := ioutil.ReadFile(path.Join(c.BinPath, "roc.w3k")); err == nil {
+		if f, err := ioutil.ReadFile(filepath.Join(c.BinPath, "roc.w3k")); err == nil {
 			rock = strings.TrimSpace(string(f))
 		}
 
 		var tftk = ""
-		if f, err := ioutil.ReadFile(path.Join(c.BinPath, "tft.w3k")); err == nil {
+		if f, err := ioutil.ReadFile(filepath.Join(c.BinPath, "tft.w3k")); err == nil {
 			tftk = strings.TrimSpace(string(f))
 		}
 
@@ -479,9 +479,9 @@ func (b *Client) sendAuthCheck(conn *network.BNCSConn, clientToken uint32, authi
 	var exeHash = b.ExeHash
 
 	if exeVers == 0 || exeHash == 0 {
-		var exePath = path.Join(b.BinPath, "Warcraft III.exe")
+		var exePath = filepath.Join(b.BinPath, "Warcraft III.exe")
 		if b.Platform.GameVersion.Version < 28 {
-			exePath = path.Join(b.BinPath, "war3.exe")
+			exePath = filepath.Join(b.BinPath, "war3.exe")
 		}
 		if _, err := os.Stat(exePath); err != nil {
 			return nil, err
@@ -503,11 +503,11 @@ func (b *Client) sendAuthCheck(conn *network.BNCSConn, clientToken uint32, authi
 		if exeHash == 0 {
 			var files = []string{exePath}
 			if b.Platform.GameVersion.Version < 29 {
-				stormPath := path.Join(b.BinPath, "Storm.dll")
+				stormPath := filepath.Join(b.BinPath, "Storm.dll")
 				if _, err := os.Stat(stormPath); err != nil {
 					return nil, err
 				}
-				gamePath := path.Join(b.BinPath, "game.dll")
+				gamePath := filepath.Join(b.BinPath, "game.dll")
 				if _, err := os.Stat(gamePath); err != nil {
 					return nil, err
 				}

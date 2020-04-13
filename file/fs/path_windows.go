@@ -6,7 +6,7 @@ package fs
 
 import (
 	"os"
-	"path"
+	"path/filepath"
 
 	"golang.org/x/sys/windows/registry"
 )
@@ -18,11 +18,11 @@ func docPath() string {
 		}
 		k.Close()
 	}
-	return path.Join(os.Getenv("USERPROFILE"), "Documents")
+	return filepath.Join(os.Getenv("USERPROFILE"), "Documents")
 }
 
 func osUserDir() string {
-	return path.Join(docPath(), "Warcraft III")
+	return filepath.Join(docPath(), "Warcraft III")
 }
 
 func osInstallDirs() []string {

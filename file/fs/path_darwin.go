@@ -6,11 +6,11 @@ package fs
 
 import (
 	"os"
-	"path"
+	"path/filepath"
 )
 
 func osUserDir() string {
-	return path.Join(os.Getenv("HOME"), "Library/Application Support/Blizzard/Warcraft III")
+	return filepath.Join(os.Getenv("HOME"), "Library/Application Support/Blizzard/Warcraft III")
 }
 
 func osInstallDirs() []string {

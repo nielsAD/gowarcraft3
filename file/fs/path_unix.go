@@ -8,16 +8,16 @@ package fs
 
 import (
 	"os"
-	"path"
+	"path/filepath"
 )
 
 func osUserDir() string {
-	return path.Join(os.Getenv("HOME"), "Documents/Warcraft III")
+	return filepath.Join(os.Getenv("HOME"), "Documents/Warcraft III")
 }
 
 func osInstallDirs() []string {
 	return []string{
-		path.Join(os.Getenv("HOME"), ".wine/drive_c/Program Files/Warcraft III"),
-		path.Join(os.Getenv("HOME"), ".wine/drive_c/Program Files (x86)/Warcraft III"),
+		filepath.Join(os.Getenv("HOME"), ".wine/drive_c/Program Files/Warcraft III"),
+		filepath.Join(os.Getenv("HOME"), ".wine/drive_c/Program Files (x86)/Warcraft III"),
 	}
 }
