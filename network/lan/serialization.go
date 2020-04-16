@@ -41,7 +41,7 @@ type gameData struct {
 // Serialize encodes the struct into its binary form.
 func (pkt *gameData) SerializeContent(buf *protocol.Buffer, enc *w3gs.Encoding) error {
 	// Reforged swapped game name and game flags records
-	if enc.GameVersion >= 10032 {
+	if enc.GameVersion == 0 || enc.GameVersion >= 10032 {
 		buf.WriteCString(pkt.GameName)
 		buf.WriteUInt8(0)
 	} else {
@@ -51,7 +51,7 @@ func (pkt *gameData) SerializeContent(buf *protocol.Buffer, enc *w3gs.Encoding) 
 	pkt.GameSettings.SerializeContent(buf, enc)
 	buf.WriteUInt32(pkt.SlotsTotal)
 
-	if enc.GameVersion >= 10032 {
+	if enc.GameVersion == 0 || enc.GameVersion >= 10032 {
 		buf.WriteUInt32(uint32(pkt.GameFlags))
 	} else {
 		buf.WriteCString(pkt.GameName)
@@ -70,7 +70,7 @@ func (pkt *gameData) DeserializeContent(buf *protocol.Buffer, enc *w3gs.Encoding
 	}
 
 	// Reforged swapped game name and game flags records
-	if enc.GameVersion >= 10032 {
+	if enc.GameVersion == 0 || enc.GameVersion >= 10032 {
 		var err error
 		if pkt.GameName, err = buf.ReadCString(); err != nil {
 			return err
@@ -96,7 +96,7 @@ func (pkt *gameData) DeserializeContent(buf *protocol.Buffer, enc *w3gs.Encoding
 
 	pkt.SlotsTotal = buf.ReadUInt32()
 
-	if enc.GameVersion >= 10032 {
+	if enc.GameVersion == 0 || enc.GameVersion >= 10032 {
 		pkt.GameFlags = w3gs.GameFlags(buf.ReadUInt32())
 		if buf.Size() != 2 {
 			return w3gs.ErrInvalidPacketSize

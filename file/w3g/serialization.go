@@ -104,6 +104,7 @@ type Peeker interface {
 // Read exactly one record from r and returns it in the proper (deserialized) record type.
 func (dec *RecordDecoder) Read(r Peeker) (Record, int, error) {
 	var peek = 1024
+	var skip = 0
 
 	for {
 		bytes, peekErr := r.Peek(peek)
@@ -119,29 +120,31 @@ func (dec *RecordDecoder) Read(r Peeker) (Record, int, error) {
 				n++
 			}
 
-			if d, err := r.Discard(n); err != nil {
-				return nil, d, err
+			d, err := r.Discard(n)
+			skip += d
+
+			if err != nil {
+				return nil, skip, err
 			}
+
 			continue
 		}
 
 		rec, n, err := dec.Deserialize(bytes)
 		switch err {
 		case nil:
-			if d, err := r.Discard(n); err != nil {
-				return nil, d, err
-			}
-			return rec, n, nil
+			d, err := r.Discard(n)
+			return rec, skip + d, err
 		case io.ErrShortBuffer:
-			if peekErr != nil {
-				return nil, 0, peekErr
+			if peekErr != nil && peekErr != io.EOF {
+				return nil, skip, peekErr
 			}
 			if len(bytes) < peek {
-				return nil, 0, io.ErrUnexpectedEOF
+				return nil, skip, io.ErrUnexpectedEOF
 			}
 			peek *= 2
 		default:
-			return nil, 0, err
+			return nil, skip, err
 		}
 	}
 }

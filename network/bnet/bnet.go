@@ -239,12 +239,12 @@ func (b *Client) Dial() (*network.BNCSConn, error) {
 		b.ServerAddr += ":6112"
 	}
 
-	addr, err := net.ResolveTCPAddr("tcp4", b.ServerAddr)
+	addr, err := net.ResolveTCPAddr("tcp", b.ServerAddr)
 	if err != nil {
 		return nil, err
 	}
 
-	conn, err := net.DialTCP("tcp4", nil, addr)
+	conn, err := net.DialTCP("tcp", nil, addr)
 	if err != nil {
 		return nil, err
 	}

@@ -106,7 +106,7 @@ func (p *Player) JoinWithConn(conn net.Conn) error {
 
 	p.SetConn(conn, w3gs.NewFactoryCache(w3gs.DefaultFactory), p.Encoding)
 
-	if p.Encoding.GameVersion >= 10032 {
+	if p.Encoding.GameVersion == 0 || p.Encoding.GameVersion >= 10032 {
 		if _, err := p.SendOrClose(&w3gs.PlayerExtra{
 			Type: w3gs.PlayerProfile,
 			Profiles: []w3gs.PlayerDataProfile{w3gs.PlayerDataProfile{
@@ -140,12 +140,12 @@ func (p *Player) JoinWithConn(conn net.Conn) error {
 // Join opens a new connection to host
 // Not safe for concurrent invocation
 func (p *Player) Join() error {
-	addr, err := net.ResolveTCPAddr("tcp4", p.HostAddr)
+	addr, err := net.ResolveTCPAddr("tcp", p.HostAddr)
 	if err != nil {
 		return err
 	}
 
-	conn, err := net.DialTCP("tcp4", nil, addr)
+	conn, err := net.DialTCP("tcp", nil, addr)
 	if err != nil {
 		return err
 	}

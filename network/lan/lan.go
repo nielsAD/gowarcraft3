@@ -26,7 +26,7 @@ type GameList interface {
 
 // NewGameList initializes proper GameList type for game version
 func NewGameList(gv w3gs.GameVersion) (GameList, error) {
-	if gv.Version < 30 {
+	if gv.Version > 0 && gv.Version < 30 {
 		// Use random port to not occupy port 6112 by default
 		return NewUDPGameList(gv, 0)
 	}
@@ -49,7 +49,7 @@ type Advertiser interface {
 
 // NewAdvertiser initializes proper Advertiser type for game version
 func NewAdvertiser(info *w3gs.GameInfo) (Advertiser, error) {
-	if info.GameVersion.Version < 30 {
+	if info.GameVersion.Version > 0 && info.GameVersion.Version < 30 {
 		// Use random port to not occupy port 6112 by default
 		return NewUDPAdvertiser(info, 0)
 	}

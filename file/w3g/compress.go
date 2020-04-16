@@ -48,7 +48,7 @@ func (d *BlockCompressor) Write(b []byte) (int, error) {
 
 		// Header with placeholders for size
 		d.b.Truncate()
-		if d.GameVersion >= 10032 {
+		if d.GameVersion == 0 || d.GameVersion >= 10032 {
 			d.b.WriteUInt32(0)
 			d.b.WriteUInt32(uint32(lenBuf))
 		} else {
@@ -74,7 +74,7 @@ func (d *BlockCompressor) Write(b []byte) (int, error) {
 		}
 
 		// Update header
-		if d.GameVersion >= 10032 {
+		if d.GameVersion == 0 || d.GameVersion >= 10032 {
 			d.b.WriteUInt32At(0, uint32(d.b.Size()-lenHdr))
 		} else {
 			d.b.WriteUInt16At(0, uint16(d.b.Size()-lenHdr))

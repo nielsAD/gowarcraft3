@@ -32,6 +32,7 @@ type Decompressor struct {
 	crc     hash.Hash32
 	crcData uint16
 	buf     [12]byte
+	bufr    *bufio.Reader
 }
 
 // NewDecompressor for compressed w3g data
@@ -79,7 +80,7 @@ func (d *Decompressor) nextBlock() error {
 	d.NumBlocks--
 
 	var lenHead = len(d.buf)
-	if d.GameVersion < 10032 {
+	if d.GameVersion > 0 && d.GameVersion < 10032 {
 		lenHead -= 4
 	}
 
@@ -91,7 +92,7 @@ func (d *Decompressor) nextBlock() error {
 
 	var pbuf = protocol.Buffer{Bytes: d.buf[:lenHead]}
 	var lenDeflate uint32
-	if d.GameVersion >= 10032 {
+	if d.GameVersion == 0 || d.GameVersion >= 10032 {
 		lenDeflate = pbuf.ReadUInt32()
 		d.SizeBlock = pbuf.ReadUInt32()
 	} else {
@@ -188,10 +189,12 @@ func (d *Decompressor) Read(b []byte) (int, error) {
 
 // ForEach record call f
 func (d *Decompressor) ForEach(f func(r Record) error) error {
-	var b = bufio.NewReaderSize(d, 8192)
+	if d.bufr == nil {
+		d.bufr = bufio.NewReaderSize(d, 8192)
+	}
 
 	for {
-		rec, _, err := d.RecordDecoder.Read(b)
+		rec, _, err := d.RecordDecoder.Read(d.bufr)
 		switch err {
 		case nil:
 			if err := f(rec); err != nil {

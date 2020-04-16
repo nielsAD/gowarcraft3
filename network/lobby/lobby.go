@@ -274,7 +274,7 @@ func (l *Lobby) join(conn net.Conn, join *w3gs.Join) (*Player, error) {
 		// PlayerLeft event will be sent quickly after Join because of the closed socket.
 		p.SendOrClose(&player.PlayerInfo)
 
-		if l.Encoding.GameVersion >= 10032 {
+		if l.Encoding.GameVersion == 0 || l.Encoding.GameVersion >= 10032 {
 			if tag := player.BattleTag(); tag != "" {
 				p.SendOrClose(&w3gs.PlayerExtra{
 					Type: w3gs.PlayerProfile,

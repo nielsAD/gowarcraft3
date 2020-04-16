@@ -218,9 +218,9 @@ func (h *Host) Dial(playerID uint8) (*Player, error) {
 		return nil, ErrAlreadyConnected
 	}
 
-	conn, err := net.DialTCP("tcp4", nil, peer.PlayerInfo.InternalAddr.TCPAddr())
+	conn, err := net.DialTCP("tcp", nil, peer.PlayerInfo.InternalAddr.TCPAddr())
 	if err != nil {
-		conn, err = net.DialTCP("tcp4", nil, peer.PlayerInfo.ExternalAddr.TCPAddr())
+		conn, err = net.DialTCP("tcp", nil, peer.PlayerInfo.ExternalAddr.TCPAddr())
 	}
 	if err != nil {
 		h.pmut.Unlock()
