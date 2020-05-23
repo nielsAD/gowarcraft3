@@ -419,6 +419,7 @@ func (h *Host) acceptAndServe(listener *net.TCPListener) {
 			break
 		}
 
+		conn.SetKeepAlive(false)
 		conn.SetNoDelay(true)
 		conn.SetLinger(3)
 
