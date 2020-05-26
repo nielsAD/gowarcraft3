@@ -287,7 +287,7 @@ func (p *Player) onPlayerExtra(ev *network.Event) {
 			continue
 		}
 
-		p.tag.Store(pkt.Profiles[0].BattleTag)
+		p.tag.Store(pf.BattleTag)
 		break
 	}
 }

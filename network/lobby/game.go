@@ -49,7 +49,7 @@ func NewGame(encoding w3gs.Encoding, slotInfo w3gs.SlotInfo, mapInfo w3gs.MapChe
 	var g = Game{
 		Lobby:       *NewLobby(encoding, slotInfo, mapInfo),
 		LoadTimeout: 2 * time.Minute,
-		LagTimeout:  3 * time.Minute,
+		LagTimeout:  1 * time.Minute,
 		TurnRate:    40,
 	}
 
