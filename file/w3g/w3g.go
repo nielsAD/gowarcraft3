@@ -102,7 +102,7 @@ func (r *Replay) Encode(w io.Writer) error {
 		return err
 	}
 
-	if _, err := e.WriteRecords(&r.GameInfo, &r.SlotInfo); err != nil {
+	if _, err := e.WriteRecord(&r.GameInfo); err != nil {
 		return err
 	}
 	for _, p := range r.PlayerInfo {
@@ -119,7 +119,7 @@ func (r *Replay) Encode(w io.Writer) error {
 			return err
 		}
 	}
-	if _, err := e.WriteRecords(&CountDownStart{}, &CountDownEnd{}, &GameStart{}); err != nil {
+	if _, err := e.WriteRecords(&r.SlotInfo, &CountDownStart{}, &CountDownEnd{}, &GameStart{}); err != nil {
 		return err
 	}
 
