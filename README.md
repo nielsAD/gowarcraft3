@@ -55,17 +55,18 @@ Packages
 |----------------|-------------|
 |`file`          |Package `file` implements common utilities for handling Warcraft III file formats.|
 |`file/blp`      |Package `blp` is a BLIzzard Picture image format decoder.|
-|`file/fs`       |Package `fs` implements Warcraft 3 file system utilities.|
+|`file/fs`       |Package `fs` implements Warcraft III file system utilities.|
 |`file/mpq`      |Package `mpq` provides golang bindings to the StormLib library to read MPQ archives.|
+|`file/reg`      |Package `reg` implements cross-platform registry utilities for Warcraft III.|
 |`file/w3g`      |Package `w3g` implements a decoder and encoder for w3g files.|
 |`file/w3m`      |Package `w3m` implements basic information extraction functions for w3m/w3x files.|
 |`network`       |Package `network` implements common utilities for higher-level (emulated) Warcraft III network components.|
 |`network/chat`  |Package `chat` implements the official classic Battle.net chat API.|
 |`network/bnet`  |Package `bnet` implements a mocked BNCS client that can be used to interact with BNCS servers.|
-|`network/dummy` |Package `dummy` implements a mocked Warcraft 3 game client that can be used to add dummy players to lobbies.|
-|`network/lan`   |Package `lan` implements a mocked Warcraft 3 LAN client that can be used to discover local games.|
+|`network/dummy` |Package `dummy` implements a mocked Warcraft III game client that can be used to add dummy players to lobbies.|
+|`network/lan`   |Package `lan` implements a mocked Warcraft III LAN client that can be used to discover local games.|
 |`network/lobby` |Package `lobby` implements a mocked Warcraft III game server that can be used to host lobbies.|
-|`network/peer`  |Package `peer` implements a mocked Warcraft 3 client that can be used to manage peer connections in lobbies.|
+|`network/peer`  |Package `peer` implements a mocked Warcraft III client that can be used to manage peer connections in lobbies.|
 |`protocol`      |Package `protocol` implements common utilities for Warcraft III network protocols.|
 |`protocol/capi` |Package `capi` implements the datastructures for the official classic Battle.net chat API.|
 |`protocol/bncs` |Package `bncs` implements the old Battle.net chat protocol for Warcraft III.|

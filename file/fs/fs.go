@@ -2,7 +2,7 @@
 // Project: gowarcraft3 (https://github.com/nielsAD/gowarcraft3)
 // License: Mozilla Public License, v2.0
 
-// Package fs implements Warcraft 3 file system utilities.
+// Package fs implements Warcraft III file system utilities.
 package fs
 
 import (
