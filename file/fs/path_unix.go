@@ -19,5 +19,6 @@ func osInstallDirs() []string {
 	return []string{
 		filepath.Join(os.Getenv("HOME"), ".wine/drive_c/Program Files/Warcraft III"),
 		filepath.Join(os.Getenv("HOME"), ".wine/drive_c/Program Files (x86)/Warcraft III"),
+		filepath.Join(os.Getenv("HOME"), "Games/warcraft-iii-reforged/drive_c/Program Files (x86)/Warcraft III"),
 	}
 }

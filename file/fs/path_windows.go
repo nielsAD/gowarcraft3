@@ -13,10 +13,12 @@ import (
 
 func docPath() string {
 	if k, err := registry.OpenKey(registry.CURRENT_USER, `SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders`, registry.QUERY_VALUE); err == nil {
-		if s, _, err := k.GetStringValue("{F42EE2D3-909F-4907-8871-4C22FC0BF756}"); err == nil {
+		s, _, err := k.GetStringValue("{F42EE2D3-909F-4907-8871-4C22FC0BF756}")
+		k.Close()
+
+		if err == nil {
 			return s
 		}
-		k.Close()
 	}
 	return filepath.Join(os.Getenv("USERPROFILE"), "Documents")
 }
