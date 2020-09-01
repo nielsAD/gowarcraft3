@@ -2,7 +2,7 @@
 // Project: gowarcraft3 (https://github.com/nielsAD/gowarcraft3)
 // License: Mozilla Public License, v2.0
 
-package fs
+package dir
 
 import (
 	"os"
@@ -11,7 +11,7 @@ import (
 	"golang.org/x/sys/windows/registry"
 )
 
-func docPath() string {
+func docsPath() string {
 	if k, err := registry.OpenKey(registry.CURRENT_USER, `SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders`, registry.QUERY_VALUE); err == nil {
 		s, _, err := k.GetStringValue("{F42EE2D3-909F-4907-8871-4C22FC0BF756}")
 		k.Close()
@@ -24,7 +24,7 @@ func docPath() string {
 }
 
 func osUserDir() string {
-	return filepath.Join(docPath(), "Warcraft III")
+	return filepath.Join(docsPath(), "Warcraft III")
 }
 
 func osInstallDirs() []string {

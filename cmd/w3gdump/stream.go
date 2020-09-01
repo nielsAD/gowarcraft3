@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"github.com/nielsAD/gowarcraft3/file/fs"
+	"github.com/nielsAD/gowarcraft3/file/fs/dir"
 	"github.com/nielsAD/gowarcraft3/file/w3g"
 	"github.com/nielsAD/gowarcraft3/network"
 	"github.com/nielsAD/gowarcraft3/network/lan"
@@ -29,7 +30,7 @@ var (
 )
 
 func mapCRC(name string) (uint32, uint32) {
-	var stor = fs.Open(fs.FindInstallationDir(), fs.UserDir())
+	var stor = fs.Open(dir.InstallDir(), dir.UserDir())
 	defer stor.Close()
 
 	if f, err := stor.Open(name); err == nil {

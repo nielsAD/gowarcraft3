@@ -17,7 +17,7 @@ import (
 
 	"github.com/imdario/mergo"
 	"github.com/kyokomi/emoji"
-	"github.com/nielsAD/gowarcraft3/file/fs"
+	"github.com/nielsAD/gowarcraft3/file/fs/dir"
 	"github.com/nielsAD/gowarcraft3/network"
 	"github.com/nielsAD/gowarcraft3/protocol"
 	"github.com/nielsAD/gowarcraft3/protocol/bncs"
@@ -74,7 +74,7 @@ var DefaultConfig = Config{
 	KeepAliveInterval: 30 * time.Second,
 	CDKeyOwner:        "gowarcraft3",
 	GamePort:          6112,
-	BinPath:           fs.FindInstallationDir(),
+	BinPath:           dir.InstallDir(),
 }
 
 // NewClient initializes a Client struct

@@ -15,11 +15,12 @@ import (
 	"strings"
 
 	"github.com/nielsAD/gowarcraft3/file/fs"
+	"github.com/nielsAD/gowarcraft3/file/fs/dir"
 	"github.com/nielsAD/gowarcraft3/file/w3m"
 )
 
 var (
-	binpath = flag.String("b", fs.FindInstallationDir(), "Path to game binaries")
+	binpath = flag.String("b", dir.InstallDir(), "Path to game binaries")
 	preview = flag.String("preview", "", "Dump preview image to this file")
 	jsonout = flag.Bool("json", false, "Print machine readable format")
 )

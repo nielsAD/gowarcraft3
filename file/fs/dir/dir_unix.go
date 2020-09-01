@@ -4,7 +4,7 @@
 
 // +build !windows,!darwin
 
-package fs
+package dir
 
 import (
 	"os"
