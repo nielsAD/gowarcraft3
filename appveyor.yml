@@ -2,7 +2,7 @@
 # Project: gowarcraft3 (https://github.com/nielsAD/gowarcraft3)
 # License: Mozilla Public License, v2.0
 
-image: Visual Studio 2017
+image: Visual Studio 2019
 
 clone_folder: c:\gopath\src\github.com\nielsAD\gowarcraft3
 
@@ -26,11 +26,11 @@ init:
   - git config --global core.autocrlf true
 
 install:
-  # Initialize environment
-  - set PATH=%GOPATH%\bin;%GOROOT%\bin;C:\msys64\usr\bin;%PATH%
-
   # Download submodules
   - git submodule update --init --recursive
+
+  # Initialize environment
+  - set PATH=%GOPATH%\bin;%GOROOT%\bin;C:\msys64\usr\bin;%PATH%
 
   # Install OS dependencies
   - bash -lc "pacman --needed --noconfirm -Syu" # core system upgrade
