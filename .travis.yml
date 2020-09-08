@@ -3,7 +3,7 @@
 # License: Mozilla Public License, v2.0
 
 language: go
-go: 1.13.x
+go: 1.15.x
 
 os:
   - linux

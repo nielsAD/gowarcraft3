@@ -20,7 +20,7 @@ environment:
       MSYSTEM: MINGW64
       MSYS2_ARCH: x86_64
 
-stack: go 1.13
+stack: go 1.15
 
 init:
   - git config --global core.autocrlf true
