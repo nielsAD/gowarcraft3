@@ -252,7 +252,7 @@ func (p *Player) InitDefaultHandlers() {
 
 func (p *Player) onPong(ev *network.Event) {
 	var pkt = ev.Arg.(*w3gs.Pong)
-	var rtt = uint32(time.Now().Sub(p.StartTime).Milliseconds()) - pkt.Payload
+	var rtt = uint32(time.Since(p.StartTime).Milliseconds()) - pkt.Payload
 
 	if rtt > uint32(LagRecoverDelay.Milliseconds()) {
 		p.Fire(&network.AsyncError{Src: "onPong[rtt]", Err: ErrHighPing})

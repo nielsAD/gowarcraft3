@@ -1,6 +1,6 @@
 [submodule "third_party/StormLib"]
 	path = third_party/StormLib
-	url = https://github.com/ladislav-zezula/StormLib.git
+	url = https://github.com/nielsAD/StormLib.git
 	ignore = dirty
 [submodule "third_party/bncsutil"]
 	path = third_party/bncsutil

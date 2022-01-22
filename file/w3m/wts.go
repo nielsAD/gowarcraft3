@@ -13,8 +13,8 @@ import (
 )
 
 // TriggerString recognition
-var reWTS = regexp.MustCompile("^STRING (\\d+)$")
-var reTS = regexp.MustCompile("^TRIGSTR_(\\d+)$")
+var reWTS = regexp.MustCompile(`^STRING (\d+)$`)
+var reTS = regexp.MustCompile(`^TRIGSTR_(\d+)$`)
 
 // TriggerStrings from war3map.wts
 func (m *Map) TriggerStrings() (map[int]string, error) {

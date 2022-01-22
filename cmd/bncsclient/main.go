@@ -15,7 +15,7 @@ import (
 	"time"
 
 	"github.com/fatih/color"
-	"golang.org/x/crypto/ssh/terminal"
+	"golang.org/x/term"
 
 	"github.com/nielsAD/gowarcraft3/network"
 	"github.com/nielsAD/gowarcraft3/network/bnet"
@@ -84,7 +84,7 @@ func main() {
 
 	if *password == "" {
 		fmt.Print("Enter password: ")
-		if b, err := terminal.ReadPassword(int(os.Stdin.Fd())); err == nil {
+		if b, err := term.ReadPassword(int(os.Stdin.Fd())); err == nil {
 			c.Password = string(b)
 		} else {
 			logErr.Fatal("ReadPassword error: ", err)
@@ -110,7 +110,7 @@ func main() {
 	})
 	c.On(&bnet.UserLeft{}, func(ev *network.Event) {
 		var user = ev.Arg.(*bnet.UserLeft)
-		logOut.Println(color.YellowString("%s has left the channel (after %dm)", user.Name, int(time.Now().Sub(user.Joined).Minutes())))
+		logOut.Println(color.YellowString("%s has left the channel (after %dm)", user.Name, int(time.Since(user.Joined).Minutes())))
 	})
 	c.On(&bnet.Whisper{}, func(ev *network.Event) {
 		var msg = ev.Arg.(*bnet.Whisper)
@@ -140,7 +140,7 @@ func main() {
 		var pass = *newpassword
 		if pass == "" {
 			fmt.Print("Enter new password: ")
-			if b, err := terminal.ReadPassword(int(os.Stdin.Fd())); err == nil {
+			if b, err := term.ReadPassword(int(os.Stdin.Fd())); err == nil {
 				pass = string(b)
 			} else {
 				logErr.Fatal("ReadPassword error: ", err)

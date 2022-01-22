@@ -937,6 +937,7 @@ func (pkt *GetAdvListReq) Deserialize(buf *protocol.Buffer, enc *Encoding) error
 		return ErrInvalidPacketSize
 	}
 
+	//lint:ignore SA4000 Consume two uint8
 	if buf.ReadUInt8() != 0 || buf.ReadUInt8() != 0 {
 		return ErrUnexpectedConst
 	}

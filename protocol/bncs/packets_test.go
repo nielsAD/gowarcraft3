@@ -144,7 +144,7 @@ func TestClientPackets(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		if bytes.Compare(buf.Bytes, buf2.Bytes) != 0 {
+		if !bytes.Equal(buf.Bytes, buf2.Bytes) {
 			t.Fatalf("encoder.Write != packet.Serialize %v", reflect.TypeOf(pkt))
 		}
 
@@ -318,7 +318,7 @@ func TestServerPackets(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		if bytes.Compare(buf.Bytes, buf2.Bytes) != 0 {
+		if !bytes.Equal(buf.Bytes, buf2.Bytes) {
 			t.Fatalf("encoder.Write != packet.Serialize %v", reflect.TypeOf(pkt))
 		}
 

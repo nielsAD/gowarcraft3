@@ -395,6 +395,7 @@ func (b *Buffer) ReadSockAddr() (SockAddr, error) {
 		return res, ErrInvalidSockAddr
 	}
 
+	//lint:ignore SA4000 Consume two uint32
 	if b.ReadUInt32() != 0 || b.ReadUInt32() != 0 {
 		return res, ErrInvalidSockAddr
 	}

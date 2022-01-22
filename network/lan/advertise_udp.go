@@ -155,7 +155,7 @@ func (a *UDPAdvertiser) onSearchGame(ev *network.Event) {
 		return
 	}
 
-	a.info.UptimeSec = (uint32)(time.Now().Sub(a.created).Seconds())
+	a.info.UptimeSec = (uint32)(time.Since(a.created).Seconds())
 
 	var addr = ev.Opt[0].(net.Addr)
 	if _, err := a.Send(addr, &a.info); err != nil {

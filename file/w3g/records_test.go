@@ -208,7 +208,7 @@ func TestRecords(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		if bytes.Compare(buf.Bytes, buf2.Bytes) != 0 {
+		if !bytes.Equal(buf.Bytes, buf2.Bytes) {
 			t.Fatalf("encoder.Write != record.Serialize %v", reflect.TypeOf(rec))
 		}
 

@@ -63,7 +63,7 @@ func NewMDNSAdvertiser(info *w3gs.GameInfo) (*MDNSAdvertiser, error) {
 	return &a, nil
 }
 
-var illegalChars = regexp.MustCompile("\\W")
+var illegalChars = regexp.MustCompile(`\W`)
 
 func (a *MDNSAdvertiser) mdnsService() string {
 	a.imut.Lock()

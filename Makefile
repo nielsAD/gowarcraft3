@@ -9,7 +9,7 @@ GOTEST_FLAGS=-cover -cpu=1,2,4 -timeout=2m
 
 GO=go
 GOFMT=gofmt
-GOLINT=$(shell $(GO) env GOPATH)/bin/golint
+STATICCHECK=$(shell $(GO) env GOPATH)/bin/staticcheck
 
 DIR_BIN=bin
 DIR_PRE=github.com/nielsAD/gowarcraft3
@@ -50,7 +50,7 @@ fmt:
 	$(GOFMT) -l $(filter-out .,$(DIR)) $(wildcard *.go)
 
 lint:
-	$(GOLINT) -set_exit_status $(PKG)
+	$(STATICCHECK) $(PKG)
 
 vet:
 	$(GO) vet $(PKG)

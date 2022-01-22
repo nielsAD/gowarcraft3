@@ -18,7 +18,7 @@ import (
 	"github.com/nielsAD/gowarcraft3/network"
 	"github.com/nielsAD/gowarcraft3/network/chat"
 	"github.com/nielsAD/gowarcraft3/protocol/capi"
-	"golang.org/x/crypto/ssh/terminal"
+	"golang.org/x/term"
 )
 
 var (
@@ -35,7 +35,7 @@ func main() {
 
 	if *apikey == "" {
 		fmt.Print("Enter API key: ")
-		if b, err := terminal.ReadPassword(int(os.Stdin.Fd())); err == nil {
+		if b, err := term.ReadPassword(int(os.Stdin.Fd())); err == nil {
 			*apikey = string(b)
 		} else {
 			logErr.Fatal("ReadPassword error: ", err)
@@ -66,7 +66,7 @@ func main() {
 	b.On(&capi.UserLeaveEvent{}, func(ev *network.Event) {
 		var event = ev.Arg.(*capi.UserLeaveEvent)
 		if u, ok := b.User(event.UserID); ok {
-			logOut.Println(color.YellowString("%s has left the channel (after %dm)", u.Username, int(time.Now().Sub(u.Joined).Minutes())))
+			logOut.Println(color.YellowString("%s has left the channel (after %dm)", u.Username, int(time.Since(u.Joined).Minutes())))
 		} else {
 			logOut.Println(color.YellowString("%s has left the channel", event.UserID))
 		}

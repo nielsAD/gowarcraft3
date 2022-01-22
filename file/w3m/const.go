@@ -395,7 +395,7 @@ func (i MinimapIcon) String() string {
 
 // Icon image
 func (i MinimapIcon) Icon() image.Image {
-	if i < 0 || int(i) >= len(minimapIcons) {
+	if int(i) >= len(minimapIcons) {
 		return nil
 	}
 	return minimapIcons[i]

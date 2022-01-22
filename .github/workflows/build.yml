@@ -1,0 +1,77 @@
+name: Build
+on: [push, pull_request]
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+        go: [1.17]
+
+    steps:
+      - name: Checkout repository and submodules
+        uses: actions/checkout@v2
+        with:
+          submodules: recursive
+
+      - name: Set up Go ${{ matrix.go }}
+        uses: actions/setup-go@v2
+        with:
+          go-version: ${{ matrix.go }}
+
+      - name: Install dependencies
+        run: |
+          if [[ "$RUNNER_OS" == "Linux" ]]; then sudo apt-get install -y libpcap-dev; fi
+          if [[ "$RUNNER_OS" == "macOS" ]]; then brew install libpcap; fi
+
+          go install honnef.co/go/tools/cmd/staticcheck@latest
+          go version
+
+      - name: Build
+        run: make check
+      - name: Test
+        run: make test
+      - name: Release
+        run: make release
+
+  build-msys:
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: msys2 {0}
+    strategy:
+      fail-fast: false
+      matrix:
+        os:   [windows-latest]
+        msys: [mingw32, mingw64]
+
+    steps:
+      - name: Checkout repository and submodules
+        uses: actions/checkout@v2
+        with:
+          submodules: recursive
+
+      - name: Install MSYS2
+        uses: msys2/setup-msys2@v2
+        with:
+          msystem: ${{ matrix.msys }}
+          install: >-
+            make
+          pacboy: >-
+            go:p
+            gcc:p
+            cmake:p
+
+      - name: Install dependencies
+        run: |
+          go install honnef.co/go/tools/cmd/staticcheck@latest
+          go version
+
+      - name: Build
+        run: make check
+      - name: Test
+        run: make test
+      - name: Release
+        run: make release GO_FLAGS="-ldflags '-linkmode external -extldflags -static'"

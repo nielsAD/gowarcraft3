@@ -24,9 +24,9 @@ import (
 )
 
 var (
-	errBreakEarly       = errors.New("Early break")
-	errUnexpectedPacket = errors.New("Unexpected packet")
-	errMapUnavailable   = errors.New("Map unavailable")
+	errBreakEarly       = errors.New("w3gdump: Early break")
+	errUnexpectedPacket = errors.New("w3gdump: Unexpected packet")
+	errMapUnavailable   = errors.New("w3gdump: Map unavailable")
 )
 
 func mapCRC(name string) (uint32, uint32) {

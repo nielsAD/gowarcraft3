@@ -36,7 +36,7 @@ func TestReaderWriter(t *testing.T) {
 	if reader.Size() != 0 {
 		t.Fatalf("reader.size != 0 after Read")
 	}
-	if bytes.Compare(out[:], blob) != 0 {
+	if !bytes.Equal(out[:], blob) {
 		t.Fatalf("Reader/Writer (Read): %v != %v", writer.Bytes, blob)
 	}
 
@@ -49,7 +49,7 @@ func TestReaderWriter(t *testing.T) {
 	if writer.Size() != len(blob) {
 		t.Fatalf("writer.size != blob after ReadFrom")
 	}
-	if bytes.Compare(writer.Bytes, blob) != 0 {
+	if !bytes.Equal(writer.Bytes, blob) {
 		t.Fatalf("Reader/Writer (ReadFrom): %v != %v", writer.Bytes, blob)
 	}
 
@@ -63,7 +63,7 @@ func TestReaderWriter(t *testing.T) {
 	if writer.Size() != len(blob) {
 		t.Fatalf("writer.size != blob after Copy")
 	}
-	if bytes.Compare(writer.Bytes, blob) != 0 {
+	if !bytes.Equal(writer.Bytes, blob) {
 		t.Fatalf("Reader/Writer (Copy): %v != %v", writer.Bytes, blob)
 	}
 }
@@ -91,7 +91,7 @@ func TestBlob(t *testing.T) {
 		if i == 1 {
 			read = reverse(read)
 		}
-		if bytes.Compare(read, blob) != 0 {
+		if !bytes.Equal(read, blob) {
 			t.Fatalf("read(%v): %v != %v", i, read, blob)
 		}
 

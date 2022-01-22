@@ -87,7 +87,7 @@ func (p *Player) onPing(ev *network.Event) {
 
 func (p *Player) onPong(ev *network.Event) {
 	var pkt = ev.Arg.(*w3gs.PeerPong)
-	var rtt = uint32(time.Now().Sub(p.StartTime).Milliseconds()) - pkt.Payload
+	var rtt = uint32(time.Since(p.StartTime).Milliseconds()) - pkt.Payload
 
 	atomic.StoreUint32(&p.rtt, rtt)
 }
