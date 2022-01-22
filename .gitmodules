@@ -1,48 +1,8 @@
-[submodule "vendor/StormLib"]
-	path = vendor/StormLib
+[submodule "third_party/StormLib"]
+	path = third_party/StormLib
 	url = https://github.com/ladislav-zezula/StormLib.git
 	ignore = dirty
-[submodule "vendor/github.com/google/gopacket"]
-	path = vendor/github.com/google/gopacket
-	url = https://github.com/google/gopacket.git
-	ignore = dirty
-[submodule "vendor/github.com/ftrvxmtrx/tga"]
-	path = vendor/github.com/ftrvxmtrx/tga
-	url = https://github.com/ftrvxmtrx/tga.git
-[submodule "vendor/bncsutil"]
-	path = vendor/bncsutil
+[submodule "third_party/bncsutil"]
+	path = third_party/bncsutil
 	url = https://github.com/BNETDocs/bncsutil.git
 	ignore = dirty
-[submodule "vendor/golang.org/x/crypto"]
-	path = vendor/golang.org/x/crypto
-	url = https://github.com/golang/crypto.git
-[submodule "vendor/golang.org/x/sys"]
-	path = vendor/golang.org/x/sys
-	url = https://github.com/golang/sys.git
-[submodule "vendor/github.com/fatih/color"]
-	path = vendor/github.com/fatih/color
-	url = https://github.com/fatih/color.git
-[submodule "vendor/github.com/imdario/mergo"]
-	path = vendor/github.com/imdario/mergo
-	url = https://github.com/imdario/mergo.git
-[submodule "vendor/github.com/gorilla/websocket"]
-	path = vendor/github.com/gorilla/websocket
-	url = https://github.com/gorilla/websocket.git
-[submodule "vendor/github.com/kyokomi/emoji"]
-	path = vendor/github.com/kyokomi/emoji
-	url = https://github.com/kyokomi/emoji.git
-[submodule "vendor/github.com/miekg/dns"]
-	path = vendor/github.com/miekg/dns
-	url = https://github.com/miekg/dns.git
-[submodule "vendor/golang.org/x/net"]
-	path = vendor/golang.org/x/net
-	url = https://github.com/golang/net.git
-[submodule "vendor/github.com/dedis/protobuf"]
-	path = vendor/github.com/dedis/protobuf
-	url = https://github.com/dedis/protobuf.git
-[submodule "vendor/github.com/jybp/casc"]
-	path = vendor/github.com/jybp/casc
-	url = https://github.com/jybp/casc.git
-[submodule "vendor/github.com/pkg/errors"]
-	path = vendor/github.com/pkg/errors
-	url = https://github.com/pkg/errors.git

@@ -2,7 +2,7 @@
 # Project: gowarcraft3 (https://github.com/nielsAD/gowarcraft3)
 # License: Mozilla Public License, v2.0
 
-VENDOR=vendor/StormLib/build/libstorm.a vendor/bncsutil/build/libbncsutil_static.a
+THIRD_PARTY=third_party/StormLib/build/libstorm.a third_party/bncsutil/build/libbncsutil.a
 
 GO_FLAGS=
 GOTEST_FLAGS=-cover -cpu=1,2,4 -timeout=2m
@@ -17,11 +17,7 @@ DIR_PRE=github.com/nielsAD/gowarcraft3
 PKG:=$(shell $(GO) list ./...)
 DIR:=$(subst $(DIR_PRE),.,$(PKG))
 CMD:=$(subst $(DIR_PRE)/cmd/,,$(shell $(GO) list ./cmd/...))
-
 ARCH:=$(shell $(GO) env GOARCH)
-ifeq ($(ARCH),amd64)
-	TEST_RACE=1
-endif
 
 ifeq ($(TEST_RACE),1)
 	GOTEST_FLAGS+= -race
@@ -35,16 +31,16 @@ release: $(CMD)
 $(DIR_BIN):
 	mkdir -p $@
 
-$(PKG): $(VENDOR)
+$(PKG): $(THIRD_PARTY)
 	$(GO) build $@
 
-$(CMD): $(VENDOR) $(DIR_BIN)
+$(CMD): $(THIRD_PARTY) $(DIR_BIN)
 	cd $(DIR_BIN); $(GO) build $(GO_FLAGS) $(DIR_PRE)/cmd/$@
 
-vendor/%:
-	$(MAKE) -C vendor $(subst vendor/,,$@)
+third_party/%:
+	$(MAKE) -C third_party $(subst third_party/,,$@)
 
-check: $(VENDOR)
+check: $(THIRD_PARTY)
 	$(GO) build $(PKG)
 
 test: check fmt lint vet
@@ -65,4 +61,4 @@ list:
 clean:
 	-rm -r $(DIR_BIN)
 	go clean $(PKG)
-	$(MAKE) -C vendor clean
+	$(MAKE) -C third_party clean

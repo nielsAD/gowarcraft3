@@ -9,7 +9,8 @@ import (
 	"io"
 	"math"
 
-	"github.com/dedis/protobuf"
+	"go.dedis.ch/protobuf"
+
 	"github.com/nielsAD/gowarcraft3/protocol"
 )
 

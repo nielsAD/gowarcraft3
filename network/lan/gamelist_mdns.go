@@ -14,8 +14,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/dedis/protobuf"
 	"github.com/miekg/dns"
+	"go.dedis.ch/protobuf"
 	"golang.org/x/net/ipv4"
 
 	"github.com/nielsAD/gowarcraft3/network"

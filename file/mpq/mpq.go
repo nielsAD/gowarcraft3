@@ -5,9 +5,9 @@
 // Package mpq provides golang bindings to the StormLib library to read MPQ archives.
 package mpq
 
-// #cgo CFLAGS: -I${SRCDIR}/../../vendor/StormLib/src
-// #cgo !windows LDFLAGS: -lstorm -lz -lbz2           -L${SRCDIR}/../../vendor/StormLib/build
-// #cgo  windows LDFLAGS: -lstorm -lz -lbz2 -lwininet -L${SRCDIR}/../../vendor/StormLib/build
+// #cgo CFLAGS: -I${SRCDIR}/../../third_party/StormLib/src
+// #cgo !windows LDFLAGS: -lstorm -lz -lbz2           -L${SRCDIR}/../../third_party/StormLib/build
+// #cgo  windows LDFLAGS: -lstorm -lz -lbz2 -lwininet -L${SRCDIR}/../../third_party/StormLib/build
 // #include <StormLib.h>
 import "C"
 import (

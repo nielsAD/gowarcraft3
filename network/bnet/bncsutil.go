@@ -4,9 +4,9 @@
 
 package bnet
 
-// #cgo CFLAGS: -I${SRCDIR}/../../vendor/bncsutil/src
-// #cgo !windows LDFLAGS: -lbncsutil_static -lgmp           -L${SRCDIR}/../../vendor/bncsutil/build
-// #cgo  windows LDFLAGS: -lbncsutil_static -lgmp -lversion -L${SRCDIR}/../../vendor/bncsutil/build
+// #cgo CFLAGS: -I${SRCDIR}/../../third_party/bncsutil/src
+// #cgo !windows LDFLAGS: -lbncsutil -lgmp           -L${SRCDIR}/../../third_party/bncsutil/build
+// #cgo  windows LDFLAGS: -lbncsutil -lgmp -lversion -L${SRCDIR}/../../third_party/bncsutil/build
 // #undef __declspec
 // #define __declspec(...)
 // #include <bncsutil/bncsutil.h>

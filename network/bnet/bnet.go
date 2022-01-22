@@ -16,7 +16,8 @@ import (
 	"unicode"
 
 	"github.com/imdario/mergo"
-	"github.com/kyokomi/emoji"
+	"github.com/kyokomi/emoji/v2"
+
 	"github.com/nielsAD/gowarcraft3/file/fs/dir"
 	"github.com/nielsAD/gowarcraft3/network"
 	"github.com/nielsAD/gowarcraft3/protocol"

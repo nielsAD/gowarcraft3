@@ -38,7 +38,7 @@ brew install cmake git go gmp bzip2 zlib libpcap
 # Windows dependencies (use MSYS2 -- https://www.msys2.org/)
 pacman --needed --noconfirm -S git mingw-w64-x86_64-toolchain mingw-w64-x86_64-go mingw-w64-x86_64-cmake
 
-# Download vendor submodules
+# Download third party submodules
 git submodule update --init --recursive
 
 # Run tests
