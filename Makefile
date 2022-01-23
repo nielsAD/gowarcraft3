@@ -47,7 +47,11 @@ test: check fmt lint vet
 	$(GO) test $(GOTEST_FLAGS) $(PKG)
 
 fmt:
-	! $(GOFMT) -d $(filter-out .,$(DIR)) $(wildcard *.go) 2>&1 | tee /dev/tty | read
+	@GOFMT_OUT=$$($(GOFMT) -d $(filter-out .,$(DIR)) $(wildcard *.go) 2>&1); \
+	if [ -n "$$GOFMT_OUT" ]; then \
+		echo "$$GOFMT_OUT"; \
+		exit 1; \
+	fi
 
 lint:
 	$(STATICCHECK) $(PKG)
@@ -65,4 +69,4 @@ clean:
 
 install-tools:
 	$(GO) mod download
-	grep -o '"[^"]\+"' tools.go | xargs -n1 $(GO)  install
+	grep -o '"[^"]\+"' tools.go | xargs -n1 $(GO) install

@@ -3,12 +3,22 @@ on: [push, pull_request]
 
 jobs:
   build:
-    runs-on: ${{ matrix.os }}
+    name: ${{ matrix.run.name }}, go${{ matrix.go }}
+    runs-on: ${{ matrix.run.os }}
+
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest]
+        run:
+          - { name: 'linux', os: ubuntu-latest, shell: bash }
+          - { name: 'macos', os: macos-latest,  shell: bash }
+          - { name: 'windows_x86', os: windows-latest, shell: 'msys2 {0}', msys: mingw32 }
+          - { name: 'windows_x64', os: windows-latest, shell: 'msys2 {0}', msys: mingw64 }
         go: [1.17]
+
+    defaults:
+      run:
+        shell: ${{ matrix.run.shell }}
 
     steps:
       - name: Checkout repository and submodules
@@ -21,40 +31,21 @@ jobs:
         with:
           go-version: ${{ matrix.go }}
 
-      - name: Install dependencies
+      - name: Install dependencies (Linux)
+        if: runner.os == 'Linux'
         run: |
-          if [[ "$RUNNER_OS" == "Linux" ]]; then sudo apt-get install -y libpcap-dev; fi
-          if [[ "$RUNNER_OS" == "macOS" ]]; then brew install libpcap; fi
-          make install-tools
+          sudo apt-get install -y libpcap-dev
 
-      - name: Build
-        run: make check
-      - name: Test
-        run: make test
-      - name: Release
-        run: make release
+      - name: Install dependencies (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          brew install libpcap
 
-  build-msys:
-    runs-on: ${{ matrix.os }}
-    defaults:
-      run:
-        shell: msys2 {0}
-    strategy:
-      fail-fast: false
-      matrix:
-        os:   [windows-latest]
-        msys: [mingw32, mingw64]
-
-    steps:
-      - name: Checkout repository and submodules
-        uses: actions/checkout@v2
-        with:
-          submodules: recursive
-
-      - name: Install MSYS2
+      - name: Install dependencies (Windows)
+        if: runner.os == 'Windows'
         uses: msys2/setup-msys2@v2
         with:
-          msystem: ${{ matrix.msys }}
+          msystem: ${{ matrix.run.msys }}
           install: >-
             make
           pacboy: >-
@@ -62,11 +53,29 @@ jobs:
             gcc:p
             cmake:p
 
-      - name: Install dependencies
+      - name: Install tools
         run: make install-tools
       - name: Build
         run: make check
       - name: Test
         run: make test
       - name: Release
-        run: make release GO_FLAGS="-ldflags '-linkmode external -extldflags -static'"
+        run: make release
+
+      - name: Prepare artifacts
+        run: |
+          echo -e "Author:   Niels A.D.
+          Project:  gowarcraft3 (https://github.com/nielsAD/gowarcraft3)
+          Platform: `go env GOOS`/`go env GOARCH` (`go env GOVERSION`)
+          Release:  $GITHUB_REF_NAME ($GITHUB_SHA)
+          Date:     `date --utc`" > VERSION.txt
+          mv LICENSE LICENSE.txt
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: gowarcraft3_${{ github.ref_name }}_${{ matrix.run.name }}
+          path: |
+            bin/
+            LICENSE.txt
+            VERSION.txt

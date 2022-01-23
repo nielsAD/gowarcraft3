@@ -1,0 +1,4 @@
+test=auto
+
+# gofmt enforces LF line endings
+*.go text eol=lf
