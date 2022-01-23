@@ -2,6 +2,7 @@
 // Project: gowarcraft3 (https://github.com/nielsAD/gowarcraft3)
 // License: Mozilla Public License, v2.0
 
+//go:build !windows && !darwin
 // +build !windows,!darwin
 
 package dir

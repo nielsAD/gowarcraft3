@@ -25,9 +25,7 @@ jobs:
         run: |
           if [[ "$RUNNER_OS" == "Linux" ]]; then sudo apt-get install -y libpcap-dev; fi
           if [[ "$RUNNER_OS" == "macOS" ]]; then brew install libpcap; fi
-
-          go install honnef.co/go/tools/cmd/staticcheck@latest
-          go version
+          make install-tools
 
       - name: Build
         run: make check
@@ -65,10 +63,7 @@ jobs:
             cmake:p
 
       - name: Install dependencies
-        run: |
-          go install honnef.co/go/tools/cmd/staticcheck@latest
-          go version
-
+        run: make install-tools
       - name: Build
         run: make check
       - name: Test

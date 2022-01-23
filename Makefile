@@ -23,7 +23,7 @@ ifeq ($(TEST_RACE),1)
 	GOTEST_FLAGS+= -race
 endif
 
-.PHONY: all release check test fmt lint vet list clean $(CMD)
+.PHONY: all release check test fmt lint vet list clean install-tools $(CMD)
 
 all: test release
 release: $(CMD)
@@ -47,7 +47,7 @@ test: check fmt lint vet
 	$(GO) test $(GOTEST_FLAGS) $(PKG)
 
 fmt:
-	$(GOFMT) -l $(filter-out .,$(DIR)) $(wildcard *.go)
+	! $(GOFMT) -d $(filter-out .,$(DIR)) $(wildcard *.go) 2>&1 | tee /dev/tty | read
 
 lint:
 	$(STATICCHECK) $(PKG)
@@ -60,5 +60,9 @@ list:
 
 clean:
 	-rm -r $(DIR_BIN)
-	go clean $(PKG)
+	$(GO) clean $(PKG)
 	$(MAKE) -C third_party clean
+
+install-tools:
+	$(GO) mod download
+	grep -o '"[^"]\+"' tools.go | xargs -n1 $(GO)  install
