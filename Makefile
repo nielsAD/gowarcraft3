@@ -17,7 +17,6 @@ DIR_PRE=github.com/nielsAD/gowarcraft3
 PKG:=$(shell $(GO) list ./...)
 DIR:=$(subst $(DIR_PRE),.,$(PKG))
 CMD:=$(subst $(DIR_PRE)/cmd/,,$(shell $(GO) list ./cmd/...))
-ARCH:=$(shell $(GO) env GOARCH)
 
 ifeq ($(TEST_RACE),1)
 	GOTEST_FLAGS+= -race
