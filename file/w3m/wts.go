@@ -45,7 +45,7 @@ func (m *Map) TriggerStrings() (map[int]string, error) {
 				continue
 			}
 
-			id, err := strconv.Atoi(match[1])
+			id, err := strconv.ParseInt(match[1], 10, 0)
 			if err != nil {
 				continue
 			}
@@ -78,7 +78,7 @@ func (m *Map) TriggerStrings() (map[int]string, error) {
 				sb.WriteString(strings.TrimRight(l, "\r\n"))
 			}
 
-			ts[id] = sb.String()
+			ts[int(id)] = sb.String()
 		}
 
 		m.ts = ts
@@ -99,10 +99,10 @@ func (m *Map) ExpandString(s string) (string, error) {
 		return s, nil
 	}
 
-	id, err := strconv.Atoi(match[1])
+	id, err := strconv.ParseInt(match[1], 10, 0)
 	if err != nil {
 		return "", err
 	}
 
-	return ts[id], nil
+	return ts[int(id)], nil
 }

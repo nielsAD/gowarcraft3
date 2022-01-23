@@ -52,8 +52,8 @@ func (u User) Stat() (product protocol.DWordString, icon protocol.DWordString, l
 	}
 
 	if len(s) >= 3 {
-		if level, err := strconv.Atoi(s[2]); err == nil {
-			lvl = level
+		if level, err := strconv.ParseInt(s[2], 10, 0); err == nil {
+			lvl = int(level)
 		}
 	}
 	if len(s) >= 4 {

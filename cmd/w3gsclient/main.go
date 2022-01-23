@@ -203,7 +203,7 @@ func main() {
 				d.Say("use like: .team [int]")
 				break
 			}
-			if t, err := strconv.Atoi(cmd[1]); err == nil && t >= 1 {
+			if t, err := strconv.ParseUint(cmd[1], 0, 8); err == nil && t >= 1 {
 				d.ChangeTeam(uint8(t - 1))
 			}
 		case ".color":
@@ -211,7 +211,7 @@ func main() {
 				d.Say("use like: .color [int]")
 				break
 			}
-			if c, err := strconv.Atoi(cmd[1]); err == nil && c >= 1 {
+			if c, err := strconv.ParseUint(cmd[1], 0, 8); err == nil && c >= 1 {
 				d.ChangeColor(uint8(c - 1))
 			}
 		case ".handicap":
@@ -219,7 +219,7 @@ func main() {
 				d.Say("use like: .handicap [int]")
 				break
 			}
-			if h, err := strconv.Atoi(cmd[1]); err == nil && h >= 0 {
+			if h, err := strconv.ParseUint(cmd[1], 0, 8); err == nil {
 				d.ChangeHandicap(uint8(h))
 			}
 		}
