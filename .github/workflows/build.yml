@@ -12,8 +12,8 @@ jobs:
         run:
           - { name: 'linux', os: ubuntu-latest, shell: bash }
           - { name: 'macos', os: macos-latest,  shell: bash }
-          - { name: 'windows_x86', os: windows-latest, shell: 'msys2 {0}', msys: mingw32 }
-          - { name: 'windows_x64', os: windows-latest, shell: 'msys2 {0}', msys: mingw64 }
+          - { name: 'windows_x86', os: windows-latest, shell: 'msys2 {0}', msys: mingw32, goflags: '-ldflags "-linkmode external -extldflags -static"' }
+          - { name: 'windows_x64', os: windows-latest, shell: 'msys2 {0}', msys: mingw64, goflags: '-ldflags "-linkmode external -extldflags -static"' }
         go: [1.17]
 
     defaults:
@@ -60,7 +60,7 @@ jobs:
       - name: Test
         run: make test
       - name: Release
-        run: make release
+        run: make release GO_FLAGS='${{ matrix.run.goflags }}'
 
       - name: Prepare artifacts
         run: |
