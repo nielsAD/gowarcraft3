@@ -64,17 +64,19 @@ jobs:
 
       - name: Prepare artifacts
         run: |
+          REF_NAME=$(echo "${GITHUB_HEAD_REF:-$GITHUB_REF_NAME}" | sed 's/[^a-zA-Z0-9\-_.]/-/g')
+          echo "ref_name=$REF_NAME" >> $GITHUB_ENV
           echo -e "Author:   Niels A.D.
           Project:  gowarcraft3 (https://github.com/nielsAD/gowarcraft3)
           Platform: `go env GOOS`/`go env GOARCH` (`go env GOVERSION`)
-          Release:  $GITHUB_REF_NAME ($GITHUB_SHA)
+          Release:  $REF_NAME ($GITHUB_SHA)
           Date:     `date --utc`" > VERSION.txt
           mv LICENSE LICENSE.txt
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v2
         with:
-          name: gowarcraft3_${{ github.ref_name }}_${{ matrix.run.name }}
+          name: gowarcraft3_${{ env.ref_name }}_${{ matrix.run.name }}
           path: |
             bin/
             LICENSE.txt
