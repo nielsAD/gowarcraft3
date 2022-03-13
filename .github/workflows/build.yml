@@ -70,7 +70,7 @@ jobs:
           Project:  gowarcraft3 (https://github.com/nielsAD/gowarcraft3)
           Platform: `go env GOOS`/`go env GOARCH` (`go env GOVERSION`)
           Release:  $REF_NAME ($GITHUB_SHA)
-          Date:     `date --utc`" > VERSION.txt
+          Date:     `date -u`" > VERSION.txt
           mv LICENSE LICENSE.txt
 
       - name: Upload artifacts
