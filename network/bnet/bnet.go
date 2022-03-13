@@ -450,27 +450,21 @@ func (b *Client) sendAuthInfo(conn *network.BNCSConn) (*bncs.AuthInfoResp, error
 	}
 
 	pkt, err := conn.NextPacket(10 * time.Second)
-	if err != nil {
-		return nil, err
-	}
-	switch p := pkt.(type) {
-	case *bncs.Ping:
-		if _, err := conn.Send(p); err != nil {
+	for {
+		if err != nil {
 			return nil, err
 		}
-	default:
-		return nil, ErrUnexpectedPacket
-	}
-
-	pkt, err = conn.NextPacket(10 * time.Second)
-	if err != nil {
-		return nil, err
-	}
-	switch p := pkt.(type) {
-	case *bncs.AuthInfoResp:
-		return p, nil
-	default:
-		return nil, ErrUnexpectedPacket
+		switch p := pkt.(type) {
+		case *bncs.Ping:
+			if _, err := conn.Send(p); err != nil {
+				return nil, err
+			}
+		case *bncs.AuthInfoResp:
+			return p, nil
+		default:
+			b.Fire(pkt)
+		}
+		pkt, err = conn.NextPacket(network.NoTimeout)
 	}
 }
 
@@ -547,14 +541,17 @@ func (b *Client) sendAuthCheck(conn *network.BNCSConn, clientToken uint32, authi
 	}
 
 	pkt, err := conn.NextPacket(10 * time.Second)
-	if err != nil {
-		return nil, err
-	}
-	switch p := pkt.(type) {
-	case *bncs.AuthCheckResp:
-		return p, nil
-	default:
-		return nil, ErrUnexpectedPacket
+	for {
+		if err != nil {
+			return nil, err
+		}
+		switch p := pkt.(type) {
+		case *bncs.AuthCheckResp:
+			return p, nil
+		default:
+			b.Fire(pkt)
+		}
+		pkt, err = conn.NextPacket(network.NoTimeout)
 	}
 }
 
@@ -569,14 +566,17 @@ func (b *Client) sendLogon(conn *network.BNCSConn, srp SRP) (*bncs.AuthAccountLo
 	}
 
 	pkt, err := conn.NextPacket(15 * time.Second)
-	if err != nil {
-		return nil, err
-	}
-	switch p := pkt.(type) {
-	case *bncs.AuthAccountLogonResp:
-		return p, nil
-	default:
-		return nil, ErrUnexpectedPacket
+	for {
+		if err != nil {
+			return nil, err
+		}
+		switch p := pkt.(type) {
+		case *bncs.AuthAccountLogonResp:
+			return p, nil
+		default:
+			b.Fire(pkt)
+		}
+		pkt, err = conn.NextPacket(network.NoTimeout)
 	}
 }
 
@@ -590,14 +590,17 @@ func (b *Client) sendLogonProof(conn *network.BNCSConn, srp SRP, logon *bncs.Aut
 	}
 
 	pkt, err := conn.NextPacket(10 * time.Second)
-	if err != nil {
-		return nil, err
-	}
-	switch p := pkt.(type) {
-	case *bncs.AuthAccountLogonProofResp:
-		return p, nil
-	default:
-		return nil, ErrUnexpectedPacket
+	for {
+		if err != nil {
+			return nil, err
+		}
+		switch p := pkt.(type) {
+		case *bncs.AuthAccountLogonProofResp:
+			return p, nil
+		default:
+			b.Fire(pkt)
+		}
+		pkt, err = conn.NextPacket(network.NoTimeout)
 	}
 }
 
@@ -616,14 +619,17 @@ func (b *Client) sendCreateAccount(conn *network.BNCSConn, srp SRP) (*bncs.AuthA
 	}
 
 	pkt, err := conn.NextPacket(10 * time.Second)
-	if err != nil {
-		return nil, err
-	}
-	switch p := pkt.(type) {
-	case *bncs.AuthAccountCreateResp:
-		return p, nil
-	default:
-		return nil, ErrUnexpectedPacket
+	for {
+		if err != nil {
+			return nil, err
+		}
+		switch p := pkt.(type) {
+		case *bncs.AuthAccountCreateResp:
+			return p, nil
+		default:
+			b.Fire(pkt)
+		}
+		pkt, err = conn.NextPacket(network.NoTimeout)
 	}
 }
 
@@ -640,14 +646,17 @@ func (b *Client) sendChangePass(conn *network.BNCSConn, srp SRP) (*bncs.AuthAcco
 	}
 
 	pkt, err := conn.NextPacket(15 * time.Second)
-	if err != nil {
-		return nil, err
-	}
-	switch p := pkt.(type) {
-	case *bncs.AuthAccountChangePassResp:
-		return p, nil
-	default:
-		return nil, ErrUnexpectedPacket
+	for {
+		if err != nil {
+			return nil, err
+		}
+		switch p := pkt.(type) {
+		case *bncs.AuthAccountChangePassResp:
+			return p, nil
+		default:
+			b.Fire(pkt)
+		}
+		pkt, err = conn.NextPacket(network.NoTimeout)
 	}
 }
 
@@ -668,14 +677,17 @@ func (b *Client) sendChangePassProof(conn *network.BNCSConn, oldSRP SRP, newSRP 
 	}
 
 	pkt, err := conn.NextPacket(10 * time.Second)
-	if err != nil {
-		return nil, err
-	}
-	switch p := pkt.(type) {
-	case *bncs.AuthAccountChangePassProofResp:
-		return p, nil
-	default:
-		return nil, ErrUnexpectedPacket
+	for {
+		if err != nil {
+			return nil, err
+		}
+		switch p := pkt.(type) {
+		case *bncs.AuthAccountChangePassProofResp:
+			return p, nil
+		default:
+			b.Fire(pkt)
+		}
+		pkt, err = conn.NextPacket(network.NoTimeout)
 	}
 }
 
@@ -694,14 +706,11 @@ func (b *Client) sendEnterChat(conn *network.BNCSConn) (*bncs.EnterChatResp, err
 			return nil, err
 		}
 		switch p := pkt.(type) {
-		case *bncs.ClanInfo:
-			b.Fire(pkt)
 		case *bncs.EnterChatResp:
 			return p, nil
 		default:
-			return nil, ErrUnexpectedPacket
+			b.Fire(pkt)
 		}
-
 		pkt, err = conn.NextPacket(network.NoTimeout)
 	}
 }
