@@ -13,7 +13,7 @@ require (
 	github.com/miekg/dns v1.1.45
 	go.dedis.ch/protobuf v1.0.11
 	golang.org/x/net v0.0.0-20220121210141-e204ce36a2ba
-	golang.org/x/sys v0.0.0-20220114195835-da31bd327af9
+	golang.org/x/sys v0.1.0
 	golang.org/x/term v0.0.0-20210927222741-03fcf44c2211
 	honnef.co/go/tools v0.2.2
 )
