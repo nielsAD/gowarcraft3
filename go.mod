@@ -12,9 +12,9 @@ require (
 	github.com/kyokomi/emoji/v2 v2.2.8
 	github.com/miekg/dns v1.1.45
 	go.dedis.ch/protobuf v1.0.11
-	golang.org/x/net v0.0.0-20220121210141-e204ce36a2ba
-	golang.org/x/sys v0.0.0-20220114195835-da31bd327af9
-	golang.org/x/term v0.0.0-20210927222741-03fcf44c2211
+	golang.org/x/net v0.1.0
+	golang.org/x/sys v0.1.0
+	golang.org/x/term v0.1.0
 	honnef.co/go/tools v0.2.2
 )
 
@@ -23,7 +23,7 @@ require (
 	github.com/mattn/go-colorable v0.1.12 // indirect
 	github.com/mattn/go-isatty v0.0.14 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
-	golang.org/x/crypto v0.0.0-20220112180741-5e0467b6c7ce // indirect
+	golang.org/x/crypto v0.1.0 // indirect
 	golang.org/x/mod v0.5.1 // indirect
 	golang.org/x/tools v0.1.8 // indirect
 	golang.org/x/xerrors v0.0.0-20200804184101-5ec99f83aff1 // indirect
