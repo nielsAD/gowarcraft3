@@ -59,7 +59,7 @@ func NewUDPGameList(gv w3gs.GameVersion, port int) (*UDPGameList, error) {
 	return &g, nil
 }
 
-//Encoding for w3gs packets
+// Encoding for w3gs packets
 func (g *UDPGameList) Encoding() w3gs.Encoding {
 	return w3gs.Encoding{
 		GameVersion: g.GameVersion.Version,

@@ -312,8 +312,8 @@ func TestFiles(t *testing.T) {
 		trunc.Records = trunc.Records[20:23]
 
 		if !reflect.DeepEqual(f.replay, trunc) {
-			t.Log(fmt.Sprintf("REF: %+v\n", f.replay))
-			t.Log(fmt.Sprintf("OUT: %+v\n", trunc))
+			t.Logf("REF: %+v\n", f.replay)
+			t.Logf("OUT: %+v\n", trunc)
 			t.Fatal(f.file, "Replay is not deep equal")
 		}
 

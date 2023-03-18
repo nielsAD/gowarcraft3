@@ -67,8 +67,7 @@ func (pkt *UnknownPacket) Deserialize(buf *protocol.Buffer, enc *Encoding) error
 //
 // Format:
 //
-//    (UINT32) Ping (GetTickCount)
-//
+//	(UINT32) Ping (GetTickCount)
 type Ping struct {
 	Payload uint32
 }
@@ -103,8 +102,7 @@ func (pkt *Ping) Deserialize(buf *protocol.Buffer, enc *Encoding) error {
 //
 // Format:
 //
-//    (UINT32) Pong (copy of Ping payload)
-//
+//	(UINT32) Pong (copy of Ping payload)
 type Pong struct {
 	Ping
 }
@@ -125,10 +123,9 @@ func (pkt *Pong) Serialize(buf *protocol.Buffer, enc *Encoding) error {
 //
 // Format:
 //
-//    (UINT32) Ping
-//    (UINT32) Peer set  (see [0x37] W3GS_ClientInfo)
-//    (UINT32) Game ticks
-//
+//	(UINT32) Ping
+//	(UINT32) Peer set  (see [0x37] W3GS_ClientInfo)
+//	(UINT32) Game ticks
 type PeerPing struct {
 	Payload   uint32
 	PeerSet   protocol.BitSet32
@@ -167,8 +164,7 @@ func (pkt *PeerPing) Deserialize(buf *protocol.Buffer, enc *Encoding) error {
 //
 // Format:
 //
-//    (UINT32) Pong (copy of Ping payload)
-//
+//	(UINT32) Pong (copy of Ping payload)
 type PeerPong struct {
 	Ping
 }
@@ -191,20 +187,19 @@ func (pkt *PeerPong) Serialize(buf *protocol.Buffer, enc *Encoding) error {
 //
 // Format:
 //
-//    (UINT32)   Host Counter (Game ID)
-//    (UINT32)   Entry Key (used in LAN)
-//     (UINT8)   Unknown (0x00)
-//    (UINT16)   Listen Port
-//    (UINT32)   Join counter
-//    (STRING)   Player name
-//     (UINT8)   Number of bytes that follow (0x01 < 1.29; 0x02 >= 1.29)
-//     (UINT8)[] Unknown (0x00)
-//    (UINT16)   AF_INET (0x02)
-//    (UINT16)   Internal Port
-//    (UINT32)   Internal IP
-//    (UINT32)   Unknown (0x00)
-//    (UINT32)   Unknown (0x00)
-//
+//	(UINT32)   Host Counter (Game ID)
+//	(UINT32)   Entry Key (used in LAN)
+//	 (UINT8)   Unknown (0x00)
+//	(UINT16)   Listen Port
+//	(UINT32)   Join counter
+//	(STRING)   Player name
+//	 (UINT8)   Number of bytes that follow (0x01 < 1.29; 0x02 >= 1.29)
+//	 (UINT8)[] Unknown (0x00)
+//	(UINT16)   AF_INET (0x02)
+//	(UINT16)   Internal Port
+//	(UINT32)   Internal IP
+//	(UINT32)   Unknown (0x00)
+//	(UINT32)   Unknown (0x00)
 type Join struct {
 	HostCounter  uint32
 	EntryKey     uint32
@@ -285,15 +280,14 @@ func (pkt *Join) Deserialize(buf *protocol.Buffer, enc *Encoding) error {
 //
 // Reason:
 //
-//    0x09 RejectJoin_FULL      The game lobby is full
-//    0x07 RejectJoin_INVALID   There was an error in your request
-//    0x10 RejectJoin_STARTED   The game has already been started
-//    0x27 RejectJoin_WRONGPASS The password you sent was incorrect
+//	0x09 RejectJoin_FULL      The game lobby is full
+//	0x07 RejectJoin_INVALID   There was an error in your request
+//	0x10 RejectJoin_STARTED   The game has already been started
+//	0x27 RejectJoin_WRONGPASS The password you sent was incorrect
 //
 // Format:
 //
-//    (UINT32) Reason
-//
+//	(UINT32) Reason
 type RejectJoin struct {
 	Reason RejectReason
 }
@@ -324,21 +318,20 @@ func (pkt *RejectJoin) Deserialize(buf *protocol.Buffer, enc *Encoding) error {
 //
 // Format:
 //
-//    Embedded [0x09] W3GS_SlotInfo:
-//	    (UINT16)   Length of Slot data
-//	     (UINT8)   Number of slots
-//	     (UINT8)[] Slot data
-//	    (UINT32)   Random seed
-//	     (UINT8)   Slots layout
-//	     (UINT8)   Number of player slots without observers
+//	   Embedded [0x09] W3GS_SlotInfo:
+//		    (UINT16)   Length of Slot data
+//		     (UINT8)   Number of slots
+//		     (UINT8)[] Slot data
+//		    (UINT32)   Random seed
+//		     (UINT8)   Slots layout
+//		     (UINT8)   Number of player slots without observers
 //
-//     (UINT8) Player number
-//    (UINT16) AF_INET (0x02)
-//    (UINT16) Port
-//    (UINT32) External IP
-//    (UINT32) Unknown (0x00)
-//    (UINT32) Unknown (0x00)
-//
+//	    (UINT8) Player number
+//	   (UINT16) AF_INET (0x02)
+//	   (UINT16) Port
+//	   (UINT32) External IP
+//	   (UINT32) Unknown (0x00)
+//	   (UINT32) Unknown (0x00)
 type SlotInfoJoin struct {
 	SlotInfo
 	PlayerID     uint8
@@ -394,24 +387,23 @@ func (pkt *SlotInfoJoin) Deserialize(buf *protocol.Buffer, enc *Encoding) error 
 //
 // Format:
 //
-//    (UINT16)   Length of Slot data
-//     (UINT8)   Number of slots
-//     (UINT8)[] Slot data
-//    (UINT32)   Random seed (GetTickCount)
-//     (UINT8)   Slots layout
-//     (UINT8)   Number of player slots without observers
+//	(UINT16)   Length of Slot data
+//	 (UINT8)   Number of slots
+//	 (UINT8)[] Slot data
+//	(UINT32)   Random seed (GetTickCount)
+//	 (UINT8)   Slots layout
+//	 (UINT8)   Number of player slots without observers
 //
-//    For each slot:
-//       (UINT8) Player number
-//       (UINT8) Download status
-//       (UINT8) Slot status
-//       (UINT8) Computer status
-//       (UINT8) Team
-//       (UINT8) Color
-//       (UINT8) Race
-//       (UINT8) Computer type
-//       (UINT8) Handicap
-//
+//	For each slot:
+//	   (UINT8) Player number
+//	   (UINT8) Download status
+//	   (UINT8) Slot status
+//	   (UINT8) Computer status
+//	   (UINT8) Team
+//	   (UINT8) Color
+//	   (UINT8) Race
+//	   (UINT8) Computer type
+//	   (UINT8) Handicap
 type SlotInfo struct {
 	Slots      []SlotData
 	RandomSeed uint32
@@ -427,42 +419,41 @@ type SlotInfo struct {
 //
 // Slot status:
 //
-//    0x00 Open
-//    0x01 Closed
-//    0x02 Occupied
+//	0x00 Open
+//	0x01 Closed
+//	0x02 Occupied
 //
 // Computer status:
 //
-//    0x00 Human
-//    0x01 Computer
+//	0x00 Human
+//	0x01 Computer
 //
 // Race:
 //
-//    0x01 Human
-//    0x02 Orc
-//    0x04 Night Elf
-//    0x08 Undead
-//    0x20 Random
-//    0x40 Selectable
+//	0x01 Human
+//	0x02 Orc
+//	0x04 Night Elf
+//	0x08 Undead
+//	0x20 Random
+//	0x40 Selectable
 //
 // Computer type:
 //
-//    0x00 Easy
-//    0x01 Normal / Human
-//    0x02 Hard
+//	  0x00 Easy
+//	  0x01 Normal / Human
+//	  0x02 Hard
 //
-//  Format:
+//	Format:
 //
-//    (UINT8) Player number
-//    (UINT8) Download status
-//    (UINT8) Slot status
-//    (UINT8) Computer status
-//    (UINT8) Team
-//    (UINT8) Color
-//    (UINT8) Race
-//    (UINT8) Computer type
-//    (UINT8) Handicap
-//
+//	  (UINT8) Player number
+//	  (UINT8) Download status
+//	  (UINT8) Slot status
+//	  (UINT8) Computer status
+//	  (UINT8) Team
+//	  (UINT8) Color
+//	  (UINT8) Race
+//	  (UINT8) Computer type
+//	  (UINT8) Handicap
 type SlotData struct {
 	PlayerID       uint8
 	DownloadStatus uint8
@@ -591,22 +582,21 @@ func (pkt *SlotInfo) DeserializeContent(buf *protocol.Buffer, enc *Encoding) err
 //
 // Format:
 //
-//    (UINT32)   Join Counter
-//     (UINT8)   Player number
-//    (STRING)   Player name
-//     (UINT8)   Number of bytes that follow (0x01)
-//     (UINT8)[] Unknown (0x00)
-//    (UINT16)   AF_INET (0x02)
-//    (UINT16)   Port
-//    (UINT32)   External IP
-//    (UINT32)   Unknown (0x00)
-//    (UINT32)   Unknown (0x00)
-//    (UINT16)   AF_INET (0x02)
-//    (UINT16)   Port
-//    (UINT32)   Internal IP
-//    (UINT32)   Unknown (0x00)
-//    (UINT32)   Unknown (0x00)
-//
+//	(UINT32)   Join Counter
+//	 (UINT8)   Player number
+//	(STRING)   Player name
+//	 (UINT8)   Number of bytes that follow (0x01)
+//	 (UINT8)[] Unknown (0x00)
+//	(UINT16)   AF_INET (0x02)
+//	(UINT16)   Port
+//	(UINT32)   External IP
+//	(UINT32)   Unknown (0x00)
+//	(UINT32)   Unknown (0x00)
+//	(UINT16)   AF_INET (0x02)
+//	(UINT16)   Port
+//	(UINT32)   Internal IP
+//	(UINT32)   Unknown (0x00)
+//	(UINT32)   Unknown (0x00)
 type PlayerInfo struct {
 	JoinCounter  uint32
 	PlayerID     uint8
@@ -678,18 +668,17 @@ func (pkt *PlayerInfo) Deserialize(buf *protocol.Buffer, enc *Encoding) error {
 //
 // Reason:
 //
-//    0x01 PLAYERLEAVE_DISCONNECT
-//    0x07 PLAYERLEAVE_LOST
-//    0x08 PLAYERLEAVE_LOSTBUILDINGS
-//    0x09 PLAYERLEAVE_WON
-//    0x0A PLAYERLEAVE_DRAW
-//    0x0B PLAYERLEAVE_OBSERVER
-//    0x0D PLAYERLEAVE_LOBBY
+//	0x01 PLAYERLEAVE_DISCONNECT
+//	0x07 PLAYERLEAVE_LOST
+//	0x08 PLAYERLEAVE_LOSTBUILDINGS
+//	0x09 PLAYERLEAVE_WON
+//	0x0A PLAYERLEAVE_DRAW
+//	0x0B PLAYERLEAVE_OBSERVER
+//	0x0D PLAYERLEAVE_LOBBY
 //
 // Format:
 //
-//    (UINT32) Reason
-//
+//	(UINT32) Reason
 type Leave struct {
 	Reason LeaveReason
 }
@@ -719,18 +708,17 @@ func (pkt *Leave) Deserialize(buf *protocol.Buffer, enc *Encoding) error {
 //
 // Reason:
 //
-//    0x01 PLAYERLEAVE_DISCONNECT
-//    0x07 PLAYERLEAVE_LOST
-//    0x08 PLAYERLEAVE_LOSTBUILDINGS
-//    0x09 PLAYERLEAVE_WON
-//    0x0A PLAYERLEAVE_DRAW
-//    0x0B PLAYERLEAVE_OBSERVER
-//    0x0D PLAYERLEAVE_LOBBY
+//	0x01 PLAYERLEAVE_DISCONNECT
+//	0x07 PLAYERLEAVE_LOST
+//	0x08 PLAYERLEAVE_LOSTBUILDINGS
+//	0x09 PLAYERLEAVE_WON
+//	0x0A PLAYERLEAVE_DRAW
+//	0x0B PLAYERLEAVE_OBSERVER
+//	0x0D PLAYERLEAVE_LOBBY
 //
 // Format:
 //
-//    (UINT32) Reason
-//
+//	(UINT32) Reason
 type PlayerKicked struct {
 	Leave
 }
@@ -753,8 +741,7 @@ func (pkt *PlayerKicked) Serialize(buf *protocol.Buffer, enc *Encoding) error {
 //
 // Format:
 //
-//    [blank]
-//
+//	[blank]
 type LeaveAck struct {
 	// Empty
 }
@@ -781,19 +768,18 @@ func (pkt *LeaveAck) Deserialize(buf *protocol.Buffer, enc *Encoding) error {
 //
 // Reason:
 //
-//    0x01 PLAYERLEAVE_DISCONNECT
-//    0x07 PLAYERLEAVE_LOST
-//    0x08 PLAYERLEAVE_LOSTBUILDINGS
-//    0x09 PLAYERLEAVE_WON
-//    0x0A PLAYERLEAVE_DRAW
-//    0x0B PLAYERLEAVE_OBSERVER
-//    0x0D PLAYERLEAVE_LOBBY
+//	0x01 PLAYERLEAVE_DISCONNECT
+//	0x07 PLAYERLEAVE_LOST
+//	0x08 PLAYERLEAVE_LOSTBUILDINGS
+//	0x09 PLAYERLEAVE_WON
+//	0x0A PLAYERLEAVE_DRAW
+//	0x0B PLAYERLEAVE_OBSERVER
+//	0x0D PLAYERLEAVE_LOBBY
 //
 // Format:
 //
-//     (UINT8) Player number
-//    (UINT32) Reason
-//
+//	 (UINT8) Player number
+//	(UINT32) Reason
 type PlayerLeft struct {
 	PlayerID uint8
 	Reason   LeaveReason
@@ -828,8 +814,7 @@ func (pkt *PlayerLeft) Deserialize(buf *protocol.Buffer, enc *Encoding) error {
 //
 // Format:
 //
-//    [blank]
-//
+//	[blank]
 type CountDownStart struct {
 	// Empty
 }
@@ -858,8 +843,7 @@ func (pkt *CountDownStart) Deserialize(buf *protocol.Buffer, enc *Encoding) erro
 //
 // Format:
 //
-//    [blank]
-//
+//	[blank]
 type CountDownEnd struct {
 	// Empty
 }
@@ -886,8 +870,7 @@ func (pkt *CountDownEnd) Deserialize(buf *protocol.Buffer, enc *Encoding) error 
 //
 // Format:
 //
-//    [blank]
-//
+//	[blank]
 type GameLoaded struct {
 	// Empty
 }
@@ -914,8 +897,7 @@ func (pkt *GameLoaded) Deserialize(buf *protocol.Buffer, enc *Encoding) error {
 //
 // Format:
 //
-//    (UINT8) Player number
-//
+//	(UINT8) Player number
 type PlayerLoaded struct {
 	PlayerID uint8
 }
@@ -945,8 +927,7 @@ func (pkt *PlayerLoaded) Deserialize(buf *protocol.Buffer, enc *Encoding) error 
 //
 // Format:
 //
-//    (UINT8) Player number
-//
+//	(UINT8) Player number
 type GameOver struct {
 	PlayerID uint8
 }
@@ -976,12 +957,11 @@ func (pkt *GameOver) Deserialize(buf *protocol.Buffer, enc *Encoding) error {
 //
 // Format:
 //
-//    (UINT8) Number of lagging players
+//	(UINT8) Number of lagging players
 //
-//    For every lagging player:
-//        (UINT8) Player number
-//       (UINT32) Lag duration in milliseconds
-//
+//	For every lagging player:
+//	    (UINT8) Player number
+//	   (UINT32) Lag duration in milliseconds
 type StartLag struct {
 	Players []LagPlayer
 }
@@ -1027,9 +1007,8 @@ func (pkt *StartLag) Deserialize(buf *protocol.Buffer, enc *Encoding) error {
 
 // LagPlayer stores the data for a single lagging player.
 //
-//    (UINT8) Player number
-//    (UINT32) Lag duration in milliseconds
-//
+//	(UINT8) Player number
+//	(UINT32) Lag duration in milliseconds
 type LagPlayer struct {
 	PlayerID      uint8
 	LagDurationMS uint32
@@ -1053,9 +1032,8 @@ func (lp *LagPlayer) DeserializeContent(buf *protocol.Buffer, enc *Encoding) {
 //
 // Format:
 //
-//     (UINT8) Player number
-//    (UINT32) Lag duration in milliseconds
-//
+//	 (UINT8) Player number
+//	(UINT32) Lag duration in milliseconds
 type StopLag struct {
 	LagPlayer
 }
@@ -1087,8 +1065,7 @@ func (pkt *StopLag) Deserialize(buf *protocol.Buffer, enc *Encoding) error {
 //
 // Format:
 //
-//    [blank]
-//
+//	[blank]
 type DropLaggers struct {
 	// Empty
 }
@@ -1115,9 +1092,8 @@ func (pkt *DropLaggers) Deserialize(buf *protocol.Buffer, enc *Encoding) error {
 //
 // Format:
 //
-//    (UINT32) CRC-32 checksum
-//      (VOID) Action data
-//
+//	(UINT32) CRC-32 checksum
+//	  (VOID) Action data
 type GameAction struct {
 	Data []byte
 }
@@ -1157,14 +1133,13 @@ func (pkt *GameAction) Deserialize(buf *protocol.Buffer, enc *Encoding) error {
 //
 // Format:
 //
-//    (UINT16) Send interval
-//    (UINT16) CRC-16 checksum
+//	(UINT16) Send interval
+//	(UINT16) CRC-16 checksum
 //
-//    For each action:
-//        (UINT8) Player number
-//       (UINT16) Length of action data
-//         (VOID) Action data
-//
+//	For each action:
+//	    (UINT8) Player number
+//	   (UINT16) Length of action data
+//	     (VOID) Action data
 type TimeSlot struct {
 	Fragment        bool
 	TimeIncrementMS uint16
@@ -1173,10 +1148,9 @@ type TimeSlot struct {
 
 // PlayerAction stores the data for a single game action.
 //
-//    (UINT8) Player number
-//    (UINT16) Length of action data
-//    (VOID) Action data
-//
+//	(UINT8) Player number
+//	(UINT16) Length of action data
+//	(VOID) Action data
 type PlayerAction struct {
 	PlayerID uint8
 	Data     []byte
@@ -1275,9 +1249,8 @@ func (pkt *TimeSlot) Deserialize(buf *protocol.Buffer, enc *Encoding) error {
 //
 // Format:
 //
-//    (UINT8)  Unknown
-//    (UINT32) Unknown (checksum?)
-//
+//	(UINT8)  Unknown
+//	(UINT32) Unknown (checksum?)
 type TimeSlotAck struct {
 	Unknown1 uint8
 	Checksum uint32
@@ -1310,12 +1283,11 @@ func (pkt *TimeSlotAck) Deserialize(buf *protocol.Buffer, enc *Encoding) error {
 // by [0x27] W3GS_OUTGOING_KEEPALIVE. Each client continues the game with the
 // given player numbers, other players are dropped.
 //
-//    (UINT32)  Unknown (0x01)
-//    (UINT8)   Unknown (0x04)
-//    (UINT32)  Checksum
-//    (UINT8)   NumPlayersInState
-//    (UINT8)[] Player numbers
-//
+//	(UINT32)  Unknown (0x01)
+//	(UINT8)   Unknown (0x04)
+//	(UINT32)  Checksum
+//	(UINT8)   NumPlayersInState
+//	(UINT8)[] Player numbers
 type Desync struct {
 	Unknown1       uint32
 	Checksum       uint32
@@ -1380,25 +1352,24 @@ func (pkt *Desync) DeserializeContent(buf *protocol.Buffer, enc *Encoding) error
 //
 // Format:
 //
-//    (UINT8)   Player count
-//    (UINT8)[] Player numbers that will receive the message
-//    (UINT8)   From player number
-//    (UINT8)   Flags
+//	(UINT8)   Player count
+//	(UINT8)[] Player numbers that will receive the message
+//	(UINT8)   From player number
+//	(UINT8)   Flags
 //
-//    For Flag 0x10:
-//       (STRING) Message
-//    For Flag 0x11:
-//       (UINT8) NewVal (Team)
-//    For Flag 0x12:
-//       (UINT8) NewVal (Color)
-//    For Flag 0x13:
-//       (UINT8) NewVal (Race)
-//    For Flag 0x14:
-//       (UINT8) NewVal(Handicap)
-//    For Flag 0x20:
-//       (UINT32) Message scope (0x00 all, 0x01 allies, 0x02 observers, else directed to N-0x03)
-//       (STRING) Message
-//
+//	For Flag 0x10:
+//	   (STRING) Message
+//	For Flag 0x11:
+//	   (UINT8) NewVal (Team)
+//	For Flag 0x12:
+//	   (UINT8) NewVal (Color)
+//	For Flag 0x13:
+//	   (UINT8) NewVal (Race)
+//	For Flag 0x14:
+//	   (UINT8) NewVal(Handicap)
+//	For Flag 0x20:
+//	   (UINT32) Message scope (0x00 all, 0x01 allies, 0x02 observers, else directed to N-0x03)
+//	   (STRING) Message
 type Message struct {
 	RecipientIDs []uint8
 	SenderID     uint8
@@ -1492,25 +1463,24 @@ func (pkt *Message) Deserialize(buf *protocol.Buffer, enc *Encoding) error {
 //
 // Format:
 //
-//    (UINT8)   Player count
-//    (UINT8)[] Player numbers that will receive the message
-//    (UINT8)   From player number
-//    (UINT8)   Flags
+//	(UINT8)   Player count
+//	(UINT8)[] Player numbers that will receive the message
+//	(UINT8)   From player number
+//	(UINT8)   Flags
 //
-//    For Flag 0x10:
-//       (STRING) Message
-//    For Flag 0x11:
-//       (UINT8) NewVal (Team)
-//    For Flag 0x12:
-//       (UINT8) NewVal (Color)
-//    For Flag 0x13:
-//       (UINT8) NewVal (Race)
-//    For Flag 0x14:
-//       (UINT8) NewVal(Handicap)
-//    For Flag 0x20:
-//       (UINT32) Extra Flags
-//       (STRING) Message
-//
+//	For Flag 0x10:
+//	   (STRING) Message
+//	For Flag 0x11:
+//	   (UINT8) NewVal (Team)
+//	For Flag 0x12:
+//	   (UINT8) NewVal (Color)
+//	For Flag 0x13:
+//	   (UINT8) NewVal (Race)
+//	For Flag 0x14:
+//	   (UINT8) NewVal(Handicap)
+//	For Flag 0x20:
+//	   (UINT32) Extra Flags
+//	   (STRING) Message
 type MessageRelay struct {
 	Message
 }
@@ -1531,25 +1501,24 @@ func (pkt *MessageRelay) Serialize(buf *protocol.Buffer, enc *Encoding) error {
 //
 // Format:
 //
-//    (UINT8)   Player count
-//    (UINT8)[] Player numbers that will receive the message
-//    (UINT8)   From player number
-//    (UINT8)   Flags
+//	(UINT8)   Player count
+//	(UINT8)[] Player numbers that will receive the message
+//	(UINT8)   From player number
+//	(UINT8)   Flags
 //
-//    For Flag 0x10:
-//       (STRING) Message
-//    For Flag 0x11:
-//       (UINT8) NewVal (Team)
-//    For Flag 0x12:
-//       (UINT8) NewVal (Color)
-//    For Flag 0x13:
-//       (UINT8) NewVal (Race)
-//    For Flag 0x14:
-//       (UINT8) NewVal(Handicap)
-//    For Flag 0x20:
-//       (UINT32) Extra Flags
-//       (STRING) Message
-//
+//	For Flag 0x10:
+//	   (STRING) Message
+//	For Flag 0x11:
+//	   (UINT8) NewVal (Team)
+//	For Flag 0x12:
+//	   (UINT8) NewVal (Color)
+//	For Flag 0x13:
+//	   (UINT8) NewVal (Race)
+//	For Flag 0x14:
+//	   (UINT8) NewVal(Handicap)
+//	For Flag 0x20:
+//	   (UINT32) Extra Flags
+//	   (STRING) Message
 type PeerMessage struct {
 	Message
 }
@@ -1574,10 +1543,9 @@ func (pkt *PeerMessage) Serialize(buf *protocol.Buffer, enc *Encoding) error {
 //
 // Format:
 //
-//    (UINT32) Product
-//    (UINT32) Version
-//    (UINT32) Host Counter
-//
+//	(UINT32) Product
+//	(UINT32) Version
+//	(UINT32) Host Counter
 type SearchGame struct {
 	GameVersion
 	HostCounter uint32
@@ -1609,10 +1577,9 @@ func (pkt *SearchGame) Deserialize(buf *protocol.Buffer, enc *Encoding) error {
 
 // GameVersion stores the game version tuple.
 //
-//  Format:
-//    (UINT32) Product
-//    (UINT32) Version
-//
+//	Format:
+//	  (UINT32) Product
+//	  (UINT32) Version
 type GameVersion struct {
 	Product protocol.DWordString
 	Version uint32
@@ -1634,41 +1601,40 @@ func (gv *GameVersion) DeserializeContent(buf *protocol.Buffer, enc *Encoding) {
 //
 // Flags:
 //
-//   Speed: (mask 0x00000003) cannot be combined
-//     0x00000000 - Slow game speed
-//     0x00000001 - Normal game speed
-//     0x00000002 - Fast game speed
-//   Visibility: (mask 0x00000F00) cannot be combined
-//     0x00000100 - Hide terrain
-//     0x00000200 - Map explored
-//     0x00000400 - Always visible (no fog of war)
-//     0x00000800 - Default
-//   Observers/Referees: (mask 0x40003000) cannot be combined
-//     0x00000000 - No Observers
-//     0x00002000 - Observers on Defeat
-//     0x00003000 - Additional players as observer allowed
-//     0x40000000 - Referees
-//   Teams/Units/Hero/Race: (mask 0x07064000) can be combined
-//     0x00004000 - Teams Together (team members are placed at neighbored starting locations)
-//     0x00060000 - Fixed teams
-//     0x01000000 - Unit share
-//     0x02000000 - Random hero
-//     0x04000000 - Random races
+//	Speed: (mask 0x00000003) cannot be combined
+//	  0x00000000 - Slow game speed
+//	  0x00000001 - Normal game speed
+//	  0x00000002 - Fast game speed
+//	Visibility: (mask 0x00000F00) cannot be combined
+//	  0x00000100 - Hide terrain
+//	  0x00000200 - Map explored
+//	  0x00000400 - Always visible (no fog of war)
+//	  0x00000800 - Default
+//	Observers/Referees: (mask 0x40003000) cannot be combined
+//	  0x00000000 - No Observers
+//	  0x00002000 - Observers on Defeat
+//	  0x00003000 - Additional players as observer allowed
+//	  0x40000000 - Referees
+//	Teams/Units/Hero/Race: (mask 0x07064000) can be combined
+//	  0x00004000 - Teams Together (team members are placed at neighbored starting locations)
+//	  0x00060000 - Fixed teams
+//	  0x01000000 - Unit share
+//	  0x02000000 - Random hero
+//	  0x04000000 - Random races
 //
 // Format:
 //
-//    (UINT32)     Flags
-//    (UINT16)     Map width
-//    (UINT16)     Map height
-//    (UINT32)     Map xoro
-//    (STRING)     Map path
-//    (STRING)     Host name
-//     (UINT8)[20] Map Sha1 hash
+//	(UINT32)     Flags
+//	(UINT16)     Map width
+//	(UINT16)     Map height
+//	(UINT32)     Map xoro
+//	(STRING)     Map path
+//	(STRING)     Host name
+//	 (UINT8)[20] Map Sha1 hash
 //
 // Encoded as a null terminated string where every even byte-value was
 // incremented by 1. So all encoded bytes are odd. A control-byte stores
 // the transformations for the next 7 bytes.
-//
 type GameSettings struct {
 	GameSettingFlags GameSettingFlags
 	MapWidth         uint16
@@ -1794,20 +1760,19 @@ func (gs *GameSettings) DeserializeContent(buf *protocol.Buffer, enc *Encoding) 
 //
 // Format:
 //
-//    (UINT32) Product
-//    (UINT32) Version
-//    (UINT32) Host Counter
-//    (UINT32) Entry key
-//    (STRING) Game name
-//     (UINT8) Unknown (0x00)
-//    (STRING) Statstring
-//    (UINT32) Slots total
-//    (UINT32) Game Type Info
-//    (UINT32) Player slots used
-//    (UINT32) Player slots available (total slots - closed slots - AI slots)
-//    (UINT32) Time since creation
-//    (UINT16) Listen Port
-//
+//	(UINT32) Product
+//	(UINT32) Version
+//	(UINT32) Host Counter
+//	(UINT32) Entry key
+//	(STRING) Game name
+//	 (UINT8) Unknown (0x00)
+//	(STRING) Statstring
+//	(UINT32) Slots total
+//	(UINT32) Game Type Info
+//	(UINT32) Player slots used
+//	(UINT32) Player slots available (total slots - closed slots - AI slots)
+//	(UINT32) Time since creation
+//	(UINT16) Listen Port
 type GameInfo struct {
 	GameVersion
 	HostCounter    uint32
@@ -1890,10 +1855,9 @@ func (pkt *GameInfo) Deserialize(buf *protocol.Buffer, enc *Encoding) error {
 //
 // Format:
 //
-//    (UINT32) Product
-//    (UINT32) Version
-//    (UINT32) HostCounter
-//
+//	(UINT32) Product
+//	(UINT32) Version
+//	(UINT32) HostCounter
 type CreateGame struct {
 	GameVersion
 	HostCounter uint32
@@ -1929,10 +1893,9 @@ func (pkt *CreateGame) Deserialize(buf *protocol.Buffer, enc *Encoding) error {
 //
 // Format:
 //
-//    (UINT32) Host Counter
-//    (UINT32) Player slots used
-//    (UINT32) Player slots available (total slots - closed slots - AI slots)
-//
+//	(UINT32) Host Counter
+//	(UINT32) Player slots used
+//	(UINT32) Player slots available (total slots - closed slots - AI slots)
 type RefreshGame struct {
 	HostCounter    uint32
 	SlotsUsed      uint32
@@ -1971,8 +1934,7 @@ func (pkt *RefreshGame) Deserialize(buf *protocol.Buffer, enc *Encoding) error {
 //
 // Format:
 //
-//    (UINT32) Host Counter
-//
+//	(UINT32) Host Counter
 type DecreateGame struct {
 	HostCounter uint32
 }
@@ -2004,12 +1966,11 @@ func (pkt *DecreateGame) Deserialize(buf *protocol.Buffer, enc *Encoding) error 
 //
 // Format:
 //
-//    (UINT32) Player Counter
-//    (UINT32) Entry key
-//     (UINT8) Player number
-//     (UINT8) Unknown (0xFF, status / provider version constant?)
-//    (UINT32) Peer set
-//
+//	(UINT32) Player Counter
+//	(UINT32) Entry key
+//	 (UINT8) Player number
+//	 (UINT8) Unknown (0xFF, status / provider version constant?)
+//	(UINT32) Peer set
 type PeerConnect struct {
 	JoinCounter uint32
 	EntryKey    uint32
@@ -2058,8 +2019,7 @@ func (pkt *PeerConnect) Deserialize(buf *protocol.Buffer, enc *Encoding) error {
 //
 // Format:
 //
-//    (UINT16) Peer Set
-//
+//	(UINT16) Peer Set
 type PeerSet struct {
 	PeerSet protocol.BitSet16
 }
@@ -2094,13 +2054,12 @@ func (pkt *PeerSet) Deserialize(buf *protocol.Buffer, enc *Encoding) error {
 //
 // Format:
 //
-//    (UINT32)     Unknown (0x01)
-//    (STRING)     File Path
-//    (UINT32)     File size
-//    (UINT32)     File CRC hash
-//    (UINT32)     Map XOR/RotateLeft hash
-//     (UINT8)[20] Map SHA-1 hash
-//
+//	(UINT32)     Unknown (0x01)
+//	(STRING)     File Path
+//	(UINT32)     File size
+//	(UINT32)     File CRC hash
+//	(UINT32)     Map XOR/RotateLeft hash
+//	 (UINT8)[20] Map SHA-1 hash
 type MapCheck struct {
 	FilePath string
 	FileSize uint32
@@ -2160,9 +2119,8 @@ func (pkt *MapCheck) Deserialize(buf *protocol.Buffer, enc *Encoding) error {
 //
 // Format:
 //
-//    (UINT32) Unknown (0x01)
-//     (UINT8) Player number
-//
+//	(UINT32) Unknown (0x01)
+//	 (UINT8) Player number
 type StartDownload struct {
 	PlayerID uint8
 }
@@ -2198,10 +2156,9 @@ func (pkt *StartDownload) Deserialize(buf *protocol.Buffer, enc *Encoding) error
 //
 // Format:
 //
-//    (UINT32) Unknown (0x01)
-//     (UINT8) Size Flag (0x01 is ready, 0x03 to request the next 0x43] W3GS_MapPart)
-//    (UINT32) Map Size
-//
+//	(UINT32) Unknown (0x01)
+//	 (UINT8) Size Flag (0x01 is ready, 0x03 to request the next 0x43] W3GS_MapPart)
+//	(UINT32) Map Size
 type MapState struct {
 	Ready    bool
 	FileSize uint32
@@ -2251,13 +2208,12 @@ func (pkt *MapState) Deserialize(buf *protocol.Buffer, enc *Encoding) error {
 //
 // Format:
 //
-//     (UINT8)       To player number
-//     (UINT8)       From player number
-//    (UINT32)       Unknown (0x01)
-//    (UINT32)       Chunk position in file
-//    (UINT32)       CRC-32 checksum
-//     (UINT8)[1442] Data
-//
+//	 (UINT8)       To player number
+//	 (UINT8)       From player number
+//	(UINT32)       Unknown (0x01)
+//	(UINT32)       Chunk position in file
+//	(UINT32)       CRC-32 checksum
+//	 (UINT8)[1442] Data
 type MapPart struct {
 	RecipientID uint8
 	SenderID    uint8
@@ -2313,11 +2269,10 @@ func (pkt *MapPart) Deserialize(buf *protocol.Buffer, enc *Encoding) error {
 //
 // Format:
 //
-//     (UINT8) From player number
-//     (UINT8) To player number
-//    (UINT32) Unknown (0x01)
-//    (UINT32) Chunk position in file
-//
+//	 (UINT8) From player number
+//	 (UINT8) To player number
+//	(UINT32) Unknown (0x01)
+//	(UINT32) Chunk position in file
 type MapPartOK struct {
 	SenderID    uint8
 	RecipientID uint8
@@ -2361,8 +2316,7 @@ func (pkt *MapPartOK) Deserialize(buf *protocol.Buffer, enc *Encoding) error {
 //
 // Format:
 //
-//    [unknown]
-//
+//	[unknown]
 type MapPartError struct {
 	// Empty
 }
@@ -2390,33 +2344,32 @@ func (pkt *MapPartError) Deserialize(buf *protocol.Buffer, enc *Encoding) error 
 //
 // Format:
 //
-//      (UINT8)    Sub type (0x03)
-//                   0x02   Unknown, found when leaving LAN game
-//                   0x03   Battle.net profile data
-//                   0x04   In-game skins
-//                   0x05   Unknown, found when joining LAN game
-//     (UINT32)    Number of bytes following
-//      (UINT8)[n] Protobuf encoded struct
+//	   (UINT8)    Sub type (0x03)
+//	                0x02   Unknown, found when leaving LAN game
+//	                0x03   Battle.net profile data
+//	                0x04   In-game skins
+//	                0x05   Unknown, found when joining LAN game
+//	  (UINT32)    Number of bytes following
+//	   (UINT8)[n] Protobuf encoded struct
 //
-//   For each battle.net profile (sub type 0x03, encoded with protobuf):
-//      (UINT8) Player ID
-//     (STRING) Battletag
-//     (STRING) Clan
-//     (STRING) Portrait
-//      (UINT8) Team
-//     (STRING) Unknown
+//	For each battle.net profile (sub type 0x03, encoded with protobuf):
+//	   (UINT8) Player ID
+//	  (STRING) Battletag
+//	  (STRING) Clan
+//	  (STRING) Portrait
+//	   (UINT8) Team
+//	  (STRING) Unknown
 //
-//   For each player (sub type 0x04, encoded with protobuf):
-//      (UINT8) Player ID
-//      For each in-game skin:
-//     (UINT64) Unit ID
-//     (UINT64) Skin ID
-//     (STRING) Skin collection
+//	For each player (sub type 0x04, encoded with protobuf):
+//	   (UINT8) Player ID
+//	   For each in-game skin:
+//	  (UINT64) Unit ID
+//	  (UINT64) Skin ID
+//	  (STRING) Skin collection
 //
-//   For sub type 0x05 (encoded with protobuf):
-//      (UINT8) Player ID
-//     (UINT32) Unknown
-//
+//	For sub type 0x05 (encoded with protobuf):
+//	   (UINT8) Player ID
+//	  (UINT32) Unknown
 type PlayerExtra struct {
 	Type     PlayerExtraType
 	Profiles []PlayerDataProfile
@@ -2428,13 +2381,12 @@ type PlayerExtra struct {
 //
 // Format (protobuf):
 //
-//      (UINT8) Player ID
-//     (STRING) Battletag
-//     (STRING) Clan
-//     (STRING) Portrait
-//      (UINT8) Team
-//     (STRING) Unknown
-//
+//	 (UINT8) Player ID
+//	(STRING) Battletag
+//	(STRING) Clan
+//	(STRING) Portrait
+//	 (UINT8) Team
+//	(STRING) Unknown
 type PlayerDataProfile struct {
 	PlayerID  uint32
 	BattleTag string
@@ -2448,13 +2400,12 @@ type PlayerDataProfile struct {
 //
 // Format (protobuf):
 //
-//      (UINT8) Player ID
+//	(UINT8) Player ID
 //
-//      For each in-game skin:
-//         (UINT64) Unit ID
-//         (UINT64) Skin ID
-//         (STRING) Skin collection
-//
+//	For each in-game skin:
+//	   (UINT64) Unit ID
+//	   (UINT64) Skin ID
+//	   (STRING) Skin collection
 type PlayerDataSkins struct {
 	PlayerID uint32
 	Skins    []PlayerDataSkin
@@ -2464,10 +2415,9 @@ type PlayerDataSkins struct {
 //
 // Format (protobuf):
 //
-//     (UINT64) Unit ID
-//     (UINT64) Skin ID
-//     (STRING) Skin collection
-//
+//	(UINT64) Unit ID
+//	(UINT64) Skin ID
+//	(STRING) Skin collection
 type PlayerDataSkin struct {
 	Unit       uint64
 	Skin       uint64
@@ -2478,9 +2428,8 @@ type PlayerDataSkin struct {
 //
 // Format (protobuf):
 //
-//      (UINT8) Player ID
-//     (UINT32) Unknown
-//
+//	 (UINT8) Player ID
+//	(UINT32) Unknown
 type PlayerData5 struct {
 	PlayerID uint32
 	Unknown1 uint32

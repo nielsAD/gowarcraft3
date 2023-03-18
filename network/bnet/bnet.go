@@ -173,7 +173,7 @@ func (b *Client) Users() map[string]User {
 	return res
 }
 
-//Encoding for bncs packets
+// Encoding for bncs packets
 func (b *Client) Encoding() bncs.Encoding {
 	return bncs.Encoding{
 		Encoding: w3gs.Encoding{
@@ -188,21 +188,20 @@ func (b *Client) Encoding() bncs.Encoding {
 // DialWithConn initializes a connection to server, verifies game version, and authenticates with CD keys
 //
 // Dial sequence:
-//   1. C > S [0x50] SID_AUTH_INFO
-//   2. S > C [0x25] SID_PING
-//   3. C > S [0x25] SID_PING (optional)
-//   4. S > C [0x50] SID_AUTH_INFO
-//   5. C > S [0x51] SID_AUTH_CHECK
-//   6. S > C [0x51] SID_AUTH_CHECK
-//   7. Client gets icons file, TOS file, and server list file:
-//     1. C > S [0x2D] SID_GETICONDATA (optional)
-//     2. S > C [0x2D] SID_GETICONDATA (optional response)
-//     3. C > S [0x33] SID_GETFILETIME (returned icons file name) (optional)
-//     4. C > S [0x33] SID_GETFILETIME ("tos_USA.txt") (optional)
-//     5. C > S [0x33] SID_GETFILETIME ("bnserver.ini") (optional)
-//     6. S > C [0x33] SID_GETFILETIME (one for each request)
-//     7. Connection to BNFTPv2 to do file downloads
-//
+//  1. C > S [0x50] SID_AUTH_INFO
+//  2. S > C [0x25] SID_PING
+//  3. C > S [0x25] SID_PING (optional)
+//  4. S > C [0x50] SID_AUTH_INFO
+//  5. C > S [0x51] SID_AUTH_CHECK
+//  6. S > C [0x51] SID_AUTH_CHECK
+//  7. Client gets icons file, TOS file, and server list file:
+//  1. C > S [0x2D] SID_GETICONDATA (optional)
+//  2. S > C [0x2D] SID_GETICONDATA (optional response)
+//  3. C > S [0x33] SID_GETFILETIME (returned icons file name) (optional)
+//  4. C > S [0x33] SID_GETFILETIME ("tos_USA.txt") (optional)
+//  5. C > S [0x33] SID_GETFILETIME ("bnserver.ini") (optional)
+//  6. S > C [0x33] SID_GETFILETIME (one for each request)
+//  7. Connection to BNFTPv2 to do file downloads
 func (b *Client) DialWithConn(conn net.Conn) (*network.BNCSConn, error) {
 	conn.Write([]byte{bncs.ProtocolGreeting})
 
@@ -260,24 +259,23 @@ func (b *Client) Dial() (*network.BNCSConn, error) {
 // Logon opens a new connection to server, logs on, and joins chat
 //
 // Logon sequence:
-//   1. Client starts with Dial sequence ([0x50] SID_AUTH_INFO and [0x51] SID_AUTH_CHECK)
-//   2. Client waits for user to enter account information (standard logon shown, uses SRP):
-//     1. C > S [0x53] SID_AUTH_ACCOUNTLOGON
-//     2. S > C [0x53] SID_AUTH_ACCOUNTLOGON
-//     3. C > S [0x54] SID_AUTH_ACCOUNTLOGONPROOF
-//     4. S > C [0x54] SID_AUTH_ACCOUNTLOGONPROOF
-//   3. C > S [0x45] SID_NETGAMEPORT (optional)
-//   4. C > S [0x0A] SID_ENTERCHAT
-//   5. S > C [0x0A] SID_ENTERCHAT
-//   6. C > S [0x44] SID_WARCRAFTGENERAL (WID_TOURNAMENT) (optional)
-//   7. S > C [0x44] SID_WARCRAFTGENERAL (WID_TOURNAMENT) (optional response)
-//   8. C > S [0x46] SID_NEWS_INFO (optional)
-//   9. S > C [0x46] SID_NEWS_INFO (optional response)
+//  1. Client starts with Dial sequence ([0x50] SID_AUTH_INFO and [0x51] SID_AUTH_CHECK)
+//  2. Client waits for user to enter account information (standard logon shown, uses SRP):
+//  1. C > S [0x53] SID_AUTH_ACCOUNTLOGON
+//  2. S > C [0x53] SID_AUTH_ACCOUNTLOGON
+//  3. C > S [0x54] SID_AUTH_ACCOUNTLOGONPROOF
+//  4. S > C [0x54] SID_AUTH_ACCOUNTLOGONPROOF
+//  3. C > S [0x45] SID_NETGAMEPORT (optional)
+//  4. C > S [0x0A] SID_ENTERCHAT
+//  5. S > C [0x0A] SID_ENTERCHAT
+//  6. C > S [0x44] SID_WARCRAFTGENERAL (WID_TOURNAMENT) (optional)
+//  7. S > C [0x44] SID_WARCRAFTGENERAL (WID_TOURNAMENT) (optional response)
+//  8. C > S [0x46] SID_NEWS_INFO (optional)
+//  9. S > C [0x46] SID_NEWS_INFO (optional response)
 //  10. Client waits until user wants to Enter Chat.
 //  11. C > S [0x0C] SID_JOINCHANNEL (First Join, "W3")
 //  12. S > C [0x0F] SID_CHATEVENT
 //  13. A sequence of chat events for entering chat follow.
-//
 func (b *Client) Logon() error {
 	srp, err := b.newSRP(b.Password)
 	if err != nil {
@@ -347,10 +345,9 @@ func (b *Client) Logon() error {
 // CreateAccount sequence:
 //  1. Client starts with Dial sequence
 //  2. Client waits for user to enter new account information:
-//    1. C > S [0x52] SID_AUTH_ACCOUNTCREATE
-//    2. S > C [0x52] SID_AUTH_ACCOUNTCREATE
+//  1. C > S [0x52] SID_AUTH_ACCOUNTCREATE
+//  2. S > C [0x52] SID_AUTH_ACCOUNTCREATE
 //  3. Client can continue with logon ([0x53] SID_AUTH_ACCOUNTLOGON)
-//
 func (b *Client) CreateAccount() error {
 	srp, err := b.newSRP(b.Password)
 	if err != nil {
@@ -383,12 +380,11 @@ func (b *Client) CreateAccount() error {
 // ChangePassword sequence:
 //  1. Client starts with Dial sequence
 //  2. Client waits for user to enter account information and new password:
-//    1. C > S [0x55] SID_AUTH_ACCOUNTCHANGE
-//    2. S > C [0x55] SID_AUTH_ACCOUNTCHANGE
-//    3. C > S [0x56] SID_AUTH_ACCOUNTCHANGEPROOF
-//    4. S > C [0x56] SID_AUTH_ACCOUNTCHANGEPROOF
+//  1. C > S [0x55] SID_AUTH_ACCOUNTCHANGE
+//  2. S > C [0x55] SID_AUTH_ACCOUNTCHANGE
+//  3. C > S [0x56] SID_AUTH_ACCOUNTCHANGEPROOF
+//  4. S > C [0x56] SID_AUTH_ACCOUNTCHANGEPROOF
 //  3. Client can continue with logon ([0x53] SID_AUTH_ACCOUNTLOGON)
-//
 func (b *Client) ChangePassword(newPassword string) error {
 	oldSRP, err := b.newSRP(b.Password)
 	if err != nil {

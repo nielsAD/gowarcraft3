@@ -16,11 +16,10 @@
 //
 // General serialization format:
 //
-//    (UINT8)  Protocol signature (0xFF)
-//    (UINT8)  Packet type ID
-//    (UINT16) Packet size
-//    [Packet Data]
-//
+//	(UINT8)  Protocol signature (0xFF)
+//	(UINT8)  Packet type ID
+//	(UINT16) Packet size
+//	[Packet Data]
 package bncs
 
 import (

@@ -70,8 +70,7 @@ func (pkt *UnknownPacket) Deserialize(buf *protocol.Buffer, enc *Encoding) error
 //
 // Format:
 //
-//    [blank]
-//
+//	[blank]
 type KeepAlive struct {
 	// Empty
 }
@@ -103,8 +102,7 @@ func (pkt *KeepAlive) Deserialize(buf *protocol.Buffer, enc *Encoding) error {
 //
 // Format:
 //
-//    (UINT32) Ping Value
-//
+//	(UINT32) Ping Value
 type Ping struct {
 	Payload uint32
 }
@@ -137,9 +135,8 @@ func (pkt *Ping) Deserialize(buf *protocol.Buffer, enc *Encoding) error {
 //
 // Format:
 //
-//    (STRING) Username
-//    (STRING) StatString
-//
+//	(STRING) Username
+//	(STRING) StatString
 type EnterChatReq struct {
 	// Empty
 }
@@ -172,10 +169,9 @@ func (pkt *EnterChatReq) Deserialize(buf *protocol.Buffer, enc *Encoding) error 
 //
 // Format:
 //
-//    (STRING) Unique name
-//    (STRING) StatString
-//    (STRING) Account name
-//
+//	(STRING) Unique name
+//	(STRING) StatString
+//	(STRING) Account name
 type EnterChatResp struct {
 	UniqueName  string
 	StatString  string
@@ -228,25 +224,32 @@ func (pkt *EnterChatResp) Deserialize(buf *protocol.Buffer, enc *Encoding) error
 // The Channel name must be no greater than 31 characters, otherwise it becomes trimmed by Battle.net.
 //
 // The flags field may contain the following values:
-//   0x00: NoCreate join
-//   0x01: First join
-//   0x02: Forced join
-//   0x05: D2 first join
+//
+//	0x00: NoCreate join
+//	0x01: First join
+//	0x02: Forced join
+//	0x05: D2 first join
 //
 // NoCreate Join:
-//   This will only join the channel specified if it is not empty, and is used by clients when selecting a channel from the channels menu. If the channel is empty, Battle.net sends a SID_ChatEvent of type EID_CHANNELDOESNOTEXIST, upon which official clients prompt for confirmation that the user wishes to create the channel, in which case, it resends this packet with Flags set to Forced Join (0x02).
+//
+//	This will only join the channel specified if it is not empty, and is used by clients when selecting a channel from the channels menu. If the channel is empty, Battle.net sends a SID_ChatEvent of type EID_CHANNELDOESNOTEXIST, upon which official clients prompt for confirmation that the user wishes to create the channel, in which case, it resends this packet with Flags set to Forced Join (0x02).
+//
 // First Join:
-//   Places user in a channel starting with their product and country, followed by a number, ie 'Brood War GBR-1'. Also automatically sends MOTD after entering the channel. When using this type, the Channel variable has no effect, but must be present anyway to avoid an IP ban. This is sent when first logging onto Battle.net
+//
+//	Places user in a channel starting with their product and country, followed by a number, ie 'Brood War GBR-1'. Also automatically sends MOTD after entering the channel. When using this type, the Channel variable has no effect, but must be present anyway to avoid an IP ban. This is sent when first logging onto Battle.net
+//
 // Forced Join:
-//   This is sent when leaving a game, and joins the specified channel without an supplying an MOTD.
+//
+//	This is sent when leaving a game, and joins the specified channel without an supplying an MOTD.
+//
 // D2 First Join:
-//   The same as First join, but is used for D2DV/D2XP clients.
+//
+//	The same as First join, but is used for D2DV/D2XP clients.
 //
 // Format:
 //
-//    (UINT32) Flags
-//    (STRING) Channel
-//
+//	(UINT32) Flags
+//	(STRING) Channel
 type JoinChannel struct {
 	Flag    JoinChannelFlag
 	Channel string
@@ -293,8 +296,7 @@ func (pkt *JoinChannel) Deserialize(buf *protocol.Buffer, enc *Encoding) error {
 //
 // Format:
 //
-//    (STRING) Text
-//
+//	(STRING) Text
 type ChatCommand struct {
 	Text string
 }
@@ -331,80 +333,93 @@ func (pkt *ChatCommand) Deserialize(buf *protocol.Buffer, enc *Encoding) error {
 // Text: For STAR/SEXP/SSHR/JSTR, this field is UTF-8 encoded. For all other clients, it is ISO 8859-1 encoded. It must also be no longer than 255 characters; official clients should only be able to send 224 characters (including the null-terminator).
 //
 // Event IDs:
-//   0x01 EID_SHOWUSER: User in channel
-//   0x02 EID_JOIN: User joined channel
-//   0x03 EID_LEAVE: User left channel
-//   0x04 EID_WHISPER: Recieved whisper
-//   0x05 EID_TALK: Chat text
-//   0x06 EID_BROADCAST: Server broadcast
-//   0x07 EID_CHANNEL: Channel information
-//   0x09 EID_USERFLAGS: Flags update
-//   0x0A EID_WHISPERSENT: Sent whisper
-//   0x0D EID_CHANNELFULL: Channel full
-//   0x0E EID_CHANNELDOESNOTEXIST: Channel doesn't exist
-//   0x0F EID_CHANNELRESTRICTED: Channel is restricted
-//   0x12 EID_INFO: Information
-//   0x13 EID_ERROR: Error message
-//   0x15 EID_IGNORE: Notifies that a user has been ignored (DEFUNCT)
-//   0x16 EID_ACCEPT: Notifies that a user has been unignored (DEFUNCT)
-//   0x17 EID_EMOTE: Emote
 //
+//	0x01 EID_SHOWUSER: User in channel
+//	0x02 EID_JOIN: User joined channel
+//	0x03 EID_LEAVE: User left channel
+//	0x04 EID_WHISPER: Recieved whisper
+//	0x05 EID_TALK: Chat text
+//	0x06 EID_BROADCAST: Server broadcast
+//	0x07 EID_CHANNEL: Channel information
+//	0x09 EID_USERFLAGS: Flags update
+//	0x0A EID_WHISPERSENT: Sent whisper
+//	0x0D EID_CHANNELFULL: Channel full
+//	0x0E EID_CHANNELDOESNOTEXIST: Channel doesn't exist
+//	0x0F EID_CHANNELRESTRICTED: Channel is restricted
+//	0x12 EID_INFO: Information
+//	0x13 EID_ERROR: Error message
+//	0x15 EID_IGNORE: Notifies that a user has been ignored (DEFUNCT)
+//	0x16 EID_ACCEPT: Notifies that a user has been unignored (DEFUNCT)
+//	0x17 EID_EMOTE: Emote
 //
 // EID_SHOWUSER:
-//   This is sent for each user who is already in a channel when you join it, as opposed to EID_JOIN, which is sent when a user joins a channel you have already joined. It is also sent when logged on using D2XP/D2DV and a user requires an update to their statstring - for example, by logging a different character onto a realm.
+//
+//	This is sent for each user who is already in a channel when you join it, as opposed to EID_JOIN, which is sent when a user joins a channel you have already joined. It is also sent when logged on using D2XP/D2DV and a user requires an update to their statstring - for example, by logging a different character onto a realm.
 //
 // EID_JOIN:
-//   This is sent when a user enters the channel you are currently in.
+//
+//	This is sent when a user enters the channel you are currently in.
 //
 // EID_LEAVE:
-//   This is sent when a user exits the channel you are currently in.
+//
+//	This is sent when a user exits the channel you are currently in.
 //
 // EID_WHISPER:
-//   This is sent when a user whispers you.
+//
+//	This is sent when a user whispers you.
 //
 // EID_TALK:
-//   This is sent when a user (excluding self) in chat speaks.
+//
+//	This is sent when a user (excluding self) in chat speaks.
 //
 // EID_BROADCAST:
-//   This is sent when a server announcement is being made globally.
-//   The username supplied for this event is now always `Battle.net`. Historically, the username was the name of the Battle.net Administrator who sent the broadcast.
+//
+//	This is sent when a server announcement is being made globally.
+//	The username supplied for this event is now always `Battle.net`. Historically, the username was the name of the Battle.net Administrator who sent the broadcast.
 //
 // EID_CHANNEL:
-//   The flags field for this event is used and indicates what special conditions exist for the channel in question.
+//
+//	The flags field for this event is used and indicates what special conditions exist for the channel in question.
 //
 // EID_USERFLAGS:
-//   This is sent to inform the client of an update to one or more user's flags.
-//   Battle.net usually sends this event for every user in the channel, even if only one user's flags have changed. This behavior can be exploited to detect invisible users, by performing an action (such as an unsquelch) to provoke a flags update. Users included in the flags update whose presence has not been indicated by `EID_JOIN` or `EID_SHOWUSER` can then be added to the userlist as invisible. Care should be taken, however, to account for the possibility that an asynchronous send error has occurred. Should an `EID_JOIN` or `EID_SHOWUSER` event occur for an invisible user, they should be marked as a normal user, not readded to the userlist.
+//
+//	This is sent to inform the client of an update to one or more user's flags.
+//	Battle.net usually sends this event for every user in the channel, even if only one user's flags have changed. This behavior can be exploited to detect invisible users, by performing an action (such as an unsquelch) to provoke a flags update. Users included in the flags update whose presence has not been indicated by `EID_JOIN` or `EID_SHOWUSER` can then be added to the userlist as invisible. Care should be taken, however, to account for the possibility that an asynchronous send error has occurred. Should an `EID_JOIN` or `EID_SHOWUSER` event occur for an invisible user, they should be marked as a normal user, not readded to the userlist.
 //
 // EID_WHISPERSENT:
-//   The Flags and Ping fields in this packet is equal to the originating user - the one who sent the whisper. In other words, `EID_WHISPERSENT` contains your flags &amp; ping, not those of the person you whispered.
+//
+//	The Flags and Ping fields in this packet is equal to the originating user - the one who sent the whisper. In other words, `EID_WHISPERSENT` contains your flags &amp; ping, not those of the person you whispered.
 //
 // EID_CHANNELDOESNOTEXIST:
-//   See info on `NoCreate Join` in SID_JoinChannel.
+//
+//	See info on `NoCreate Join` in SID_JoinChannel.
 //
 // EID_CHANNELRESTRICTED:
-//   This is sent when attempting to join a channel which your client is not allowed to join.
+//
+//	This is sent when attempting to join a channel which your client is not allowed to join.
 //
 // EID_INFO:
-//   This is information supplied by Battle.net. This text is usually displayed by clients in yellow.
+//
+//	This is information supplied by Battle.net. This text is usually displayed by clients in yellow.
 //
 // EID_ERROR:
-//   This is error information supplied by Battle.net. This text is usually displayed by clients in red.
+//
+//	This is error information supplied by Battle.net. This text is usually displayed by clients in red.
 //
 // EID_EMOTE:
-//   This is sent when any user (including self) uses the emote feature in chat.
+//
+//	This is sent when any user (including self) uses the emote feature in chat.
 //
 // Format:
 //
-//    (UINT32) Event ID
-//    (UINT32) User's Flags
-//    (UINT32) Ping
-//    (UINT32) IP Address             (defunct 0x00000000)
-//    (UINT32) Account number         (defunct 0x00000000)
-//    (UINT32) Registration Authority (defunct 0x00000000)
-//    (STRING) Username
-//    (STRING) Text
-//
+//	(UINT32) Event ID
+//	(UINT32) User's Flags
+//	(UINT32) Ping
+//	(UINT32) IP Address             (defunct 0x00000000)
+//	(UINT32) Account number         (defunct 0x00000000)
+//	(UINT32) Registration Authority (defunct 0x00000000)
+//	(STRING) Username
+//	(STRING) Text
 type ChatEvent struct {
 	Type         ChatEventType
 	UserFlags    ChatUserFlags
@@ -482,8 +497,7 @@ func (pkt *ChatEvent) Deserialize(buf *protocol.Buffer, enc *Encoding) error {
 //
 // Format:
 //
-//    [blank]
-//
+//	[blank]
 type FloodDetected struct {
 	// Empty
 }
@@ -510,10 +524,9 @@ func (pkt *FloodDetected) Deserialize(buf *protocol.Buffer, enc *Encoding) error
 //
 // Format:
 //
-//    (UINT32) Style
-//    (STRING) Text
-//    (STRING) Caption
-//
+//	(UINT32) Style
+//	(STRING) Text
+//	(STRING) Caption
 type MessageBox struct {
 	Style   uint32
 	Text    string
@@ -558,60 +571,59 @@ func (pkt *MessageBox) Deserialize(buf *protocol.Buffer, enc *Encoding) error {
 
 // GameSettings stores the settings of a created game.
 //
-//  This field still conforms to being a null-terminated string by encoding the data such that there are no null characters within.
-//  The first 9 `UINT8`s are characters representing hexadecimal integers (`0` through `9` and `a` through `f`).
-//  After this, the rest of the data is encoded in a manner in order to contain nulls when decoded, but be stored within this null-terminated string.
+//	This field still conforms to being a null-terminated string by encoding the data such that there are no null characters within.
+//	The first 9 `UINT8`s are characters representing hexadecimal integers (`0` through `9` and `a` through `f`).
+//	After this, the rest of the data is encoded in a manner in order to contain nulls when decoded, but be stored within this null-terminated string.
 //
-//  Format:
-//   (CHAR)    Number of free slots (ex: `7` for 7 free slots)
-//   (CHAR)[8] Host counter (reversed hexadecimal integer, ex: `20000000` for second time this host has hosted during his session)
-//   Encoded data:
-//      (UINT32) Map flags (combine the below settings):
-//         Game speed (mask 0x00000003, unique):
-//             `0x00000000`: Slow
-//             `0x00000001`: Normal
-//             `0x00000002`: Fast
-//         Visibility setting (mask 0x00000F00, unique):
-//             `0x00000100`: Hide Terrain
-//             `0x00000200`: Map Explored
-//             `0x00000400`: Always Visible
-//             `0x00000800`: Default
-//         Observers setting (mask 0x40003000, unique):
-//             `0x00000000`: No Observers
-//             `0x00002000`: Observers on Defeat
-//             `0x00003000`: Full Observers
-//             `0x40000000`: Referees
-//         Other advanced host settings (mask 0x07064000, combinable):
-//             `0x00004000`: Teams Together (team members are placed at neighbored starting locations)
-//             `0x00060000`: Lock Teams
-//             `0x01000000`: Full Shared Unit Control
-//             `0x02000000`: Random Hero
-//             `0x04000000`: Random Races
-//      (UINT8) Map null 1
-//      (UINT8) Map width (playable area)
-//      (UINT8) Map null 2
-//      (UINT8) Map height (playable area)
-//      (UINT8) Map null 3
-//     (UINT32) Map CRC
-//     (STRING) Map path
-//     (STRING) Game host name
-//      (UINT8) Map unknown (possibly a STRING with just the null terminator)
-//      (UINT8)[20] Unknown (probably a SHA1 hash)
+//	Format:
+//	 (CHAR)    Number of free slots (ex: `7` for 7 free slots)
+//	 (CHAR)[8] Host counter (reversed hexadecimal integer, ex: `20000000` for second time this host has hosted during his session)
+//	 Encoded data:
+//	    (UINT32) Map flags (combine the below settings):
+//	       Game speed (mask 0x00000003, unique):
+//	           `0x00000000`: Slow
+//	           `0x00000001`: Normal
+//	           `0x00000002`: Fast
+//	       Visibility setting (mask 0x00000F00, unique):
+//	           `0x00000100`: Hide Terrain
+//	           `0x00000200`: Map Explored
+//	           `0x00000400`: Always Visible
+//	           `0x00000800`: Default
+//	       Observers setting (mask 0x40003000, unique):
+//	           `0x00000000`: No Observers
+//	           `0x00002000`: Observers on Defeat
+//	           `0x00003000`: Full Observers
+//	           `0x40000000`: Referees
+//	       Other advanced host settings (mask 0x07064000, combinable):
+//	           `0x00004000`: Teams Together (team members are placed at neighbored starting locations)
+//	           `0x00060000`: Lock Teams
+//	           `0x01000000`: Full Shared Unit Control
+//	           `0x02000000`: Random Hero
+//	           `0x04000000`: Random Races
+//	    (UINT8) Map null 1
+//	    (UINT8) Map width (playable area)
+//	    (UINT8) Map null 2
+//	    (UINT8) Map height (playable area)
+//	    (UINT8) Map null 3
+//	   (UINT32) Map CRC
+//	   (STRING) Map path
+//	   (STRING) Game host name
+//	    (UINT8) Map unknown (possibly a STRING with just the null terminator)
+//	    (UINT8)[20] Unknown (probably a SHA1 hash)
 //
 // Format:
 //
-//    (UINT32)     Flags
-//    (UINT16)     Map width
-//    (UINT16)     Map height
-//    (UINT32)     Map xoro
-//    (STRING)     Map path
-//    (STRING)     Host name
-//     (UINT8)[20] Map Sha1 hash
+//	(UINT32)     Flags
+//	(UINT16)     Map width
+//	(UINT16)     Map height
+//	(UINT32)     Map xoro
+//	(STRING)     Map path
+//	(STRING)     Host name
+//	 (UINT8)[20] Map Sha1 hash
 //
 // Encoded as a null terminated string where every even byte-value was
 // incremented by 1. So all encoded bytes are odd. A control-byte stores
 // the transformations for the next 7 bytes.
-//
 type GameSettings struct {
 	SlotsFree    uint8
 	HostCounter  uint32
@@ -671,42 +683,44 @@ func (gs *GameSettings) DeserializeContent(buf *protocol.Buffer, enc *Encoding) 
 // Returns a list of available games and their information. Values vary depending on product.
 //
 // The Game settings field is a combination of values.
-//    WarCraft III (WAR3/W3XP): combine the below settings
-//       Game type (mask `0x000000FF`, unique)
-//          `0x00000001`: Custom
-//          `0x00000009`: Ladder
-//       Public/private (mask `0x00000800`, unique)
-//          `0x00000000`: Public game
-//          `0x00000800`: Private game
-//       Map author ID (mask `0x00006000`, combinable)
-//          `0x00002000`: Blizzard
-//          `0x00004000`: Custom
-//       Battle/scenario (mask `0x00018000`, unique)
-//          `0x00000000`: Battle
-//          `0x00010000`: Scenario
-//       Map size (mask `0x000E0000`, combinable)
-//          `0x00020000`: Small
-//          `0x00040000`: Medium
-//          `0x00080000`: Huge
-//       Observers (mask `0x00070000`, unique)
-//          `0x00100000`: Allowed observers ("Full Observers" and "Referees" options)
-//          `0x00200000`: Observers on defeat
-//          `0x00400000`: No observers
+//
+//	WarCraft III (WAR3/W3XP): combine the below settings
+//	   Game type (mask `0x000000FF`, unique)
+//	      `0x00000001`: Custom
+//	      `0x00000009`: Ladder
+//	   Public/private (mask `0x00000800`, unique)
+//	      `0x00000000`: Public game
+//	      `0x00000800`: Private game
+//	   Map author ID (mask `0x00006000`, combinable)
+//	      `0x00002000`: Blizzard
+//	      `0x00004000`: Custom
+//	   Battle/scenario (mask `0x00018000`, unique)
+//	      `0x00000000`: Battle
+//	      `0x00010000`: Scenario
+//	   Map size (mask `0x000E0000`, combinable)
+//	      `0x00020000`: Small
+//	      `0x00040000`: Medium
+//	      `0x00080000`: Huge
+//	   Observers (mask `0x00070000`, unique)
+//	      `0x00100000`: Allowed observers ("Full Observers" and "Referees" options)
+//	      `0x00200000`: Observers on defeat
+//	      `0x00400000`: No observers
 //
 // The Address Family, Port, Host's IP, and sin_zero fields form a sockaddr_in(https://msdn.microsoft.com/en-us/library/zx63b042.aspx) structure.
 //
 // The Game status field varies by product.
-//    WarCraft III (WAR3/W3XP):
-//       `0x00000010`: Public
-//       `0x00000011`: Private
-//      When there are no entries returned, the Status field uses this list of results, as well.
-//       `0x00000000`: OK
-//       `0x00000001`: Game doesn't exist
-//       `0x00000002`: Incorrect password
-//       `0x00000003`: Game full
-//       `0x00000004`: Game already started
-//       `0x00000005`: Spawned CD-Key not allowed
-//       `0x00000006`: Too many server requests
+//
+//	WarCraft III (WAR3/W3XP):
+//	   `0x00000010`: Public
+//	   `0x00000011`: Private
+//	  When there are no entries returned, the Status field uses this list of results, as well.
+//	   `0x00000000`: OK
+//	   `0x00000001`: Game doesn't exist
+//	   `0x00000002`: Incorrect password
+//	   `0x00000003`: Game full
+//	   `0x00000004`: Game already started
+//	   `0x00000005`: Spawned CD-Key not allowed
+//	   `0x00000006`: Too many server requests
 //
 // The Game name field is UTF-8 encoded.
 //
@@ -716,26 +730,25 @@ func (gs *GameSettings) DeserializeContent(buf *protocol.Buffer, enc *Encoding) 
 //
 // Format:
 //
-//    (UINT32) Number of games
+//	(UINT32) Number of games
 //
-//    If count is 0:
-//       (UINT32) Status
+//	If count is 0:
+//	   (UINT32) Status
 //
-//    Otherwise, games are listed thus:
-//       For each list item:
-//          (UINT32) Game settings
-//          (UINT32) Language ID
-//          (UINT16) Address Family (Always AF_INET)
-//          (UINT16) Port
-//          (UINT32) Host's IP
-//          (UINT32) sin_zero (0)
-//          (UINT32) sin_zero (0)
-//          (UINT32) Game status
-//          (UINT32) Elapsed time (in seconds)
-//          (STRING) Game name
-//          (STRING) Game password
-//          (STRING) Game statstring
-//
+//	Otherwise, games are listed thus:
+//	   For each list item:
+//	      (UINT32) Game settings
+//	      (UINT32) Language ID
+//	      (UINT16) Address Family (Always AF_INET)
+//	      (UINT16) Port
+//	      (UINT32) Host's IP
+//	      (UINT32) sin_zero (0)
+//	      (UINT32) sin_zero (0)
+//	      (UINT32) Game status
+//	      (UINT32) Elapsed time (in seconds)
+//	      (STRING) Game name
+//	      (STRING) Game password
+//	      (STRING) Game statstring
 type GetAdvListResp struct {
 	Result AdvListResult    //If count is 0
 	Games  []GetAdvListGame //Otherwise
@@ -744,19 +757,19 @@ type GetAdvListResp struct {
 // GetAdvListGame stores a game in GetAdvList.
 //
 // Format:
-//    (UINT32) Game settings
-//    (UINT32) Language ID
-//    (UINT16) Address Family (Always AF_INET)
-//    (UINT16) Port
-//    (UINT32) Host's IP
-//    (UINT32) sin_zero (0)
-//    (UINT32) sin_zero (0)
-//    (UINT32) Game status
-//    (UINT32) Elapsed time (in seconds)
-//    (STRING) Game name
-//    (STRING) Game password
-//    (STRING) Game statstring
 //
+//	(UINT32) Game settings
+//	(UINT32) Language ID
+//	(UINT16) Address Family (Always AF_INET)
+//	(UINT16) Port
+//	(UINT32) Host's IP
+//	(UINT32) sin_zero (0)
+//	(UINT32) sin_zero (0)
+//	(UINT32) Game status
+//	(UINT32) Elapsed time (in seconds)
+//	(STRING) Game name
+//	(STRING) Game password
+//	(STRING) Game statstring
 type GetAdvListGame struct {
 	GameFlags      w3gs.GameFlags
 	LanguageID     uint32
@@ -871,26 +884,30 @@ func (pkt *GetAdvListResp) Deserialize(buf *protocol.Buffer, enc *Encoding) erro
 // Retrieves a list of games.
 //
 // Viewing Filter:
-//   0xFFFF is used to use the combination of values in this packet.
-//   0xFF80 is used to show all games.
-//   For STAR/SEXP/SSHR/JSTR, viewing filter is set to 0x30.
-//   For DRTL/DSHR, viewing filter is set to 0xFFFF by the game, but setting it to 0x00 will disable any viewing limitations, letting you view all games.
+//
+//	0xFFFF is used to use the combination of values in this packet.
+//	0xFF80 is used to show all games.
+//	For STAR/SEXP/SSHR/JSTR, viewing filter is set to 0x30.
+//	For DRTL/DSHR, viewing filter is set to 0xFFFF by the game, but setting it to 0x00 will disable any viewing limitations, letting you view all games.
+//
 // Reserved (0):
-//   This value is hardcoded to 0x00 by all games.
+//
+//	This value is hardcoded to 0x00 by all games.
+//
 // Number of Games:
-//   This is the number of games to list. For a full listing, it's safe to use 0xFF. By default, DRTL/DSHR sets this to 0x19.
+//
+//	This is the number of games to list. For a full listing, it's safe to use 0xFF. By default, DRTL/DSHR sets this to 0x19.
 //
 // Format:
 //
-//    (UINT16) Game Type
-//    (UINT16) Sub Game Type
-//    (UINT32) Viewing Filter
-//    (UINT32) Reserved (0)
-//    (UINT32) Number of Games
-//    (STRING) Game Name
-//    (STRING) Game Password
-//    (STRING) Game Statstring
-//
+//	(UINT16) Game Type
+//	(UINT16) Sub Game Type
+//	(UINT32) Viewing Filter
+//	(UINT32) Reserved (0)
+//	(UINT32) Number of Games
+//	(STRING) Game Name
+//	(STRING) Game Password
+//	(STRING) Game Statstring
 type GetAdvListReq struct {
 	Filter        w3gs.GameFlags
 	FilterMask    w3gs.GameFlags
@@ -948,13 +965,13 @@ func (pkt *GetAdvListReq) Deserialize(buf *protocol.Buffer, enc *Encoding) error
 // StartAdvex3Resp implements the [0x1C] SID_StartAdvex3 packet (S -> C).
 //
 // Possible values for Status:
-//   0x00: Ok
-//   0x01: Failed
+//
+//	0x00: Ok
+//	0x01: Failed
 //
 // Format:
 //
-//    (UINT32) Status
-//
+//	(UINT32) Status
 type StartAdvex3Resp struct {
 	Failed bool
 }
@@ -983,39 +1000,37 @@ func (pkt *StartAdvex3Resp) Deserialize(buf *protocol.Buffer, enc *Encoding) err
 //
 // Bitwise flags for `State`:
 //
-//   0x01: Game is private
-//   0x02: Game is full
-//   0x04: Game contains players (other than creator)
-//   0x08: Game is in progress
-//   0x80: Game is a replay
-//
+//	0x01: Game is private
+//	0x02: Game is full
+//	0x04: Game contains players (other than creator)
+//	0x08: Game is in progress
+//	0x80: Game is a replay
 //
 // Possible values for `Game Type` (and `Sub Game Type`):
 //
-//   0x02: Melee
-//   0x03: Free for All
-//   0x04: 1 vs 1
-//   0x05: Capture The Flag
-//   0x06: Greed (Resources, 0x01: 2500, 0x02: 500, 0x03: 7500, 0x04: 10000)
-//   0x07: Slaughter (Minutes, 0x01: 15, 0x02: 30, 0x03: 45, 0x04: 60)
-//   0x08: Sudden Death
-//   0x09: Ladder (Disconnects, 0x00: Not a loss, 0x01: Counts as a loss)
-//   0x0A: Use Map Settings
-//   0x0B: Team Melee (Number Of Teams, 0x01: 2 Teams, 0x02: 3 Teams, etc.)
-//   0x0C: Team Free For All (Number Of Teams, 0x01: 2 Teams, 0x02: 3 Teams, etc.)
-//   0x0D: Team Capture The Flag (Number Of Teams, 0x01: 2 Teams, 0x02: 3 Teams, etc.)
-//   0x0F: Top vs. Bottom (Number Of Teams, 1-7 specifies the ratio of players belonging to both teams)
-//   0x10: Iron Man Ladder (W2BN only)
-//   0x20: PGL
-//
+//	0x02: Melee
+//	0x03: Free for All
+//	0x04: 1 vs 1
+//	0x05: Capture The Flag
+//	0x06: Greed (Resources, 0x01: 2500, 0x02: 500, 0x03: 7500, 0x04: 10000)
+//	0x07: Slaughter (Minutes, 0x01: 15, 0x02: 30, 0x03: 45, 0x04: 60)
+//	0x08: Sudden Death
+//	0x09: Ladder (Disconnects, 0x00: Not a loss, 0x01: Counts as a loss)
+//	0x0A: Use Map Settings
+//	0x0B: Team Melee (Number Of Teams, 0x01: 2 Teams, 0x02: 3 Teams, etc.)
+//	0x0C: Team Free For All (Number Of Teams, 0x01: 2 Teams, 0x02: 3 Teams, etc.)
+//	0x0D: Team Capture The Flag (Number Of Teams, 0x01: 2 Teams, 0x02: 3 Teams, etc.)
+//	0x0F: Top vs. Bottom (Number Of Teams, 1-7 specifies the ratio of players belonging to both teams)
+//	0x10: Iron Man Ladder (W2BN only)
+//	0x20: PGL
 //
 // `Provider Version Constant`: The current version of the game (1.16.1) uses `0xFF`, previous versions have used `0x1F`, but this may vary depending on game version.
 //
 // Possible values for `Ladder`:
 //
-//   0x00: Game is Normal (Non-Ladder)
-//   0x01: Game is Ladder
-//   0x03: Game is Iron Man Ladder (W2BN only)
+//	0x00: Game is Normal (Non-Ladder)
+//	0x01: Game is Ladder
+//	0x03: Game is Iron Man Ladder (W2BN only)
 //
 // It could be that the `Ladder` is bitwise as well, and that `0x02` means Iron Man and `0x03` just means Iron Man + Ladder.
 //
@@ -1023,16 +1038,15 @@ func (pkt *StartAdvex3Resp) Deserialize(buf *protocol.Buffer, enc *Encoding) err
 //
 // Format:
 //
-//    (UINT32) Game State
-//    (UINT32) Game Uptime in seconds
-//    (UINT16) Game Type
-//    (UINT16) Sub Game Type
-//    (UINT32) Provider Version Constant (0x03FF)
-//    (UINT32) Ladder Type
-//    (STRING) Game Name
-//    (STRING) Game Password
-//    (STRING) Game Statstring
-//
+//	(UINT32) Game State
+//	(UINT32) Game Uptime in seconds
+//	(UINT16) Game Type
+//	(UINT16) Sub Game Type
+//	(UINT32) Provider Version Constant (0x03FF)
+//	(UINT32) Ladder Type
+//	(STRING) Game Name
+//	(STRING) Game Password
+//	(STRING) Game Statstring
 type StartAdvex3Req struct {
 	GameStateFlags GameStateFlags
 	UptimeSec      uint32
@@ -1107,8 +1121,7 @@ func (pkt *StartAdvex3Req) Deserialize(buf *protocol.Buffer, enc *Encoding) erro
 //
 // Format:
 //
-//    [blank]
-//
+//	[blank]
 type StopAdv struct {
 	// Empty
 }
@@ -1139,11 +1152,10 @@ func (pkt *StopAdv) Deserialize(buf *protocol.Buffer, enc *Encoding) error {
 //
 // Format:
 //
-//    (UINT32) Product ID
-//    (UINT32) Product version
-//    (STRING) Game Name
-//    (STRING) Game Password
-//
+//	(UINT32) Product ID
+//	(UINT32) Product version
+//	(STRING) Game Name
+//	(STRING) Game Password
 type NotifyJoin struct {
 	GameVersion w3gs.GameVersion
 	GameName    string
@@ -1190,8 +1202,7 @@ func (pkt *NotifyJoin) Deserialize(buf *protocol.Buffer, enc *Encoding) error {
 //
 // Format:
 //
-//    (UINT16) Port
-//
+//	(UINT16) Port
 type NetGamePort struct {
 	Port uint16
 }
@@ -1220,9 +1231,9 @@ func (pkt *NetGamePort) Deserialize(buf *protocol.Buffer, enc *Encoding) error {
 //
 // Possible Logon type values:
 //
-//   `0x00`: Broken SHA-1 (STAR/SEXP/D2DV/D2XP)
-//   `0x01`: NLS version 1 (War3Beta)
-//   `0x02`: NLS Version 2 (WAR3/W3XP)
+//	`0x00`: Broken SHA-1 (STAR/SEXP/D2DV/D2XP)
+//	`0x01`: NLS version 1 (War3Beta)
+//	`0x02`: NLS Version 2 (WAR3/W3XP)
 //
 // UDP value: No one really knows what this is, however, it is used in 2nd UINT32 of the UDP packet PKT_CONNTEST2. It is also the second part of MCP Chunk 1 in MCP_STARTUP.
 //
@@ -1230,16 +1241,15 @@ func (pkt *NetGamePort) Deserialize(buf *protocol.Buffer, enc *Encoding) error {
 //
 // Format:
 //
-//      (UINT32) Logon type
-//      (UINT32) Server token
-//      (UINT32) UDP value
-//    (FILETIME) MPQ int64
-//      (STRING) MPQ filename
-//      (STRING) ValueString
+//	  (UINT32) Logon type
+//	  (UINT32) Server token
+//	  (UINT32) UDP value
+//	(FILETIME) MPQ int64
+//	  (STRING) MPQ filename
+//	  (STRING) ValueString
 //
-//    WAR3/W3XP Only:
-//       (UINT8)[128] Server signature
-//
+//	WAR3/W3XP Only:
+//	   (UINT8)[128] Server signature
 type AuthInfoResp struct {
 	ServerToken     uint32
 	Unknown1        uint32
@@ -1304,33 +1314,32 @@ func (pkt *AuthInfoResp) Deserialize(buf *protocol.Buffer, enc *Encoding) error 
 //
 // Field descriptions:
 //
-//   Protocol ID: Battle.net's current Protocol ID is `0x00`. This field has only been seen with a value of `0x00`.
-//   Platform code: Identifies the client's platform value.
-//   Product code: Identifies the client's product value.
-//   Version byte: Identifies the client's version number.
-//   Language code: Identifies the client's language value.
-//   Local IP: This is the local network IP of the client, in network byte (big-endian) order, for NAT compatibility. Can safely be set to `0.0.0.0`.
-//   Timezone bias: Retrieve using [TIME_ZONE_INFORMATION](https://msdn.microsoft.com/en-us/library/windows/desktop/ms725481(v=vs.85).aspx) structure returned from [GetTimeZoneInformation()](https://msdn.microsoft.com/en-us/library/windows/desktop/ms724421(v=vs.85).aspx)
-//       Depending on whether the return value is `TIME_ZONE_ID_STANDARD` or `TIME_ZONE_ID_DAYLINE`, add `TZI.Bias + TZI.StandardBias` or `TZI.Bias + TZI.DaylightBias` to get the bias in minutes, where `TZI` is the returned `TIME_ZONE_INFORMATION` structure.
-//       Alternatively, you may use [GetSystemTime()](https://msdn.microsoft.com/en-us/library/windows/desktop/ms724390(v=vs.85).aspx), [GetLocalTime()](https://msdn.microsoft.com/en-us/library/windows/desktop/ms724338(v=vs.85).aspx), and [SystemTimeToFileTime()](https://msdn.microsoft.com/en-us/library/windows/desktop/ms724948(v=vs.85).aspx): convert both system and local time to FILETIMEs, subtract local time from system time, and divide by 600,000,000 to get the bias in minutes.
-//   MPQ locale ID: This field is part of Blizzard's multi-lingual MPQ system and is used to specify which version of an MPQ should be used when the MPQ is available in multiple languages. Can safely be set to `0x00`, but you may also use something like  [GetUserDefaultLCID()](https://msdn.microsoft.com/en-us/library/windows/desktop/dd318135(v=vs.85).aspx).
-//   User language ID: Can be retrieved with [GetUserDefaultLangID()](https://msdn.microsoft.com/en-us/library/windows/desktop/dd318134(v=vs.85).aspx)
-//   Abbreviated country name and country name: Can be retrived with [GetLocaleInfo()](https://msdn.microsoft.com/en-us/library/windows/desktop/dd318101(v=vs.85).aspx) with LCType set to `LOCALE_SABBREVCTRYNAME` (three-letter code) and `LOCALE_SENGLISHCOUNTRYNAME` (English country name) respectively.
+//	Protocol ID: Battle.net's current Protocol ID is `0x00`. This field has only been seen with a value of `0x00`.
+//	Platform code: Identifies the client's platform value.
+//	Product code: Identifies the client's product value.
+//	Version byte: Identifies the client's version number.
+//	Language code: Identifies the client's language value.
+//	Local IP: This is the local network IP of the client, in network byte (big-endian) order, for NAT compatibility. Can safely be set to `0.0.0.0`.
+//	Timezone bias: Retrieve using [TIME_ZONE_INFORMATION](https://msdn.microsoft.com/en-us/library/windows/desktop/ms725481(v=vs.85).aspx) structure returned from [GetTimeZoneInformation()](https://msdn.microsoft.com/en-us/library/windows/desktop/ms724421(v=vs.85).aspx)
+//	    Depending on whether the return value is `TIME_ZONE_ID_STANDARD` or `TIME_ZONE_ID_DAYLINE`, add `TZI.Bias + TZI.StandardBias` or `TZI.Bias + TZI.DaylightBias` to get the bias in minutes, where `TZI` is the returned `TIME_ZONE_INFORMATION` structure.
+//	    Alternatively, you may use [GetSystemTime()](https://msdn.microsoft.com/en-us/library/windows/desktop/ms724390(v=vs.85).aspx), [GetLocalTime()](https://msdn.microsoft.com/en-us/library/windows/desktop/ms724338(v=vs.85).aspx), and [SystemTimeToFileTime()](https://msdn.microsoft.com/en-us/library/windows/desktop/ms724948(v=vs.85).aspx): convert both system and local time to FILETIMEs, subtract local time from system time, and divide by 600,000,000 to get the bias in minutes.
+//	MPQ locale ID: This field is part of Blizzard's multi-lingual MPQ system and is used to specify which version of an MPQ should be used when the MPQ is available in multiple languages. Can safely be set to `0x00`, but you may also use something like  [GetUserDefaultLCID()](https://msdn.microsoft.com/en-us/library/windows/desktop/dd318135(v=vs.85).aspx).
+//	User language ID: Can be retrieved with [GetUserDefaultLangID()](https://msdn.microsoft.com/en-us/library/windows/desktop/dd318134(v=vs.85).aspx)
+//	Abbreviated country name and country name: Can be retrived with [GetLocaleInfo()](https://msdn.microsoft.com/en-us/library/windows/desktop/dd318101(v=vs.85).aspx) with LCType set to `LOCALE_SABBREVCTRYNAME` (three-letter code) and `LOCALE_SENGLISHCOUNTRYNAME` (English country name) respectively.
 //
 // Format:
 //
-//    (UINT32) Protocol ID
-//    (UINT32) Platform code
-//    (UINT32) Product code
-//    (UINT32) Version byte
-//    (UINT32) Language code
-//    (UINT32) Local IP
-//    (UINT32) Time zone bias
-//    (UINT32) MPQ locale ID
-//    (UINT32) User language ID
-//    (STRING) Country abbreviation
-//    (STRING) Country
-//
+//	(UINT32) Protocol ID
+//	(UINT32) Platform code
+//	(UINT32) Product code
+//	(UINT32) Version byte
+//	(UINT32) Language code
+//	(UINT32) Local IP
+//	(UINT32) Time zone bias
+//	(UINT32) MPQ locale ID
+//	(UINT32) User language ID
+//	(STRING) Country abbreviation
+//	(STRING) Country
 type AuthInfoReq struct {
 	PlatformCode        protocol.DWordString
 	GameVersion         w3gs.GameVersion
@@ -1408,15 +1417,16 @@ func (pkt *AuthInfoReq) Deserialize(buf *protocol.Buffer, enc *Encoding) error {
 // Reports success or failure on the game key and version check.
 //
 // Result:
-//   0x000: Passed challenge
-//   0x100: Old game version (Additional info field supplies patch MPQ filename)
-//   0x101: Invalid version
-//   0x102: Game version must be downgraded (Additional info field supplies patch MPQ filename)
-//   0x0NN: (where NN is the version code supplied in SID_AUTH_INFO): Invalid version code (note that 0x100 is not set in this case).
-//   0x200: Invalid CD key (If you receive this status, official Battle.net servers will IP ban you for 1 to 14 days. Before June 15, 2011, this used to exclusively be 14 days)
-//   0x201: CD key in use (Additional info field supplies name of user)
-//   0x202: Banned key
-//   0x203: Wrong product
+//
+//	0x000: Passed challenge
+//	0x100: Old game version (Additional info field supplies patch MPQ filename)
+//	0x101: Invalid version
+//	0x102: Game version must be downgraded (Additional info field supplies patch MPQ filename)
+//	0x0NN: (where NN is the version code supplied in SID_AUTH_INFO): Invalid version code (note that 0x100 is not set in this case).
+//	0x200: Invalid CD key (If you receive this status, official Battle.net servers will IP ban you for 1 to 14 days. Before June 15, 2011, this used to exclusively be 14 days)
+//	0x201: CD key in use (Additional info field supplies name of user)
+//	0x202: Banned key
+//	0x203: Wrong product
 //
 // The last 4 codes also apply to the second CDKey, as indicated by a bitwise combination with `0x010`.
 //
@@ -1426,9 +1436,8 @@ func (pkt *AuthInfoReq) Deserialize(buf *protocol.Buffer, enc *Encoding) error {
 //
 // Format:
 //
-//    (UINT32) Result
-//    (STRING) Additional Information
-//
+//	(UINT32) Result
+//	(STRING) Additional Information
 type AuthCheckResp struct {
 	Result                AuthResult
 	AdditionalInformation string
@@ -1471,18 +1480,19 @@ func (pkt *AuthCheckResp) Deserialize(buf *protocol.Buffer, enc *Encoding) error
 // The data that should be hashed for `Hashed Key Data` is:
 //
 // * For 13/16 character keys (hashed using BSHA1):
-//     1. (UINT32) Client Token
-//     2. (UINT32) Server Token
-//     3. (UINT32) Key Product value (from decoded CD key)
-//     4. (UINT32) Key Public value (from decoded CD key)
-//     5. (UINT32) 0
-//     6. (UINT32) Key Private value (from decoded CD key)
+//  1. (UINT32) Client Token
+//  2. (UINT32) Server Token
+//  3. (UINT32) Key Product value (from decoded CD key)
+//  4. (UINT32) Key Public value (from decoded CD key)
+//  5. (UINT32) 0
+//  6. (UINT32) Key Private value (from decoded CD key)
+//
 // * For 26 character keys (hashed using standard SHA1):
-//     1. (UINT32) Client Token
-//     2. (UINT32) Server Token
-//     3. (UINT32) Key Product value (from decoded CD key)
-//     4. (UINT32) Key Public value (from decoded CD key)
-//     6. (UINT8)[10] Key Private value (from decoded CD key)
+//  1. (UINT32) Client Token
+//  2. (UINT32) Server Token
+//  3. (UINT32) Key Product value (from decoded CD key)
+//  4. (UINT32) Key Public value (from decoded CD key)
+//  6. (UINT8)[10] Key Private value (from decoded CD key)
 //
 // The data that should be used for EXE Information should be separated by one space, in the format of:
 // 1. EXE Name (ex. `war3.exe`)
@@ -1498,22 +1508,21 @@ func (pkt *AuthCheckResp) Deserialize(buf *protocol.Buffer, enc *Encoding) error
 //
 // Format:
 //
-//    (UINT32) Client Token
-//    (UINT32) EXE Version
-//    (UINT32) EXE Hash
-//    (UINT32) Number of CD-keys in this packet
-//    (UINT32) Spawn Key (1 is TRUE, 0 is FALSE)
+//	(UINT32) Client Token
+//	(UINT32) EXE Version
+//	(UINT32) EXE Hash
+//	(UINT32) Number of CD-keys in this packet
+//	(UINT32) Spawn Key (1 is TRUE, 0 is FALSE)
 //
-//    For each Key:
-//       (UINT32)     Key length
-//       (UINT32)     Key Product value
-//       (UINT32)     Key Public value
-//       (UINT32)     Unknown (0)
-//        (UINT8)[20] Hashed Key Data
+//	For each Key:
+//	   (UINT32)     Key length
+//	   (UINT32)     Key Product value
+//	   (UINT32)     Key Public value
+//	   (UINT32)     Unknown (0)
+//	    (UINT8)[20] Hashed Key Data
 //
-//    (STRING) EXE Information
-//    (STRING) Key owner name
-//
+//	(STRING) EXE Information
+//	(STRING) Key owner name
 type AuthCheckReq struct {
 	ClientToken    uint32
 	ExeVersion     uint32
@@ -1525,13 +1534,12 @@ type AuthCheckReq struct {
 
 // CDKey stores the CD key information.
 //
-//  Format:
-//    (UINT32)     Key length
-//    (UINT32)     Key Product value
-//    (UINT32)     Key Public value
-//    (UINT32)     Unknown (0)
-//     (UINT8)[20] Hashed Key Data
-//
+//	Format:
+//	  (UINT32)     Key length
+//	  (UINT32)     Key Product value
+//	  (UINT32)     Key Public value
+//	  (UINT32)     Unknown (0)
+//	   (UINT8)[20] Hashed Key Data
 type CDKey struct {
 	KeyLength       uint32
 	KeyProductValue uint32
@@ -1622,20 +1630,20 @@ func (pkt *AuthCheckReq) Deserialize(buf *protocol.Buffer, enc *Encoding) error 
 // The message reports the success or failure of an account creation attempt.
 //
 // Possible status codes:
-//   0x00: Successfully created account name.
-//   0x04: Name already exists.
-//   0x07: Name is too short/blank.
-//   0x08: Name contains an illegal character.
-//   0x09: Name contains an illegal word.
-//   0x0a: Name contains too few alphanumeric characters.
-//   0x0b: Name contains adjacent punctuation characters.
-//   0x0c: Name contains too many punctuation characters.
-//   Any other: Name already exists.
+//
+//	0x00: Successfully created account name.
+//	0x04: Name already exists.
+//	0x07: Name is too short/blank.
+//	0x08: Name contains an illegal character.
+//	0x09: Name contains an illegal word.
+//	0x0a: Name contains too few alphanumeric characters.
+//	0x0b: Name contains adjacent punctuation characters.
+//	0x0c: Name contains too many punctuation characters.
+//	Any other: Name already exists.
 //
 // Format:
 //
-//    (UINT32)  Status
-//
+//	(UINT32)  Status
 type AuthAccountCreateResp struct {
 	Result AccountCreateResult
 }
@@ -1665,10 +1673,9 @@ func (pkt *AuthAccountCreateResp) Deserialize(buf *protocol.Buffer, enc *Encodin
 //
 // Format:
 //
-//     (UINT8)[32] Salt (s)
-//     (UINT8)[32] Verifier (v)
-//    (STRING)     Username
-//
+//	 (UINT8)[32] Salt (s)
+//	 (UINT8)[32] Verifier (v)
+//	(STRING)     Username
 type AuthAccountCreateReq struct {
 	Salt     [32]byte
 	Verifier [32]byte
@@ -1712,17 +1719,17 @@ func (pkt *AuthAccountCreateReq) Deserialize(buf *protocol.Buffer, enc *Encoding
 // Reports the success or failure of the logon request.
 //
 // Possible status codes:
-//   0x00: Logon accepted, requires proof.
-//   0x01: Account doesn't exist.
-//   0x05: Account requires upgrade.
-//   Other: Unknown (failure).
+//
+//	0x00: Logon accepted, requires proof.
+//	0x01: Account doesn't exist.
+//	0x05: Account requires upgrade.
+//	Other: Unknown (failure).
 //
 // Format:
 //
-//    (UINT32)     Status
-//     (UINT8)[32] Salt (s)
-//     (UINT8)[32] Server Key (B)
-//
+//	(UINT32)     Status
+//	 (UINT8)[32] Salt (s)
+//	 (UINT8)[32] Server Key (B)
 type AuthAccountLogonResp struct {
 	Result    LogonResult
 	Salt      [32]byte
@@ -1759,9 +1766,8 @@ func (pkt *AuthAccountLogonResp) Deserialize(buf *protocol.Buffer, enc *Encoding
 //
 // Format:
 //
-//     (UINT8)[32] Client Key (A)
-//    (STRING)     Username
-//
+//	 (UINT8)[32] Client Key (A)
+//	(STRING)     Username
 type AuthAccountLogonReq struct {
 	ClientKey [32]byte
 	Username  string
@@ -1800,20 +1806,20 @@ func (pkt *AuthAccountLogonReq) Deserialize(buf *protocol.Buffer, enc *Encoding)
 // AuthAccountLogonProofResp implements the [0x54] SID_AUTH_ACCOUNTLOGONPROOF packet (S -> C).
 //
 // Status:
-//   0x00: Logon successful.
-//   0x02: Incorrect password.
-//   0x06: Account closed.
-//   0x0E: An email address should be registered for this account.
-//   0x0F: Custom error. A string at the end of this message contains the error.
+//
+//	0x00: Logon successful.
+//	0x02: Incorrect password.
+//	0x06: Account closed.
+//	0x0E: An email address should be registered for this account.
+//	0x0F: Custom error. A string at the end of this message contains the error.
 //
 // This message confirms the validity of the client password proof and supplies the server password proof.
 //
 // Format:
 //
-//    (UINT32)     Status
-//     (UINT8)[20] Server Password Proof (M2)
-//    (STRING)     Additional information
-//
+//	(UINT32)     Status
+//	 (UINT8)[20] Server Password Proof (M2)
+//	(STRING)     Additional information
 type AuthAccountLogonProofResp struct {
 	Result                LogonProofResult
 	ServerPasswordProof   [20]byte
@@ -1876,8 +1882,7 @@ func (pkt *AuthAccountLogonProofResp) Deserialize(buf *protocol.Buffer, enc *Enc
 //
 // Format:
 //
-//    (UINT8)[20] Client Password Proof (M1)
-//
+//	(UINT8)[20] Client Password Proof (M1)
 type AuthAccountLogonProofReq struct {
 	ClientPasswordProof [20]byte
 }
@@ -1906,17 +1911,17 @@ func (pkt *AuthAccountLogonProofReq) Deserialize(buf *protocol.Buffer, enc *Enco
 // If an error occurs, the salt and server key values are set to zero.
 //
 // Status:
-//   0x00: Change accepted, requires proof.
-//   0x01: Account doesn't exist.
-//   0x05: Account requires upgrade.
-//   Other: Unknown (failure).
+//
+//	0x00: Change accepted, requires proof.
+//	0x01: Account doesn't exist.
+//	0x05: Account requires upgrade.
+//	Other: Unknown (failure).
 //
 // Format:
 //
-//    (UINT32)     Status
-//     (UINT8)[32] Salt (s)
-//     (UINT8)[32] Server key (B)
-//
+//	(UINT32)     Status
+//	 (UINT8)[32] Salt (s)
+//	 (UINT8)[32] Server key (B)
 type AuthAccountChangePassResp struct {
 	AuthAccountLogonResp
 }
@@ -1937,9 +1942,8 @@ func (pkt *AuthAccountChangePassResp) Serialize(buf *protocol.Buffer, enc *Encod
 //
 // Format:
 //
-//     (UINT8)[32] Client key (A)
-//    (STRING)     Username
-//
+//	 (UINT8)[32] Client key (A)
+//	(STRING)     Username
 type AuthAccountChangePassReq struct {
 	AuthAccountLogonReq
 }
@@ -1959,14 +1963,14 @@ func (pkt *AuthAccountChangePassReq) Serialize(buf *protocol.Buffer, enc *Encodi
 // This message reports success or failure for a password change operation.
 //
 // Status:
-//   0x00: Password changed
-//   0x02: Incorrect old password
+//
+//	0x00: Password changed
+//	0x02: Incorrect old password
 //
 // Format:
 //
-//    (UINT32)     Status code
-//     (UINT8)[20] Server password proof for old password (M2)
-//
+//	(UINT32)     Status code
+//	 (UINT8)[20] Server password proof for old password (M2)
 type AuthAccountChangePassProofResp struct {
 	AuthAccountLogonProofResp
 }
@@ -1987,10 +1991,9 @@ func (pkt *AuthAccountChangePassProofResp) Serialize(buf *protocol.Buffer, enc *
 //
 // Format:
 //
-//    (UINT8)[20] Old password proof
-//    (UINT8)[32] New password's salt (s)
-//    (UINT8)[32] New password's verifier (v)
-//
+//	(UINT8)[20] Old password proof
+//	(UINT8)[32] New password's salt (s)
+//	(UINT8)[32] New password's verifier (v)
 type AuthAccountChangePassProofReq struct {
 	ClientPasswordProof [20]byte
 	NewSalt             [32]byte
@@ -2027,8 +2030,7 @@ func (pkt *AuthAccountChangePassProofReq) Deserialize(buf *protocol.Buffer, enc 
 //
 // Format:
 //
-//    (STRING) Email Address
-//
+//	(STRING) Email Address
 type SetEmail struct {
 	EmailAddress string
 }
@@ -2065,18 +2067,18 @@ func (pkt *SetEmail) Deserialize(buf *protocol.Buffer, enc *Encoding) error {
 // It is received when you first join a clan or immediately after logging on to tell you what clan you are in.
 //
 // Rank Values:
-//   0x00: Initiate (Peon icon), in clan less than one week
-//   0x01: Initiate (Peon icon)
-//   0x02: Member (Grunt icon)
-//   0x03: Officer (Shaman icon)
-//   0x04: Leader (Chieftain icon)
+//
+//	0x00: Initiate (Peon icon), in clan less than one week
+//	0x01: Initiate (Peon icon)
+//	0x02: Member (Grunt icon)
+//	0x03: Officer (Shaman icon)
+//	0x04: Leader (Chieftain icon)
 //
 // Format:
 //
-//     (UINT8) Unknown (0)
-//    (UINT32) Clan tag
-//     (UINT8) Rank
-//
+//	 (UINT8) Unknown (0)
+//	(UINT32) Clan tag
+//	 (UINT8) Rank
 type ClanInfo struct {
 	Tag  protocol.DWordString
 	Rank ClanRank

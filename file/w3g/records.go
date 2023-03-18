@@ -51,19 +51,18 @@ var DefaultFactory = MapFactory{
 //
 // Format:
 //
-//       Size   | Name
-//   -----------+--------------------------
-//       4 byte | Number of host records
-//     variable | PlayerInfo for host
-//     variable | GameName (null terminated string)
-//       1 byte | Nullbyte
-//     variable | Encoded String (null terminated)
-//              |  - GameSettings
-//              |  - Map&CreatorName
-//       4 byte | PlayerCount
-//       4 byte | GameType
-//       4 byte | LanguageID
-//
+//	    Size   | Name
+//	-----------+--------------------------
+//	    4 byte | Number of host records
+//	  variable | PlayerInfo for host
+//	  variable | GameName (null terminated string)
+//	    1 byte | Nullbyte
+//	  variable | Encoded String (null terminated)
+//	           |  - GameSettings
+//	           |  - Map&CreatorName
+//	    4 byte | PlayerCount
+//	    4 byte | GameType
+//	    4 byte | LanguageID
 type GameInfo struct {
 	HostPlayer   PlayerInfo
 	GameName     string
@@ -143,27 +142,26 @@ func (rec *GameInfo) Deserialize(buf *protocol.Buffer, enc *Encoding) error {
 //
 // Format:
 //
-//    size/type | Description
-//   -----------+-----------------------------------------------------------
-//     1 byte   | PlayerID
-//     n bytes  | PlayerName (null terminated string)
-//     1 byte   | size of additional data:
-//              |  0x01 = custom
-//              |  0x08 = ladder
+//	 size/type | Description
+//	-----------+-----------------------------------------------------------
+//	  1 byte   | PlayerID
+//	  n bytes  | PlayerName (null terminated string)
+//	  1 byte   | size of additional data:
+//	           |  0x01 = custom
+//	           |  0x08 = ladder
 //
-//   * If custom (0x01):
-//       1 byte    | null byte (1 byte)
-//   * If ladder (0x08):
-//       4 bytes   | runtime of player's Warcraft.exe in milliseconds
-//       4 bytes   | player race flags:
-//                 |   0x01=human
-//                 |   0x02=orc
-//                 |   0x04=nightelf
-//                 |   0x08=undead
-//                 |  (0x10=daemon)
-//                 |   0x20=random
-//                 |   0x40=race selectable/fixed
-//
+//	* If custom (0x01):
+//	    1 byte    | null byte (1 byte)
+//	* If ladder (0x08):
+//	    4 bytes   | runtime of player's Warcraft.exe in milliseconds
+//	    4 bytes   | player race flags:
+//	              |   0x01=human
+//	              |   0x02=orc
+//	              |   0x04=nightelf
+//	              |   0x08=undead
+//	              |  (0x10=daemon)
+//	              |   0x20=random
+//	              |   0x40=race selectable/fixed
 type PlayerInfo struct {
 	ID          uint8
 	Name        string
@@ -259,16 +257,15 @@ func (rec *PlayerInfo) DeserializeContent(buf *protocol.Buffer, enc *Encoding) e
 //
 // Format:
 //
-//    size/type | Description
-//   -----------+-----------------------------------------------------------
-//      1 dword | reason
-//              |  0x01 - connection closed by remote game
-//              |  0x0C - connection closed by local game
-//              |  0x0E - unknown (rare) (almost like 0x01)
-//      1 byte  | PlayerID
-//      1 dword | result - see table below
-//      1 dword | unknown (number of replays saved this warcraft session?)
-//
+//	 size/type | Description
+//	-----------+-----------------------------------------------------------
+//	   1 dword | reason
+//	           |  0x01 - connection closed by remote game
+//	           |  0x0C - connection closed by local game
+//	           |  0x0E - unknown (rare) (almost like 0x01)
+//	   1 byte  | PlayerID
+//	   1 dword | result - see table below
+//	   1 dword | unknown (number of replays saved this warcraft session?)
 type PlayerLeft struct {
 	Local    bool
 	PlayerID uint8
@@ -319,56 +316,55 @@ func (rec *PlayerLeft) Deserialize(buf *protocol.Buffer, enc *Encoding) error {
 //
 // Format:
 //
-//    size/type | Description
-//   -----------+-----------------------------------------------------------
-//     1 word   | number of data bytes following
-//     1 byte   | nr of SlotRecords following (== nr of slots on startscreen)
-//     n bytes  | nr * SlotRecord
-//     1 dword  | RandomSeed
-//     1 byte   | SelectMode
-//              |   0x00 - team & race selectable (for standard custom games)
-//              |   0x01 - team not selectable
-//              |          (map setting: fixed alliances in WorldEditor)
-//              |   0x03 - team & race not selectable
-//              |          (map setting: fixed player properties in WorldEditor)
-//              |   0x04 - race fixed to random
-//              |          (extended map options: random races selected)
-//              |   0xcc - Automated Match Making (ladder)
-//     1 byte   | StartSpotCount (nr. of start positions in map)
+//	 size/type | Description
+//	-----------+-----------------------------------------------------------
+//	  1 word   | number of data bytes following
+//	  1 byte   | nr of SlotRecords following (== nr of slots on startscreen)
+//	  n bytes  | nr * SlotRecord
+//	  1 dword  | RandomSeed
+//	  1 byte   | SelectMode
+//	           |   0x00 - team & race selectable (for standard custom games)
+//	           |   0x01 - team not selectable
+//	           |          (map setting: fixed alliances in WorldEditor)
+//	           |   0x03 - team & race not selectable
+//	           |          (map setting: fixed player properties in WorldEditor)
+//	           |   0x04 - race fixed to random
+//	           |          (extended map options: random races selected)
+//	           |   0xcc - Automated Match Making (ladder)
+//	  1 byte   | StartSpotCount (nr. of start positions in map)
 //
-//   For each slot:
-//     1 byte   | player id (0x00 for computer players)
-//     1 byte   | map download percent: 0x64 in custom, 0xff in ladder
-//     1 byte   | slotstatus:
-//              |   0x00 empty slot
-//              |   0x01 closed slot
-//              |   0x02 used slot
-//     1 byte   | computer player flag:
-//              |   0x00 for human player
-//              |   0x01 for computer player
-//     1 byte   | team number:0 - 11
-//              | (team 12 == observer or referee)
-//     1 byte   | color (0-11):
-//              |   value+1 matches player colors in world editor:
-//              |   (red, blue, cyan, purple, yellow, orange, green,
-//              |    pink, gray, light blue, dark green, brown)
-//              |   color 12 == observer or referee
-//     1 byte   | player race flags (as selected on map screen):
-//              |   0x01=human
-//              |   0x02=orc
-//              |   0x04=nightelf
-//              |   0x08=undead
-//              |   0x20=random
-//              |   0x40=race selectable/fixed
-//     1 byte   | computer AI strength: (only present in v1.03 or higher)
-//              |   0x00 for easy
-//              |   0x01 for normal
-//              |   0x02 for insane
-//              | for non-AI players this seems to be always 0x01
-//     1 byte   | player handicap in percent (as displayed on startscreen)
-//              | valid values: 0x32, 0x3C, 0x46, 0x50, 0x5A, 0x64
-//              | (field only present in v1.07 or higher)
-//
+//	For each slot:
+//	  1 byte   | player id (0x00 for computer players)
+//	  1 byte   | map download percent: 0x64 in custom, 0xff in ladder
+//	  1 byte   | slotstatus:
+//	           |   0x00 empty slot
+//	           |   0x01 closed slot
+//	           |   0x02 used slot
+//	  1 byte   | computer player flag:
+//	           |   0x00 for human player
+//	           |   0x01 for computer player
+//	  1 byte   | team number:0 - 11
+//	           | (team 12 == observer or referee)
+//	  1 byte   | color (0-11):
+//	           |   value+1 matches player colors in world editor:
+//	           |   (red, blue, cyan, purple, yellow, orange, green,
+//	           |    pink, gray, light blue, dark green, brown)
+//	           |   color 12 == observer or referee
+//	  1 byte   | player race flags (as selected on map screen):
+//	           |   0x01=human
+//	           |   0x02=orc
+//	           |   0x04=nightelf
+//	           |   0x08=undead
+//	           |   0x20=random
+//	           |   0x40=race selectable/fixed
+//	  1 byte   | computer AI strength: (only present in v1.03 or higher)
+//	           |   0x00 for easy
+//	           |   0x01 for normal
+//	           |   0x02 for insane
+//	           | for non-AI players this seems to be always 0x01
+//	  1 byte   | player handicap in percent (as displayed on startscreen)
+//	           | valid values: 0x32, 0x3C, 0x46, 0x50, 0x5A, 0x64
+//	           | (field only present in v1.07 or higher)
 type SlotInfo struct {
 	w3gs.SlotInfo
 }
@@ -396,10 +392,9 @@ func (rec *SlotInfo) Deserialize(buf *protocol.Buffer, enc *Encoding) error {
 //
 // Format:
 //
-//    size/type | Description
-//   -----------+-----------------------------------------------------------
-//      1 dword | unknown (always 0x01 so far)
-//
+//	 size/type | Description
+//	-----------+-----------------------------------------------------------
+//	   1 dword | unknown (always 0x01 so far)
 type GameStart struct{}
 
 // Serialize encodes the struct into its binary form.
@@ -429,10 +424,9 @@ func (rec *GameStart) Deserialize(buf *protocol.Buffer, enc *Encoding) error {
 //
 // Format:
 //
-//    size/type | Description
-//   -----------+-----------------------------------------------------------
-//      1 dword | unknown (always 0x01 so far)
-//
+//	 size/type | Description
+//	-----------+-----------------------------------------------------------
+//	   1 dword | unknown (always 0x01 so far)
 type CountDownStart struct {
 	GameStart
 }
@@ -448,10 +442,9 @@ func (rec *CountDownStart) Serialize(buf *protocol.Buffer, enc *Encoding) error 
 //
 // Format:
 //
-//    size/type | Description
-//   -----------+-----------------------------------------------------------
-//      1 dword | unknown (always 0x01 so far)
-//
+//	 size/type | Description
+//	-----------+-----------------------------------------------------------
+//	   1 dword | unknown (always 0x01 so far)
 type CountDownEnd struct {
 	GameStart
 }
@@ -467,14 +460,13 @@ func (rec *CountDownEnd) Serialize(buf *protocol.Buffer, enc *Encoding) error {
 //
 // Format:
 //
-//    size/type | Description
-//   -----------+-----------------------------------------------------------
-//     1 word   | n = number of bytes that follow
-//     1 word   | time increment (milliseconds)
-//              |   about 250 ms in battle.net
-//              |   about 100 ms in LAN and single player
-//     n-2 byte | CommandData block(s) (not present if n=2)
-//
+//	 size/type | Description
+//	-----------+-----------------------------------------------------------
+//	  1 word   | n = number of bytes that follow
+//	  1 word   | time increment (milliseconds)
+//	           |   about 250 ms in battle.net
+//	           |   about 100 ms in LAN and single player
+//	  n-2 byte | CommandData block(s) (not present if n=2)
 type TimeSlot struct {
 	w3gs.TimeSlot
 }
@@ -554,20 +546,19 @@ func (rec *TimeSlot) Deserialize(buf *protocol.Buffer, enc *Encoding) error {
 //
 // Format:
 //
-//    size/type | Description
-//   -----------+-----------------------------------------------------------
-//     1 byte   | PlayerID (message sender)
-//     1 word   | n = number of bytes that follow
-//     1 byte   | flags
-//              |   0x10   for delayed startup screen messages
-//              |   0x20   for normal messages
-//     1 dword  | chat mode (not present if flag = 0x10):
-//              |   0x00   for messages to all players
-//              |   0x01   for messages to allies
-//              |   0x02   for messages to observers or referees
-//              |   0x03+N for messages to specific player N (with N = slotnumber)
-//     n bytes  | zero terminated string containing the text message
-//
+//	 size/type | Description
+//	-----------+-----------------------------------------------------------
+//	  1 byte   | PlayerID (message sender)
+//	  1 word   | n = number of bytes that follow
+//	  1 byte   | flags
+//	           |   0x10   for delayed startup screen messages
+//	           |   0x20   for normal messages
+//	  1 dword  | chat mode (not present if flag = 0x10):
+//	           |   0x00   for messages to all players
+//	           |   0x01   for messages to allies
+//	           |   0x02   for messages to observers or referees
+//	           |   0x03+N for messages to specific player N (with N = slotnumber)
+//	  n bytes  | zero terminated string containing the text message
 type ChatMessage struct {
 	w3gs.Message
 }
@@ -670,11 +661,10 @@ func (rec *ChatMessage) Deserialize(buf *protocol.Buffer, enc *Encoding) error {
 //
 // Format:
 //
-//    size/type | Description
-//   -----------+-----------------------------------------------------------
-//      1 byte  | number of bytes following (always 0x04 so far)
-//      1 dword | checksum
-//
+//	 size/type | Description
+//	-----------+-----------------------------------------------------------
+//	   1 byte  | number of bytes following (always 0x04 so far)
+//	   1 dword | checksum
 type TimeSlotAck struct {
 	Checksum []byte
 }
@@ -714,13 +704,12 @@ func (rec *TimeSlotAck) Deserialize(buf *protocol.Buffer, enc *Encoding) error {
 //
 // Format:
 //
-//    size/type | Description
-//   -----------+-----------------------------------------------------------
-//      1 dword | unknown
-//      1 byte  | unknown (always 4?)
-//      1 dword | unknown (random?)
-//      1 byte  | unknown (always 0?)
-//
+//	 size/type | Description
+//	-----------+-----------------------------------------------------------
+//	   1 dword | unknown
+//	   1 byte  | unknown (always 4?)
+//	   1 dword | unknown (random?)
+//	   1 byte  | unknown (always 0?)
 type Desync struct {
 	w3gs.Desync
 }
@@ -748,13 +737,12 @@ func (rec *Desync) Deserialize(buf *protocol.Buffer, enc *Encoding) error {
 //
 // Format:
 //
-//    size/type | Description
-//   -----------+-----------------------------------------------------------
-//      1 dword | mode:
-//              |   0x00 countdown is running
-//              |   0x01 countdown is over (end is forced *now*)
-//      1 dword | countdown time in sec
-//
+//	 size/type | Description
+//	-----------+-----------------------------------------------------------
+//	   1 dword | mode:
+//	           |   0x00 countdown is running
+//	           |   0x01 countdown is over (end is forced *now*)
+//	   1 dword | countdown time in sec
 type EndTimer struct {
 	GameOver     bool
 	CountDownSec uint32
@@ -787,29 +775,28 @@ func (rec *EndTimer) Deserialize(buf *protocol.Buffer, enc *Encoding) error {
 //
 // Format:
 //
-//    size/type | Description
-//   -----------+-----------------------------------------------------------
-//      1 byte  | sub type (0x03)
-//              |   0x03   battle.net profile data
-//              |   0x04   in-game skins
-//      1 dword | number of bytes following
-//      n bytes | protobuf encoded struct
+//	 size/type | Description
+//	-----------+-----------------------------------------------------------
+//	   1 byte  | sub type (0x03)
+//	           |   0x03   battle.net profile data
+//	           |   0x04   in-game skins
+//	   1 dword | number of bytes following
+//	   n bytes | protobuf encoded struct
 //
-//   For each battle.net profile (sub type 0x03, encoded with protobuf):
-//      1 byte  | player ID
-//      string  | battletag
-//      string  | clan
-//      string  | portrait
-//      1 byte  | team
-//      string  | unknown
+//	For each battle.net profile (sub type 0x03, encoded with protobuf):
+//	   1 byte  | player ID
+//	   string  | battletag
+//	   string  | clan
+//	   string  | portrait
+//	   1 byte  | team
+//	   string  | unknown
 //
-//   For each player (sub type 0x04, encoded with protobuf):
-//      1 byte  | player ID
-//      For each in-game skin:
-//      qword   | unit ID
-//      qword   | skin ID
-//      string  | skin collection
-//
+//	For each player (sub type 0x04, encoded with protobuf):
+//	   1 byte  | player ID
+//	   For each in-game skin:
+//	   qword   | unit ID
+//	   qword   | skin ID
+//	   string  | skin collection
 type PlayerExtra struct {
 	w3gs.PlayerExtra
 }

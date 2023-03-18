@@ -175,7 +175,7 @@ func TestFiles(t *testing.T) {
 		}
 
 		if !reflect.DeepEqual(&f.info, inf) {
-			t.Log(fmt.Sprintf("%+v\n", *inf))
+			t.Logf("%+v\n", *inf)
 			t.Fatal(f.file, "Info() return value not deep equal")
 		}
 

@@ -9,44 +9,43 @@
 //
 // Format:
 //
-//    size/type | Description
-//   -----------+-----------------------------------------------------------
-//    28 chars  | zero terminated string "Warcraft III recorded game\0x1A\0"
-//     1 dword  | fileoffset of first compressed data block (header size)
-//              |  0x40 for WarCraft III with patch <= v1.06
-//              |  0x44 for WarCraft III patch >= 1.07 and TFT replays
-//     1 dword  | overall size of compressed file
-//     1 dword  | replay header version:
-//              |  0x00 for WarCraft III with patch <= 1.06
-//              |  0x01 for WarCraft III patch >= 1.07 and TFT replays
-//     1 dword  | overall size of decompressed data (excluding header)
-//     1 dword  | number of compressed data blocks in file
+//	 size/type | Description
+//	-----------+-----------------------------------------------------------
+//	 28 chars  | zero terminated string "Warcraft III recorded game\0x1A\0"
+//	  1 dword  | fileoffset of first compressed data block (header size)
+//	           |  0x40 for WarCraft III with patch <= v1.06
+//	           |  0x44 for WarCraft III patch >= 1.07 and TFT replays
+//	  1 dword  | overall size of compressed file
+//	  1 dword  | replay header version:
+//	           |  0x00 for WarCraft III with patch <= 1.06
+//	           |  0x01 for WarCraft III patch >= 1.07 and TFT replays
+//	  1 dword  | overall size of decompressed data (excluding header)
+//	  1 dword  | number of compressed data blocks in file
 //
-//   * replay header version 0x00:
-//        1  word  | unknown (always zero so far)
-//        1  word  | version number (corresponds to patch 1.xx)
-//   * replay header version 0x01:
-//        1 dword  | version identifier string reading:
-//                 |  'WAR3' for WarCraft III Classic
-//                 |  'W3XP' for WarCraft III Expansion Set 'The Frozen Throne'
-//        1 dword  | version number (corresponds to patch 1.xx so far)
+//	* replay header version 0x00:
+//	     1  word  | unknown (always zero so far)
+//	     1  word  | version number (corresponds to patch 1.xx)
+//	* replay header version 0x01:
+//	     1 dword  | version identifier string reading:
+//	              |  'WAR3' for WarCraft III Classic
+//	              |  'W3XP' for WarCraft III Expansion Set 'The Frozen Throne'
+//	     1 dword  | version number (corresponds to patch 1.xx so far)
 //
-//     1  word  | build number
-//     1  word  | flags
-//              |   0x0000 for single player games
-//              |   0x8000 for multiplayer games (LAN or Battle.net)
-//     1 dword  | replay length in msec
-//     1 dword  | CRC32 checksum for the header
-//              | (the checksum is calculated for the complete header
-//              |  including this field which is set to zero)
+//	  1  word  | build number
+//	  1  word  | flags
+//	           |   0x0000 for single player games
+//	           |   0x8000 for multiplayer games (LAN or Battle.net)
+//	  1 dword  | replay length in msec
+//	  1 dword  | CRC32 checksum for the header
+//	           | (the checksum is calculated for the complete header
+//	           |  including this field which is set to zero)
 //
-//   For each data block:
-//     1  word  | size n of compressed data block (excluding header)
-//     1  word  | size of decompressed data block (currently 8k)
-//     1  word  | CRC checksum for the header
-//     1  word  | CRC checksum for the compressed block
-//     n bytes  | compressed data (using zlib)
-//
+//	For each data block:
+//	  1  word  | size n of compressed data block (excluding header)
+//	  1  word  | size of decompressed data block (currently 8k)
+//	  1  word  | CRC checksum for the header
+//	  1  word  | CRC checksum for the compressed block
+//	  n bytes  | compressed data (using zlib)
 package w3g
 
 import (

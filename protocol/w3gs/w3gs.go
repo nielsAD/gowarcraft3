@@ -13,11 +13,10 @@
 //
 // General serialization format:
 //
-//    (UINT8)  Protocol signature (0xF7)
-//    (UINT8)  Packet type ID
-//    (UINT16) Packet size
-//    [Packet Data]
-//
+//	(UINT8)  Protocol signature (0xF7)
+//	(UINT8)  Packet type ID
+//	(UINT16) Packet size
+//	[Packet Data]
 package w3gs
 
 import "github.com/nielsAD/gowarcraft3/protocol"
